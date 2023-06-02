@@ -16,3 +16,5 @@
 
 .idea
 *.json
+
+!resources/log/.gitkeep
