@@ -38,7 +38,8 @@ func (rest *thirdREST) Download(c *ship.Context) error {
 	//goland:noinspection GoUnhandledErrorResult
 	defer file.Close()
 	if third.Hash == req.Hash {
-		return ship.NewHTTPServerError(http.StatusNotModified)
+		c.WriteHeader(http.StatusNotModified)
+		return nil
 	}
 
 	params := map[string]string{

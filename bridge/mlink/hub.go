@@ -2,6 +2,7 @@ package mlink
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"math/rand"
 	"net"
@@ -204,7 +205,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	}
 	defer hub.section.del(sid)
 
-	// now := sql.NullTime{Valid: true, Time: time.Now()}
+	now := sql.NullTime{Valid: true, Time: time.Now()}
 	mon := &model.Minion{
 		ID:     id,
 		Inet:   inet,
@@ -221,6 +222,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 		// Executable: ident.Executable,
 		// PingedAt:   now,
 		// JoinedAt:   now,
+		Uptime:     now,
 		BrokerID:   hub.link.Ident().ID,
 		BrokerName: hub.link.Issue().Name,
 		UpdatedAt:  before,

@@ -29,7 +29,7 @@ func main() {
 		flag.StringVar(&args.config, "c", "broker.json", "加载配置文件")
 	}
 	flag.Parse()
-	if banner.Print(os.Stdout); args.version {
+	if banner.WriteTo(os.Stdout); args.version {
 		return
 	}
 

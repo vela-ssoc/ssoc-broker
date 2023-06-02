@@ -65,7 +65,7 @@ func (ts *taskSync) spinSync(ctx context.Context, rpt *param.TaskReport) error {
 		cycle++
 		rpt, err = ts.postDiff(ctx, diff)
 		if err != nil {
-			ts.slog.Warnf("第 %d 推送差异出错：%v，差异配置：%s", err, diff)
+			ts.slog.Warnf("第 %d 推送差异出错：%v，差异配置：%s", cycle, err, diff)
 		} else {
 			diff = ts.compare.FastCompare(ctx, mid, rpt, subs)
 		}

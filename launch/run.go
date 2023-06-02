@@ -15,10 +15,12 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
+	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mb/taskpool"
 	"github.com/vela-ssoc/vela-common-mb/validate"
+	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -64,13 +66,22 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	agt.HandleError = pbh.HandleError
 	agt.Validator = validate.New()
 
+	cli := netutil.NewClient()
+
+	esCfg := elastic.NewConfigure()
+	esc := elastic.NewSearch(esCfg, cli)
 	mv1 := mgt.Group(accord.PathPrefix)
 	av1 := agt.Group(accord.PathPrefix)
 
 	thirdService := service.Third(gfs)
 	thirdREST := agtapi.Third(thirdService)
 	thirdREST.Route(av1)
-	agtapi.Stream(name).Route(av1)
+	agtapi.Stream(name, esc).Route(av1)
+	agtapi.Forward(esc).Route(av1)
+	agtapi.Heart().Route(av1)
+	agtapi.Operate().Route(av1)
+	agtapi.Collect().Route(av1)
+	agtapi.Audit().Route(av1)
 
 	compare := subtask.Compare()
 	nodeEventService := service.NodeEvent(compare, pool, slog)
@@ -81,6 +92,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	taskREST := mgtapi.Task(taskService)
 	taskREST.Route(mv1)
 
+	mgtapi.Elastic(esCfg).Route(mv1)
 	mgtapi.Third(hub, pool).Route(mv1)
 
 	intoService := service.Into(hub)
