@@ -1,20 +1,22 @@
 package agtapi
 
 import (
-	"time"
-
 	"github.com/vela-ssoc/vela-broker/app/route"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
+	"github.com/vela-ssoc/vela-common-mb/audit"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/xgfone/ship/v5"
 )
 
-func Audit() route.Router {
-	return &auditREST{}
+func Audit(auditor audit.Auditor) route.Router {
+	return &auditREST{
+		auditor: auditor,
+	}
 }
 
-type auditREST struct{}
+type auditREST struct {
+	auditor audit.Auditor
+}
 
 func (rest *auditREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/broker/audit/risk").POST(rest.Risk)
@@ -22,7 +24,17 @@ func (rest *auditREST) Route(r *ship.RouteGroupBuilder) {
 }
 
 func (rest *auditREST) Risk(c *ship.Context) error {
-	return nil
+	var req model.Risk
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	inf := mlink.Ctx(ctx)
+	req.Inet = inf.Inet().String()
+	req.MinionID = inf.Issue().ID
+
+	return rest.auditor.Risk(ctx, &req)
 }
 
 func (rest *auditREST) Event(c *ship.Context) error {
@@ -33,12 +45,8 @@ func (rest *auditREST) Event(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
-	req.ID = 0
 	req.Inet = inf.Inet().String()
 	req.MinionID = inf.Issue().ID
-	req.OccurAt = time.Now()
 
-	_ = query.Event.WithContext(ctx).Create(&req)
-
-	return nil
+	return rest.auditor.Event(ctx, &req)
 }

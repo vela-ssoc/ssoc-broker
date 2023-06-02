@@ -7,14 +7,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Elastic(cfg elastic.Configurer) route.Router {
+func Elastic(cfg elastic.SearchConfigurer) route.Router {
 	return &elasticREST{
 		cfg: cfg,
 	}
 }
 
 type elasticREST struct {
-	cfg elastic.Configurer
+	cfg elastic.SearchConfigurer
 }
 
 func (rest *elasticREST) Route(r *ship.RouteGroupBuilder) {

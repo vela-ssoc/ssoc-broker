@@ -9442,3 +9442,19 @@ net/http.(*conn).serve
 2023-06-02T17:36:50.236+0800	[33mWARN[0m	telecom/client.go:72	dial [tcp://172.31.61.168:8081 host/servername: 172.31.61.168] 失败：dial tcp 172.31.61.168:8081: connect: connection refused
 2023-06-02T17:36:51.237+0800	[33mWARN[0m	telecom/client.go:72	dial [tls://172.31.61.168:8443 host/servername: 168.eastmoney.com] 失败：dial tcp 172.31.61.168:8443: connect: connection refused
 2023-06-02T17:36:52.296+0800	[34mINFO[0m	launch/daemon.go:71	重新连接中心端成功
+2023-06-02T18:18:29.752+0800	[33mWARN[0m	launch/daemon.go:61	与中心端的连接已断开
+2023-06-02T18:18:29.897+0800	[34mINFO[0m	mlink/hub.go:277	[elapsed 145.569583ms, rows 0] UPDATE `minion` SET `status`=2,`updated_at`='2023-06-02 18:18:29.752' WHERE `minion`.`broker_id` = 62837086593667088 AND `minion`.`status` = 3
+2023-06-02T18:18:29.898+0800	[34mINFO[0m	main/main.go:51	程序运行结束
+2023-06-02T18:18:31.991+0800	[34mINFO[0m	mlink/hub.go:277	[elapsed 115.168781ms, rows 0] UPDATE `minion` SET `status`=2,`updated_at`='2023-06-02 18:18:31.876' WHERE `minion`.`broker_id` = 62837086593667088 AND `minion`.`status` = 3
+2023-06-02T19:20:46.574+0800	[33mWARN[0m	launch/daemon.go:61	与中心端的连接已断开
+2023-06-02T19:20:46.720+0800	[34mINFO[0m	mlink/hub.go:277	[elapsed 145.712909ms, rows 0] UPDATE `minion` SET `status`=2,`updated_at`='2023-06-02 19:20:46.574' WHERE `minion`.`broker_id` = 62837086593667088 AND `minion`.`status` = 3
+2023-06-02T19:20:46.720+0800	[34mINFO[0m	main/main.go:51	程序运行结束
+2023-06-02T19:21:09.948+0800	[34mINFO[0m	mlink/hub.go:277	[elapsed 119.201163ms, rows 0] UPDATE `minion` SET `status`=2,`updated_at`='2023-06-02 19:21:09.829' WHERE `minion`.`broker_id` = 62837086593667088 AND `minion`.`status` = 3
+2023-06-02T19:21:11.769+0800	[33mWARN[0m	launch/daemon.go:61	与中心端的连接已断开
+2023-06-02T19:21:11.769+0800	[34mINFO[0m	launch/daemon.go:66	正在准备重试连接中心端
+2023-06-02T19:21:11.770+0800	[33mWARN[0m	telecom/client.go:72	dial [tls://172.31.61.168:8443 host/servername: 168.eastmoney.com] 失败：dial tcp 172.31.61.168:8443: connect: connection refused
+2023-06-02T19:21:12.771+0800	[33mWARN[0m	telecom/client.go:72	dial [tcp://172.31.61.168:8081 host/servername: 172.31.61.168] 失败：dial tcp 172.31.61.168:8081: connect: connection refused
+2023-06-02T19:21:13.771+0800	[33mWARN[0m	telecom/client.go:72	dial [tls://172.31.61.168:8443 host/servername: 168.eastmoney.com] 失败：dial tcp 172.31.61.168:8443: connect: connection refused
+2023-06-02T19:21:14.773+0800	[33mWARN[0m	telecom/client.go:72	dial [tcp://172.31.61.168:8081 host/servername: 172.31.61.168] 失败：dial tcp 172.31.61.168:8081: connect: connection refused
+2023-06-02T19:21:15.774+0800	[33mWARN[0m	telecom/client.go:72	dial [tls://172.31.61.168:8443 host/servername: 168.eastmoney.com] 失败：dial tcp 172.31.61.168:8443: connect: connection refused
+2023-06-02T19:21:16.836+0800	[34mINFO[0m	launch/daemon.go:71	重新连接中心端成功

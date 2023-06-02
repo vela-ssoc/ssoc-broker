@@ -12,6 +12,7 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/accord"
+	"github.com/vela-ssoc/vela-common-mb/audit"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
@@ -68,7 +69,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 
 	cli := netutil.NewClient()
 
-	esCfg := elastic.NewConfigure()
+	esCfg := elastic.NewSearchConfigure()
 	esc := elastic.NewSearch(esCfg, cli)
 	mv1 := mgt.Group(accord.PathPrefix)
 	av1 := agt.Group(accord.PathPrefix)
@@ -81,7 +82,9 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	agtapi.Heart().Route(av1)
 	agtapi.Operate().Route(av1)
 	agtapi.Collect().Route(av1)
-	agtapi.Audit().Route(av1)
+
+	auditor := audit.NewAuditor(slog)
+	agtapi.Audit(auditor).Route(av1)
 
 	compare := subtask.Compare()
 	nodeEventService := service.NodeEvent(compare, pool, slog)
