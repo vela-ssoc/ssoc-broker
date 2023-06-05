@@ -23,7 +23,10 @@ func (rest *forwardREST) Route(r *ship.RouteGroupBuilder) {
 func (rest *forwardREST) Elastic(c *ship.Context) error {
 	r := c.Request()
 	ctx := r.Context()
-	_, err := rest.esc.Bulk(ctx, r.Body)
+	if _, err := rest.esc.Bulk(ctx, r.Body); err != nil {
+		c.Warnf("es bulk 接口错误：%s", err)
+		return err
+	}
 
-	return err
+	return nil
 }

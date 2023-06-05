@@ -18,3 +18,4 @@
 *.json
 
 !resources/log/.gitkeep
+resources/log/
