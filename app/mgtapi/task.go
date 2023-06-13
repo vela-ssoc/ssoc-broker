@@ -18,6 +18,8 @@ type taskREST struct {
 func (rest *taskREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route(accord.PathTaskSync).POST(rest.Sync)
 	r.Route(accord.PathTaskLoad).POST(rest.Load)
+	r.Route(accord.PathTaskTable).POST(rest.Table)
+	r.Route(accord.PathStartup).POST(rest.Startup)
 }
 
 // Sync 即：向指定 agent 同步配置
@@ -42,4 +44,29 @@ func (rest *taskREST) Load(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	return rest.svc.Load(ctx, req.MinionID, req.SubstanceID, req.Inet)
+}
+
+// Table 向指定节点发送指定配置（节点会重新加载指定配置）
+func (rest *taskREST) Table(c *ship.Context) error {
+	var req accord.TaskTable
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	c.Infof("扫表同步节点配置")
+	ctx := c.Request().Context()
+
+	return rest.svc.Table(ctx, req.TaskID)
+}
+
+func (rest *taskREST) Startup(c *ship.Context) error {
+	var req accord.Startup
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	c.Infof("扫表同步节点配置")
+	ctx := c.Request().Context()
+
+	return rest.svc.Startup(ctx, req.ID)
 }

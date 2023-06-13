@@ -1,5 +1,6 @@
 package param
 
-type TunnelTCP struct {
-	Address string `json:"address" query:"address" validate:"hostname_port"`
+type TunnelRequest struct {
+	Address string `json:"address" query:"address" validate:"required"`
+	Skip    bool   `json:"skip"    query:"skip"`
 }

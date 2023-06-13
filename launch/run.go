@@ -16,7 +16,13 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
+	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
+	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
+	"github.com/vela-ssoc/vela-common-mb/integration/devops"
+	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
+	"github.com/vela-ssoc/vela-common-mb/integration/formwork"
+	"github.com/vela-ssoc/vela-common-mb/integration/ntfmatch"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mb/taskpool"
@@ -50,7 +56,16 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	gfs := gridfs.NewCDN(sdb, "", 60*1024)
 
 	// minionHandler := handler.Minion()
+	cli := netutil.NewClient()
 	pool := taskpool.NewPool(256, 1024)
+	rend := formwork.NewRend(slog)
+	match := ntfmatch.NewMatch()
+
+	dongCfg := dong.NewConfigure()
+	dongCli := dong.NewClient(dongCfg, cli, slog)
+	devCli := devops.NewClient(cli)
+
+	alert := alarm.UnifyAlerter(rend, pool, match, slog, dongCli, devCli)
 
 	// manager callback
 	name := link.Name()
@@ -67,27 +82,31 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	agt.HandleError = pbh.HandleError
 	agt.Validator = validate.New()
 
-	cli := netutil.NewClient()
-
-	esCfg := elastic.NewSearchConfigure()
-	esc := elastic.NewSearch(esCfg, cli)
 	mv1 := mgt.Group(accord.PathPrefix)
 	av1 := agt.Group(accord.PathPrefix)
 
 	thirdService := service.Third(gfs)
 	thirdREST := agtapi.Third(thirdService)
 	thirdREST.Route(av1)
+
+	esCfg := elastic.NewSearchConfigure()
+	esc := elastic.NewSearch(esCfg, cli)
+
 	agtapi.Stream(name, esc).Route(av1)
 	agtapi.Forward(esc).Route(av1)
 	agtapi.Heart().Route(av1)
 	agtapi.Operate().Route(av1)
 	agtapi.Collect().Route(av1)
+	agtapi.Security().Route(av1)
 
 	auditor := audit.NewAuditor(slog)
 	agtapi.Audit(auditor).Route(av1)
+	agtapi.BPF().Route(av1)
 
+	cmdbCfg := cmdb.NewConfigure(slog)
+	cmdbCli := cmdb.NewClient(cmdbCfg, cli, slog)
 	compare := subtask.Compare()
-	nodeEventService := service.NodeEvent(compare, pool, slog)
+	nodeEventService := service.NodeEvent(compare, cmdbCli, pool, alert, slog)
 	hub := mlink.LinkHub(link, agt, nodeEventService, pool)
 	_ = hub.ResetDB()
 
@@ -95,7 +114,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	taskREST := mgtapi.Task(taskService)
 	taskREST.Route(mv1)
 
-	mgtapi.Elastic(esCfg).Route(mv1)
+	mgtapi.Reset(esCfg, cmdbCfg).Route(mv1)
 	mgtapi.Third(hub, pool).Route(mv1)
 
 	intoService := service.Into(hub)

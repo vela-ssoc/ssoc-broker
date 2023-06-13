@@ -170,7 +170,7 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 		return issue, nil, true, ErrMinionRemove
 	}
 	if status == model.MSOnline {
-		return issue, nil, true, ErrMinionOnline
+		return issue, nil, false, ErrMinionOnline
 	}
 
 	// 随机生成一个 32-64 位长度的加密密钥
@@ -184,7 +184,11 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 }
 
 func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.Ident, issue gateway.Issue) error {
-	mux := spdy.Server(tran, spdy.WithEncrypt(issue.Passwd))
+	opts := []spdy.Option{spdy.WithEncrypt(issue.Passwd)}
+	if inter := ident.Interval; inter >= time.Minute {
+		opts = append(opts, spdy.WithReadTimout(3*inter))
+	}
+	mux := spdy.Server(tran, opts...)
 	//goland:noinspection GoUnhandledErrorResult
 	defer mux.Close()
 
@@ -207,13 +211,13 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 
 	now := sql.NullTime{Valid: true, Time: time.Now()}
 	mon := &model.Minion{
-		ID:     id,
-		Inet:   inet,
-		Status: model.MSOnline,
-		MAC:    ident.MAC,
-		Goos:   ident.Goos,
-		Arch:   ident.Arch,
-		// Semver:     ident.Semver,
+		ID:      id,
+		Inet:    inet,
+		Status:  model.MSOnline,
+		MAC:     ident.MAC,
+		Goos:    ident.Goos,
+		Arch:    ident.Arch,
+		Edition: ident.Semver,
 		// CPU:        ident.CPU,
 		// PID:        ident.PID,
 		// Username:   ident.Username,
