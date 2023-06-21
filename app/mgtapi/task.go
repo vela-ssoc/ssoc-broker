@@ -16,10 +16,10 @@ type taskREST struct {
 }
 
 func (rest *taskREST) Route(r *ship.RouteGroupBuilder) {
-	r.Route(accord.PathTaskSync).POST(rest.Sync)
-	r.Route(accord.PathTaskLoad).POST(rest.Load)
-	r.Route(accord.PathTaskTable).POST(rest.Table)
-	r.Route(accord.PathStartup).POST(rest.Startup)
+	r.Route(accord.PathTaskSync).Data(route.Named("节点配置同步")).POST(rest.Sync)
+	r.Route(accord.PathTaskLoad).Data(route.Named("节点配置重启并同步")).POST(rest.Load)
+	r.Route(accord.PathTaskTable).Data(route.Named("扫表并同步各个节点配置")).POST(rest.Table)
+	r.Route(accord.PathStartup).Data(route.Named("startup 配置同步")).POST(rest.Startup)
 }
 
 // Sync 即：向指定 agent 同步配置

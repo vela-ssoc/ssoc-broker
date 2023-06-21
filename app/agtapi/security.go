@@ -12,10 +12,14 @@ import (
 )
 
 func Security() route.Router {
-	return &securityREST{}
+	return &securityREST{
+		limit: 1000,
+	}
 }
 
-type securityREST struct{}
+type securityREST struct {
+	limit int
+}
 
 func (rest *securityREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/broker/ip/risk").POST(rest.RiskIP)
@@ -26,19 +30,115 @@ func (rest *securityREST) Route(r *ship.RouteGroupBuilder) {
 }
 
 func (rest *securityREST) RiskIP(c *ship.Context) error {
-	return nil
+	var qry param.SecurityKindRequest
+	if err := c.BindQuery(&qry); err != nil {
+		return err
+	}
+	var body param.SecurityIPRequest
+	if err := c.Bind(&body); err != nil {
+		return err
+	}
+
+	now := time.Now()
+	ctx := c.Request().Context()
+	tbl := query.RiskIP
+	dao := tbl.WithContext(ctx).
+		Where(tbl.IP.In(body.Data...), tbl.BeforeAt.Gte(now))
+	if len(qry.Kind) != 0 {
+		dao.Where(tbl.Kind.In(qry.Kind...))
+	}
+	dats, _ := dao.Limit(rest.limit).Find()
+	kinds := model.RiskIPs(dats).IPKinds()
+	res := &param.SecurityResult{
+		Count: len(kinds),
+		Data:  kinds,
+	}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func (rest *securityREST) PassIP(c *ship.Context) error {
-	return nil
+	var qry param.SecurityKindRequest
+	if err := c.BindQuery(&qry); err != nil {
+		return err
+	}
+	var body param.SecurityIPRequest
+	if err := c.Bind(&body); err != nil {
+		return err
+	}
+
+	now := time.Now()
+	ctx := c.Request().Context()
+	tbl := query.PassIP
+	dao := tbl.WithContext(ctx).
+		Where(tbl.IP.In(body.Data...), tbl.BeforeAt.Gte(now))
+	if len(qry.Kind) != 0 {
+		dao.Where(tbl.Kind.In(qry.Kind...))
+	}
+	dats, _ := dao.Limit(rest.limit).Find()
+	kinds := model.PassIPs(dats).IPKinds()
+	res := &param.SecurityResult{
+		Count: len(kinds),
+		Data:  kinds,
+	}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func (rest *securityREST) RiskDNS(c *ship.Context) error {
-	return nil
+	var qry param.SecurityKindRequest
+	if err := c.BindQuery(&qry); err != nil {
+		return err
+	}
+	var body param.SecurityDNSRequest
+	if err := c.Bind(&body); err != nil {
+		return err
+	}
+
+	now := time.Now()
+	ctx := c.Request().Context()
+	tbl := query.RiskDNS
+	dao := tbl.WithContext(ctx).
+		Where(tbl.Domain.In(body.Data...), tbl.BeforeAt.Gte(now))
+	if len(qry.Kind) != 0 {
+		dao.Where(tbl.Kind.In(qry.Kind...))
+	}
+	dats, _ := dao.Limit(rest.limit).Find()
+	kinds := model.RiskDNSs(dats).DomainKinds()
+	res := &param.SecurityResult{
+		Count: len(kinds),
+		Data:  kinds,
+	}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func (rest *securityREST) PassDNS(c *ship.Context) error {
-	return nil
+	var qry param.SecurityKindRequest
+	if err := c.BindQuery(&qry); err != nil {
+		return err
+	}
+	var body param.SecurityDNSRequest
+	if err := c.Bind(&body); err != nil {
+		return err
+	}
+
+	now := time.Now()
+	ctx := c.Request().Context()
+	tbl := query.PassDNS
+	dao := tbl.WithContext(ctx).
+		Where(tbl.Domain.In(body.Data...), tbl.BeforeAt.Gte(now))
+	if len(qry.Kind) != 0 {
+		dao.Where(tbl.Kind.In(qry.Kind...))
+	}
+	dats, _ := dao.Limit(rest.limit).Find()
+	kinds := model.PassDNSs(dats).DomainKinds()
+	res := &param.SecurityResult{
+		Count: len(kinds),
+		Data:  kinds,
+	}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func (rest *securityREST) RiskFile(c *ship.Context) error {
@@ -60,12 +160,12 @@ func (rest *securityREST) RiskFile(c *ship.Context) error {
 	}
 
 	// Limit 做下限制防止数据量太大
-	dats, err := dao.Limit(1000).Find()
+	dats, err := dao.Limit(rest.limit).Find()
 	if err != nil {
 		return err
 	}
 	hashmap := model.RiskFiles(dats).ChecksumKinds()
-	res := &param.SecurityFileResult{Data: hashmap, Count: len(hashmap)}
+	res := &param.SecurityResult{Data: hashmap, Count: len(hashmap)}
 
 	return c.JSON(http.StatusOK, res)
 }

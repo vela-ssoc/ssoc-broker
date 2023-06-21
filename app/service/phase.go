@@ -54,6 +54,11 @@ func (biz *nodeEventService) Repeated(id int64, ident gateway.Ident, at time.Tim
 func (biz *nodeEventService) Connected(lnk mlink.Linker, ident gateway.Ident, issue gateway.Issue, at time.Time) {
 	mid, inet := issue.ID, ident.Inet.String()
 	biz.slog.Infof("agent %s(%d) 上线了", inet, mid)
+
+	// 推送 startup
+	tsk := subtask.Startup(lnk, mid, biz.slog)
+	biz.pool.Submit(tsk)
+
 	task := subtask.SyncTask(lnk, biz.compare, mid, inet, biz.slog)
 	biz.pool.Submit(task)
 

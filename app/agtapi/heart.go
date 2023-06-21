@@ -13,7 +13,7 @@ func Heart() route.Router {
 type heartREST struct{}
 
 func (rest *heartREST) Route(r *ship.RouteGroupBuilder) {
-	r.Route("/minion/ping").POST(rest.Ping)
+	r.Route("/minion/ping").Data(route.Ignore()).POST(rest.Ping)
 }
 
 func (rest *heartREST) Ping(c *ship.Context) error {

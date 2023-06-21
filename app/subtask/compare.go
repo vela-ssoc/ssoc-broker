@@ -49,7 +49,7 @@ func (biz *compareService) SlowCompare(ctx context.Context, mid int64, inet stri
 	if len(subIDs) != 0 {
 		subDao.Or(subTbl.ID.In(subIDs...))
 	}
-	subs, err := subDao.Find()
+	subs, err := subDao.Order(subTbl.ID).Find()
 	if err != nil {
 		return nil, nil, err
 	}

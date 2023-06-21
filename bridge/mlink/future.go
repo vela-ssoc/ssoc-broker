@@ -26,7 +26,7 @@ type futureTask struct {
 func (ft *futureTask) Run() {
 	defer ft.wg.Done()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	err := ft.hub.silentJSON(ctx, ft.mid, ft.path, ft.req)
@@ -46,7 +46,7 @@ type onewayTask struct {
 func (ot *onewayTask) Run() {
 	defer ot.wg.Done()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	ot.err = ot.hub.silentJSON(ctx, ot.mid, ot.path, ot.req)
 }
@@ -69,7 +69,7 @@ type unicastTask struct {
 func (ut *unicastTask) Run() {
 	defer ut.wg.Done()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	err := ut.hub.json(ctx, ut.mid, ut.path, ut.req, ut.resp)

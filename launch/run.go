@@ -6,6 +6,7 @@ import (
 
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
 	"github.com/vela-ssoc/vela-broker/app/mgtapi"
+	"github.com/vela-ssoc/vela-broker/app/middle"
 	"github.com/vela-ssoc/vela-broker/app/service"
 	"github.com/vela-ssoc/vela-broker/app/subtask"
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
@@ -82,20 +83,21 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	agt.HandleError = pbh.HandleError
 	agt.Validator = validate.New()
 
-	mv1 := mgt.Group(accord.PathPrefix)
-	av1 := agt.Group(accord.PathPrefix)
+	mv1 := mgt.Group(accord.PathPrefix).Use(middle.Oplog)
+	av1 := agt.Group(accord.PathPrefix).Use(middle.Oplog)
 
 	thirdService := service.Third(gfs)
 	thirdREST := agtapi.Third(thirdService)
 	thirdREST.Route(av1)
+	bid := link.Ident().ID
+	agtapi.Upgrade(bid, gfs).Route(av1)
 
-	esCfg := elastic.NewSearchConfigure()
+	esCfg := elastic.NewConfigure(name)
 	esc := elastic.NewSearch(esCfg, cli)
 
 	agtapi.Stream(name, esc).Route(av1)
-	agtapi.Forward(esc).Route(av1)
+	agtapi.Elastic(esc).Route(av1)
 	agtapi.Heart().Route(av1)
-	agtapi.Operate().Route(av1)
 	agtapi.Collect().Route(av1)
 	agtapi.Security().Route(av1)
 
@@ -114,12 +116,18 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	taskREST := mgtapi.Task(taskService)
 	taskREST.Route(mv1)
 
+	operateService := service.Operate(hub, compare, pool, slog)
+	agtapi.Operate(operateService).Route(av1)
+
 	mgtapi.Reset(esCfg, cmdbCfg).Route(mv1)
 	mgtapi.Third(hub, pool).Route(mv1)
 
 	intoService := service.Into(hub)
 	intoREST := mgtapi.Into(intoService)
 	intoREST.Route(mv1)
+	agentService := service.Agent(hub, pool, slog)
+	agentREST := mgtapi.Agent(agentService)
+	agentREST.Route(mv1)
 
 	gw := gateway.New(hub)
 	mux := http.NewServeMux()

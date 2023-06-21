@@ -8,9 +8,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Reset(esCfg elastic.SearchConfigurer,
-	cmdbCfg cmdb.Configurer,
-) route.Router {
+func Reset(esCfg elastic.Configurer, cmdbCfg cmdb.Configurer) route.Router {
 	return &resetREST{
 		esCfg:   esCfg,
 		cmdbCfg: cmdbCfg,
@@ -18,13 +16,13 @@ func Reset(esCfg elastic.SearchConfigurer,
 }
 
 type resetREST struct {
-	esCfg   elastic.SearchConfigurer
+	esCfg   elastic.Configurer
 	cmdbCfg cmdb.Configurer
 }
 
 func (rest *resetREST) Route(r *ship.RouteGroupBuilder) {
-	r.Route(accord.PathElasticReset).POST(rest.Elastic)
-	r.Route(accord.PathCmdbReset).POST(rest.Cmdb)
+	r.Route(accord.PathElasticReset).Data(route.Named("elastic 配置 reset")).POST(rest.Elastic)
+	r.Route(accord.PathCmdbReset).Data(route.Named("cmdb 配置 reset")).POST(rest.Cmdb)
 }
 
 func (rest *resetREST) Elastic(c *ship.Context) error {

@@ -2,10 +2,8 @@ package agtapi
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
@@ -45,8 +43,7 @@ type streamREST struct {
 
 func (rest *streamREST) Route(r *ship.RouteGroupBuilder) {
 	rt := r.Group("/broker/stream", middle.MustWebsocket)
-	rt.Route("/tunnel").GET(rest.Tunnel)
-	rt.Route("/elastic").GET(rest.Elastic)
+	rt.Route("/tunnel").Data(route.Named("agent 建立 stream 代理通道")).GET(rest.Tunnel)
 }
 
 func (rest *streamREST) Tunnel(c *ship.Context) error {
@@ -91,48 +88,6 @@ func (rest *streamREST) Tunnel(c *ship.Context) error {
 		c.Infof("代理错误：%s", err)
 	}
 	c.Infof("节点 %s(%d) 代理通道 %s 关闭", inet, mid, addr)
-
-	return nil
-}
-
-func (rest *streamREST) Elastic(c *ship.Context) error {
-	w, r := c.Response(), c.Request()
-	parent := r.Context()
-	inf := mlink.Ctx(parent)
-	inet, id := inf.Inet(), inf.Issue().ID
-
-	ws, err := rest.upgrade.Upgrade(w, r, nil)
-	if err != nil {
-		c.Warnf("节点 %s(%d) es tunnel upgrade 失败：%s", err, inet, id)
-		return err
-	}
-	//goland:noinspection GoUnhandledErrorResult
-	defer ws.Close()
-
-	c.Infof("节点 %s(%d) 建立 es 代理成功", inet, id)
-
-	var n int
-	for {
-		//_, dat, err := ws.ReadMessage()
-		_, rd, err := ws.NextReader()
-		if err != nil {
-			c.Warnf("es tunnel next reader 获取失败：%s", err)
-			break
-		}
-		n++
-		ctx, cancel := context.WithTimeout(parent, 3*time.Second)
-		res, err := rest.esc.Bulk(ctx, rd)
-		cancel()
-		log.Printf("es %d : %v", n, err)
-		if err != nil {
-			c.Warnf("es bulk 写入错误：%s", err)
-			continue
-		}
-		if res.Errors {
-			c.Warnf("es bulk 写入存在错误数据")
-		}
-	}
-	c.Infof("节点 %s(%d) 关闭 es 代理", inet, id)
 
 	return nil
 }

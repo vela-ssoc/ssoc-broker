@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mba/definition"
-
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-broker/app/route"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
@@ -13,6 +11,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/stegano"
+	"github.com/vela-ssoc/vela-common-mba/definition"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 )
@@ -30,7 +29,7 @@ type upgradeREST struct {
 }
 
 func (rest *upgradeREST) Route(r *ship.RouteGroupBuilder) {
-	r.Route("/broker/upgrade")
+	r.Route("/broker/upgrade/download").Data("agent 下载二进制文件升级").GET(rest.Download)
 }
 
 func (rest *upgradeREST) Download(c *ship.Context) error {
@@ -44,14 +43,26 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	inf := mlink.Ctx(r.Context()) // 获取节点的信息
 	ident := inf.Ident()
 	goos, arch := ident.Goos, ident.Arch
-	weight := model.Semver(ident.Semver).Int64()
+	except := req.Version
+	if except != "" && except == ident.Semver { // 如果请求的版本
+		c.WriteHeader(http.StatusNotModified)
+		return nil
+	}
 
 	// 查询最新的版本信息
 	tbl := query.MinionBin
-	bin, err := tbl.WithContext(ctx).
-		Where(tbl.Goos.Eq(goos), tbl.Arch.Eq(arch),
-			tbl.Deprecated.Is(false), tbl.Weight.Gt(weight)).
-		First()
+	dao := tbl.WithContext(ctx).
+		Where(tbl.Goos.Eq(goos),
+			tbl.Arch.Eq(arch),
+			tbl.Deprecated.Is(false))
+	if except != "" {
+		dao.Where(tbl.Semver.Eq(except))
+	} else {
+		weight := model.Semver(ident.Semver).Int64()
+		dao.Where(tbl.Weight.Gt(weight))
+	}
+
+	bin, err := dao.First()
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.WriteHeader(http.StatusNotModified)

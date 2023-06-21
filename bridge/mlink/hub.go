@@ -178,14 +178,14 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 	passwd := make([]byte, psz)
 	hub.random.Read(passwd)
 
-	issue.ID, issue.Passwd = mon.ID, passwd
+	issue.ID, issue.Passwd = mon.ID, nil
 
 	return issue, nil, false, nil
 }
 
 func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.Ident, issue gateway.Issue) error {
 	opts := []spdy.Option{spdy.WithEncrypt(issue.Passwd)}
-	if inter := ident.Interval; inter >= time.Minute {
+	if inter := ident.Interval; inter > 0 {
 		opts = append(opts, spdy.WithReadTimout(3*inter))
 	}
 	mux := spdy.Server(tran, opts...)
@@ -242,7 +242,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	defer func() {
 		online := uint8(model.MSOnline)
 		offline := uint8(model.MSOffline)
-		dctx, dcancel := context.WithTimeout(parent, 5*time.Second)
+		dctx, dcancel := context.WithTimeout(parent, 10*time.Second)
 		_, _ = monTbl.WithContext(dctx).
 			Where(monTbl.ID.Eq(id)).
 			Where(monTbl.BrokerID.Eq(hub.bid)).

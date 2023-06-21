@@ -23,7 +23,7 @@ type thirdREST struct {
 }
 
 func (rest *thirdREST) Route(r *ship.RouteGroupBuilder) {
-	r.Route(accord.PathThirdDiff).POST(rest.Diff)
+	r.Route(accord.PathThirdDiff).Data(route.Named("通知节点三方文件变动")).POST(rest.Diff)
 }
 
 func (rest *thirdREST) Diff(c *ship.Context) error {

@@ -22,7 +22,7 @@ func (rest *intoREST) Route(r *ship.RouteGroupBuilder) {
 		http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace,
 		ship.PROPFIND, "LOCK", "MKCOL", "PROPPATCH", "COPY", "MOVE", "UNLOCK",
 	}
-	r.Route("/arr/*path").Method(rest.ARR, methods...)
+	r.Route("/arr/*path").Data(route.Named("ARR 直接调用")).Method(rest.ARR, methods...)
 }
 
 func (rest *intoREST) ARR(c *ship.Context) error {
@@ -36,5 +36,5 @@ func (rest *intoREST) ARR(c *ship.Context) error {
 }
 
 func (rest *intoREST) AWS(c *ship.Context) error {
-	return nil
+	return ship.ErrStatusNotImplemented
 }
