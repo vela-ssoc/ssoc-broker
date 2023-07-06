@@ -6,31 +6,29 @@ import (
 
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
 	"gorm.io/gen/field"
 )
 
-func Table(lnk mlink.Linker, bid, tid int64, compare Comparer, pool taskpool.Executor, slog logback.Logger) taskpool.Runner {
+func Table(lnk mlink.Linker, bid, tid int64, pool gopool.Executor, slog logback.Logger) gopool.Runner {
 	return &tableTask{
-		tid:     tid,
-		bid:     bid,
-		size:    200,
-		lnk:     lnk,
-		compare: compare,
-		pool:    pool,
-		slog:    slog,
+		tid:  tid,
+		bid:  bid,
+		size: 200,
+		lnk:  lnk,
+		pool: pool,
+		slog: slog,
 	}
 }
 
 type tableTask struct {
-	tid     int64
-	bid     int64
-	size    int // 每批个数
-	lnk     mlink.Linker
-	compare Comparer
-	pool    taskpool.Executor
-	slog    logback.Logger
+	tid  int64
+	bid  int64
+	size int // 每批个数
+	lnk  mlink.Linker
+	pool gopool.Executor
+	slog logback.Logger
 }
 
 func (t *tableTask) Run() {
@@ -39,26 +37,27 @@ func (t *tableTask) Run() {
 
 	tbl := query.SubstanceTask
 	dao := tbl.WithContext(ctx).
-		Where(tbl.BrokerID.Eq(t.bid), tbl.TaskID.Eq(t.tid), tbl.Executed.Is(false))
+		Where(tbl.BrokerID.Eq(t.bid), tbl.TaskID.Eq(t.tid), tbl.Executed.Is(false)).
+		Order(tbl.MinionID)
 
+	var offset int
 	var done bool
 	for !done {
-		tasks, err := dao.Limit(t.size).Find()
+		tasks, err := dao.Offset(offset).Limit(t.size).Find()
 		if err != nil {
 			t.slog.Warnf("查询任务错误：%s", err)
 			break
 		}
-		if len(tasks) == 0 {
-			done = true
+		length := len(tasks)
+		if done = length == 0; done {
 			break
 		}
+		offset += length
 
 		for _, task := range tasks {
 			sync := &taskSync{
 				lnk:     t.lnk,
 				mid:     task.MinionID,
-				inet:    task.Inet,
-				compare: t.compare,
 				slog:    t.slog,
 				timeout: time.Minute,
 				cycle:   3,

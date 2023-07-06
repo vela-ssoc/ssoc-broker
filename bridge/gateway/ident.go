@@ -21,7 +21,12 @@ type Ident struct {
 	Username   string        `json:"username"`   // 当前操作系统用户名
 	Hostname   string        `json:"hostname"`   // 主机名
 	Interval   time.Duration `json:"interval"`   // 心跳间隔
-	TimeAt     time.Time     `json:"time_at"`    // 当前时间，暂无太大意义
+	Unload     bool          `json:"unload"`     // 是否开启静默模式，仅对新注册的节点有效
+	TimeAt     time.Time     `json:"time_at"`    // 时间
+
+	// Encrypt 是否加密传输。
+	// Deprecated: 后续将删除该字段，默认所有数据加密传输。
+	Encrypt bool `json:"encrypt"` // 是否支持加密
 }
 
 // Decrypt 认证身份信息解密

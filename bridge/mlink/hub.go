@@ -17,18 +17,17 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
-	"github.com/vela-ssoc/vela-common-mba/spdy"
+	"github.com/vela-ssoc/vela-common-mba/smux"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 var (
 	ErrMinionBadInet  = errors.New("minion IP 不合法")
-	ErrMinionRegister = errors.New("节点正在注册")
 	ErrMinionInactive = errors.New("节点未激活")
 	ErrMinionRemove   = errors.New("节点已删除")
 	ErrMinionOnline   = errors.New("节点已经在线")
@@ -59,7 +58,7 @@ type Huber interface {
 	Knockout(mid int64)
 }
 
-func LinkHub(link telecom.Linker, handler http.Handler, phase NodePhaser, pool taskpool.Executor) Linker {
+func LinkHub(link telecom.Linker, handler http.Handler, phase NodePhaser, pool gopool.Executor) Linker {
 	seed := time.Now().UnixNano()
 	random := rand.New(rand.NewSource(seed))
 
@@ -92,7 +91,7 @@ type minionHub struct {
 	proxy   netutil.Forwarder
 	stream  netutil.Streamer
 	phase   NodePhaser
-	pool    taskpool.Executor
+	pool    gopool.Executor
 	section subsection
 	bid     int64  // 当前 broker ID
 	name    string // 当前 broker 名字
@@ -135,6 +134,7 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 			// Workdir:    ident.Workdir,
 			// Executable: ident.Executable,
 			// JoinedAt:   now,
+			Unload:     ident.Unload,
 			BrokerID:   hub.link.Ident().ID,
 			BrokerName: hub.link.Issue().Name,
 			CreatedAt:  now,
@@ -158,8 +158,6 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 		}
 
 		hub.phase.Created(join.ID, inet, now)
-
-		return issue, nil, false, ErrMinionRegister
 	}
 
 	status := mon.Status
@@ -173,22 +171,25 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 		return issue, nil, false, ErrMinionOnline
 	}
 
-	// 随机生成一个 32-64 位长度的加密密钥
-	psz := hub.random.Intn(33) + 32
-	passwd := make([]byte, psz)
-	hub.random.Read(passwd)
-
-	issue.ID, issue.Passwd = mon.ID, nil
+	issue.ID = mon.ID
+	if ident.Encrypt {
+		// 随机生成一个 32-64 位长度的加密密钥
+		psz := hub.random.Intn(33) + 32
+		passwd := make([]byte, psz)
+		hub.random.Read(passwd)
+		issue.Passwd = passwd
+	}
 
 	return issue, nil, false, nil
 }
 
 func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.Ident, issue gateway.Issue) error {
-	opts := []spdy.Option{spdy.WithEncrypt(issue.Passwd)}
+	cfg := smux.DefaultConfig()
+	cfg.Passwd = issue.Passwd
 	if inter := ident.Interval; inter > 0 {
-		opts = append(opts, spdy.WithReadTimout(3*inter))
+		cfg.ReadTimeout = 3 * inter // 3 倍心跳周期还未收到消息，强制断开连接
 	}
-	mux := spdy.Server(tran, opts...)
+	mux := smux.Server(tran, cfg)
 	//goland:noinspection GoUnhandledErrorResult
 	defer mux.Close()
 
@@ -416,7 +417,11 @@ func (hub *minionHub) dialContext(_ context.Context, _, addr string) (net.Conn, 
 	}
 
 	if conn, ok := hub.section.get(id); ok {
-		return conn.mux.Dial()
+		if stream, exx := conn.mux.OpenStream(); exx != nil {
+			return nil, exx
+		} else {
+			return stream, nil
+		}
 	}
 
 	return nil, ErrMinionOffline

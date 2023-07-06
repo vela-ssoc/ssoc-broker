@@ -16,7 +16,7 @@ func Oplog(h ship.Handler) ship.Handler {
 		sat := time.Now()
 		err := h(c)
 		du := time.Since(sat)
-		if ok && desc.Ignore(du) { // 无需记录
+		if ok && desc.Ignore(du) && err == nil { // 无需记录
 			return err
 		}
 
@@ -26,10 +26,10 @@ func Oplog(h ship.Handler) ship.Handler {
 		}
 
 		if err == nil {
-			c.Infof("[%10s] %s %s %s", du, name, method, reqURL)
+			c.Infof("[%12s] %s %s %s", du, name, method, reqURL)
 			return nil
 		}
-		c.Warnf("[%10s] %s %s %s %s", du, name, method, reqURL, err)
+		c.Warnf("[%12s] %s %s %s %s", du, name, method, reqURL, err)
 
 		return err
 	}

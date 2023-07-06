@@ -33,6 +33,7 @@ func (rest *thirdREST) Download(c *ship.Context) error {
 	ctx := c.Request().Context()
 	third, file, err := rest.svc.Open(ctx, req.Name)
 	if err != nil {
+		c.Infof("查找 3rd %s 错误：%s", req.Name, err)
 		return ship.ErrNotFound
 	}
 	//goland:noinspection GoUnhandledErrorResult

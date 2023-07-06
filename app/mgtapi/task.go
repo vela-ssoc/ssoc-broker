@@ -31,7 +31,7 @@ func (rest *taskREST) Sync(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 
-	return rest.svc.Sync(ctx, req.MinionID, req.Inet)
+	return rest.svc.Sync(ctx, req.MinionID)
 }
 
 // Load 向指定节点发送指定配置（节点会重新加载指定配置）
@@ -43,7 +43,7 @@ func (rest *taskREST) Load(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 
-	return rest.svc.Load(ctx, req.MinionID, req.SubstanceID, req.Inet)
+	return rest.svc.Load(ctx, req.MinionID, req.SubstanceID)
 }
 
 // Table 向指定节点发送指定配置（节点会重新加载指定配置）

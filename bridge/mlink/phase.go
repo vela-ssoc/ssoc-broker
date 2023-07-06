@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 )
 
 type NodePhaser interface {
@@ -21,7 +21,7 @@ type NodePhaser interface {
 	Disconnected(lnk Linker, ident gateway.Ident, issue gateway.Issue, at time.Time, du time.Duration)
 }
 
-func newAsyncPhase(ph NodePhaser, pool taskpool.Executor) NodePhaser {
+func newAsyncPhase(ph NodePhaser, pool gopool.Executor) NodePhaser {
 	return &phaseProxy{
 		phase: ph,
 		pool:  pool,
@@ -30,7 +30,7 @@ func newAsyncPhase(ph NodePhaser, pool taskpool.Executor) NodePhaser {
 
 type phaseProxy struct {
 	phase NodePhaser
-	pool  taskpool.Executor
+	pool  gopool.Executor
 }
 
 func (pp *phaseProxy) Created(id int64, inet string, at time.Time) {
@@ -40,7 +40,7 @@ func (pp *phaseProxy) Created(id int64, inet string, at time.Time) {
 	fn := func() {
 		pp.phase.Created(id, inet, at)
 	}
-	pp.pool.Submit(taskpool.RunnerFunc(fn))
+	pp.pool.Execute(fn)
 }
 
 func (pp *phaseProxy) Repeated(id int64, ident gateway.Ident, at time.Time) {
@@ -50,7 +50,7 @@ func (pp *phaseProxy) Repeated(id int64, ident gateway.Ident, at time.Time) {
 	fn := func() {
 		pp.phase.Repeated(id, ident, at)
 	}
-	pp.pool.Submit(taskpool.RunnerFunc(fn))
+	pp.pool.Execute(fn)
 }
 
 func (pp *phaseProxy) Connected(lnk Linker, ident gateway.Ident, issue gateway.Issue, at time.Time) {
@@ -60,7 +60,7 @@ func (pp *phaseProxy) Connected(lnk Linker, ident gateway.Ident, issue gateway.I
 	fn := func() {
 		pp.phase.Connected(lnk, ident, issue, at)
 	}
-	pp.pool.Submit(taskpool.RunnerFunc(fn))
+	pp.pool.Execute(fn)
 }
 
 func (pp *phaseProxy) Disconnected(lnk Linker, ident gateway.Ident, issue gateway.Issue, at time.Time, du time.Duration) {
@@ -70,5 +70,5 @@ func (pp *phaseProxy) Disconnected(lnk Linker, ident gateway.Ident, issue gatewa
 	fn := func() {
 		pp.phase.Disconnected(lnk, ident, issue, at, du)
 	}
-	pp.pool.Submit(taskpool.RunnerFunc(fn))
+	pp.pool.Execute(fn)
 }

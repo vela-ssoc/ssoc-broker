@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
+	"github.com/vela-ssoc/vela-broker/app/tblcmp"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/logback"
@@ -18,8 +19,6 @@ const (
 type taskSync struct {
 	lnk     mlink.Linker
 	mid     int64
-	inet    string
-	compare Comparer
 	slog    logback.Logger
 	timeout time.Duration
 	cycle   int
@@ -54,22 +53,26 @@ func (ts *taskSync) PullSync() error {
 }
 
 func (ts *taskSync) spinSync(ctx context.Context, rpt *param.TaskReport) error {
-	mid, inet := ts.mid, ts.inet
-	diff, subs, err := ts.compare.SlowCompare(ctx, mid, inet, rpt)
+	mid := ts.mid
+	rec, err := tblcmp.Find(ctx, ts.mid)
 	if err != nil {
 		ts.slog.Warnf("从数据库比对配置出错：%v", err)
 		return err
 	}
+
 	var cycle int
+	diff := rec.Compare(rpt)
 	for cycle < ts.cycle && !diff.NotModified() && err == nil {
 		cycle++
-		rpt, err = ts.postDiff(ctx, diff)
-		if err != nil {
+		if ret, exx := ts.postDiff(ctx, diff); exx != nil {
 			ts.slog.Warnf("第 %d 推送差异出错：%v，差异配置：%s", cycle, err, diff)
 		} else {
-			diff = ts.compare.FastCompare(ctx, mid, rpt, subs)
+			rpt = ret
+			diff = rec.Compare(ret)
 		}
 	}
+
+	inet := rec.Inet()
 	if err != nil {
 		ts.slog.Warnf("向 agent %s(%d)配置同步失败：%s", inet, mid, err)
 		return err

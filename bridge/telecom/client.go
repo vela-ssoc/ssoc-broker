@@ -18,7 +18,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
-	"github.com/vela-ssoc/vela-common-mba/spdy"
+	"github.com/vela-ssoc/vela-common-mba/smux"
 )
 
 type brokerClient struct {
@@ -28,7 +28,7 @@ type brokerClient struct {
 	slog   logback.Logger
 	client netutil.HTTPClient
 	dialer *iterDial
-	mux    spdy.Muxer
+	mux    *smux.Session
 	joinAt time.Time
 	parent context.Context
 	ctx    context.Context
@@ -76,7 +76,10 @@ func (bc *brokerClient) dial(parent context.Context) error {
 
 		ident, issue, err := bc.consult(bc.ctx, conn, addr)
 		if err == nil {
-			mux := spdy.Client(conn, spdy.WithEncrypt(issue.Passwd))
+			cfg := smux.DefaultConfig()
+			cfg.KeepAliveDisabled = true
+			mux := smux.Client(conn, cfg)
+			// mux := spdy.Client(conn, spdy.WithEncrypt(issue.Passwd))
 			bc.ident, bc.issue, bc.mux, bc.joinAt = ident, issue, mux, time.Now()
 			return nil
 		}
@@ -195,8 +198,14 @@ func (bc *brokerClient) dialSleep(ctx context.Context, start time.Time) {
 }
 
 func (bc *brokerClient) dialContext(_ context.Context, _, _ string) (net.Conn, error) {
-	if mux := bc.mux; mux != nil {
-		return mux.Dial()
+	mux := bc.mux
+	if mux == nil {
+		return nil, io.ErrNoProgress
 	}
-	return nil, io.ErrNoProgress
+
+	if stream, err := mux.OpenStream(); err != nil {
+		return nil, err
+	} else {
+		return stream, nil
+	}
 }

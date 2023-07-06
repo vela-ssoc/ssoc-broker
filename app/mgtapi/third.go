@@ -6,11 +6,11 @@ import (
 	"github.com/vela-ssoc/vela-broker/app/subtask"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/accord"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/xgfone/ship/v5"
 )
 
-func Third(lnk mlink.Linker, pool taskpool.Executor) route.Router {
+func Third(lnk mlink.Linker, pool gopool.Executor) route.Router {
 	return &thirdREST{
 		lnk:  lnk,
 		pool: pool,
@@ -19,7 +19,7 @@ func Third(lnk mlink.Linker, pool taskpool.Executor) route.Router {
 
 type thirdREST struct {
 	lnk  mlink.Linker
-	pool taskpool.Executor
+	pool gopool.Executor
 }
 
 func (rest *thirdREST) Route(r *ship.RouteGroupBuilder) {

@@ -5,18 +5,17 @@ import (
 	"encoding/json"
 	"time"
 
-	"gorm.io/gen/field"
-
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
 	"github.com/vela-ssoc/vela-common-mba/definition"
+	"gorm.io/gen/field"
 	"gorm.io/gorm"
 )
 
-func Startup(lnk mlink.Huber, id int64, slog logback.Logger) taskpool.Runner {
+func Startup(lnk mlink.Huber, id int64, slog logback.Logger) gopool.Runner {
 	return &startupTask{
 		id:      id,
 		slog:    slog,

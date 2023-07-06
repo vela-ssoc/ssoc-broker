@@ -18,9 +18,8 @@ type elasticREST struct {
 }
 
 func (rest *elasticREST) Route(r *ship.RouteGroupBuilder) {
-	r.Route("/broker/forward/elastic").Data(route.Ignore()).POST(rest.Forward)
-	r.Route("/broker/proxy/elastic").Any(rest.Elastic)
-	r.Route("/broker/proxy/elastic/*path").Any(rest.Elastic)
+	r.Route("/broker/proxy/elastic").Data(route.Ignore()).Any(rest.Elastic)
+	r.Route("/broker/proxy/elastic/*path").Data(route.Ignore()).Any(rest.Elastic)
 }
 
 func (rest *elasticREST) Elastic(c *ship.Context) error {
@@ -28,6 +27,7 @@ func (rest *elasticREST) Elastic(c *ship.Context) error {
 	w, r := c.Response(), c.Request()
 	ctx := r.Context()
 	r.URL.Path = path
+	r.RequestURI = path
 	err := rest.esc.ServeHTTP(ctx, w, r)
 	if err != nil {
 		c.Warnf("es 代理执行错误：%s", err)

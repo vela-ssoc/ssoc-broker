@@ -7,10 +7,6 @@ type Describer interface {
 	Name() string
 }
 
-func Slow(name string, du time.Duration) Describer {
-	return routeDesc{name: name}
-}
-
 func Named(name string) Describer {
 	return routeDesc{name: name}
 }
@@ -27,5 +23,11 @@ type routeDesc struct {
 
 func (r routeDesc) Name() string { return r.name }
 func (r routeDesc) Ignore(du time.Duration) bool {
-	return !r.ignore && r.timeout > 0 && du >= r.timeout
+	if r.ignore {
+		return true
+	}
+	if r.timeout > 0 {
+		return du > r.timeout
+	}
+	return false
 }

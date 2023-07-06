@@ -8,32 +8,30 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
 )
 
 type PhaseService interface {
 	mlink.NodePhaser
 }
 
-func NodeEvent(compare subtask.Comparer, cmdbc cmdb.Client, pool taskpool.Executor, alert alarm.Alerter, slog logback.Logger) PhaseService {
+func NodeEvent(cmdbc cmdb.Client, pool gopool.Executor, alert alarm.Alerter, slog logback.Logger) PhaseService {
 	return &nodeEventService{
-		compare: compare,
-		pool:    pool,
-		cmdbc:   cmdbc,
-		slog:    slog,
-		alert:   alert,
+		pool:  pool,
+		cmdbc: cmdbc,
+		slog:  slog,
+		alert: alert,
 	}
 }
 
 type nodeEventService struct {
-	compare subtask.Comparer
-	pool    taskpool.Executor
-	slog    logback.Logger
-	cmdbc   cmdb.Client
-	alert   alarm.Alerter
+	pool  gopool.Executor
+	slog  logback.Logger
+	cmdbc cmdb.Client
+	alert alarm.Alerter
 }
 
 func (biz *nodeEventService) Created(id int64, inet string, at time.Time) {
@@ -59,7 +57,7 @@ func (biz *nodeEventService) Connected(lnk mlink.Linker, ident gateway.Ident, is
 	tsk := subtask.Startup(lnk, mid, biz.slog)
 	biz.pool.Submit(tsk)
 
-	task := subtask.SyncTask(lnk, biz.compare, mid, inet, biz.slog)
+	task := subtask.SyncTask(lnk, mid, biz.slog)
 	biz.pool.Submit(task)
 
 	now := time.Now()

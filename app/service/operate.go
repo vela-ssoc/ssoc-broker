@@ -8,8 +8,8 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gorm/clause"
 )
@@ -20,13 +20,11 @@ type OperateService interface {
 
 func Operate(
 	lnk mlink.Linker,
-	comp subtask.Comparer,
-	pool taskpool.Executor,
+	pool gopool.Executor,
 	slog logback.Logger,
 ) OperateService {
 	return &operateService{
 		lnk:  lnk,
-		comp: comp,
 		pool: pool,
 		slog: slog,
 	}
@@ -34,8 +32,7 @@ func Operate(
 
 type operateService struct {
 	lnk  mlink.Linker
-	comp subtask.Comparer
-	pool taskpool.Executor
+	pool gopool.Executor
 	slog logback.Logger
 }
 
@@ -74,7 +71,7 @@ func (biz *operateService) Update(ctx context.Context, mid int64, req *param.Tag
 	})
 
 	if err == nil {
-		task := subtask.SyncTask(biz.lnk, biz.comp, mid, mon.Inet, biz.slog)
+		task := subtask.SyncTask(biz.lnk, mid, biz.slog)
 		biz.pool.Submit(task)
 	}
 

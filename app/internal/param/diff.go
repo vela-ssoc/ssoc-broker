@@ -38,6 +38,7 @@ func (td TaskDiff) String() string {
 		buf.WriteString(str)
 		for _, up := range td.Updates {
 			buf.WriteString(up.Name)
+			buf.WriteString(", ")
 		}
 	}
 

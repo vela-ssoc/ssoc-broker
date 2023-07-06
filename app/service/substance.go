@@ -31,15 +31,7 @@ func (biz *substanceService) Compare(ctx context.Context, mid int64, inet string
 	if err != nil {
 		return nil, err
 	}
-	comIDs, subIDs := model.Effects(effs).Exclusion(inet)
-	if len(comIDs) != 0 {
-		comTbl := query.Compound
-		coms, err := comTbl.WithContext(ctx).Where(comTbl.ID.In(comIDs...)).Find()
-		if err == nil {
-			ids := model.Compounds(coms).SubstanceIDs()
-			subIDs = append(subIDs, ids...)
-		}
-	}
+	subIDs := model.Effects(effs).Exclusion(inet)
 
 	subDao := subTbl.WithContext(ctx).Where(subTbl.MinionID.Eq(mid))
 	if len(subIDs) != 0 {

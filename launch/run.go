@@ -2,13 +2,15 @@ package launch
 
 import (
 	"context"
-	"net/http"
+	"time"
+
+	"github.com/vela-ssoc/vela-broker/app/temporary"
+	"github.com/vela-ssoc/vela-broker/app/temporary/linkhub"
 
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
 	"github.com/vela-ssoc/vela-broker/app/mgtapi"
 	"github.com/vela-ssoc/vela-broker/app/middle"
 	"github.com/vela-ssoc/vela-broker/app/service"
-	"github.com/vela-ssoc/vela-broker/app/subtask"
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
@@ -17,16 +19,18 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/integration/devops"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
-	"github.com/vela-ssoc/vela-common-mb/integration/formwork"
 	"github.com/vela-ssoc/vela-common-mb/integration/ntfmatch"
+	"github.com/vela-ssoc/vela-common-mb/integration/sonatype"
+	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
+	"github.com/vela-ssoc/vela-common-mb/storage"
 	"github.com/vela-ssoc/vela-common-mb/validate"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
@@ -58,30 +62,32 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 
 	// minionHandler := handler.Minion()
 	cli := netutil.NewClient()
-	pool := taskpool.NewPool(256, 1024)
-	rend := formwork.NewRend(slog)
+	pool := gopool.New(4096, 1024, 10*time.Minute)
 	match := ntfmatch.NewMatch()
+	store := storage.NewStore()
 
 	dongCfg := dong.NewConfigure()
 	dongCli := dong.NewClient(dongCfg, cli, slog)
-	devCli := devops.NewClient(cli)
+	devopsCfg := devops.NewConfig(store)
+	devCli := devops.NewClient(devopsCfg, cli)
 
-	alert := alarm.UnifyAlerter(rend, pool, match, slog, dongCli, devCli)
+	alert := alarm.UnifyAlerter(store, pool, match, slog, dongCli, devCli)
 
 	// manager callback
 	name := link.Name()
 	pbh := problem.NewHandle(name)
 
+	valid := validate.New()
 	agt := ship.Default()
 	mgt := ship.Default()
 	mgt.Logger = slog
 	mgt.NotFound = pbh.NotFound
 	mgt.HandleError = pbh.HandleError
-	mgt.Validator = validate.New()
+	mgt.Validator = valid
 	agt.Logger = slog
 	agt.NotFound = pbh.NotFound
 	agt.HandleError = pbh.HandleError
-	agt.Validator = validate.New()
+	agt.Validator = valid
 
 	mv1 := mgt.Group(accord.PathPrefix).Use(middle.Oplog)
 	av1 := agt.Group(accord.PathPrefix).Use(middle.Oplog)
@@ -91,6 +97,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	thirdREST.Route(av1)
 	bid := link.Ident().ID
 	agtapi.Upgrade(bid, gfs).Route(av1)
+	agtapi.Task().Route(av1)
 
 	esCfg := elastic.NewConfigure(name)
 	esc := elastic.NewSearch(esCfg, cli)
@@ -105,22 +112,26 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	agtapi.Audit(auditor).Route(av1)
 	agtapi.BPF().Route(av1)
 
-	cmdbCfg := cmdb.NewConfigure(slog)
+	ntfMatch := ntfmatch.NewMatch()
+	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbCli := cmdb.NewClient(cmdbCfg, cli, slog)
-	compare := subtask.Compare()
-	nodeEventService := service.NodeEvent(compare, cmdbCli, pool, alert, slog)
+	nodeEventService := service.NodeEvent(cmdbCli, pool, alert, slog)
 	hub := mlink.LinkHub(link, agt, nodeEventService, pool)
 	_ = hub.ResetDB()
 
-	taskService := service.Task(hub, compare, pool, slog)
+	taskService := service.Task(hub, pool, slog)
 	taskREST := mgtapi.Task(taskService)
 	taskREST.Route(mv1)
 
-	operateService := service.Operate(hub, compare, pool, slog)
+	operateService := service.Operate(hub, pool, slog)
 	agtapi.Operate(operateService).Route(av1)
-
-	mgtapi.Reset(esCfg, cmdbCfg).Route(mv1)
+	mgtapi.Reset(store, esCfg, ntfMatch).Route(mv1)
 	mgtapi.Third(hub, pool).Route(mv1)
+
+	sonaCfg := sonatype.HardConfig()
+	sonaCli := sonatype.NewClient(sonaCfg, cli)
+	vsync := vulnsync.New(db, sonaCli)
+	_ = vsync
 
 	intoService := service.Into(hub)
 	intoREST := mgtapi.Into(intoService)
@@ -129,14 +140,28 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	agentREST := mgtapi.Agent(agentService)
 	agentREST.Route(mv1)
 
+	oldHandler := linkhub.New(db, link, slog, gfs)
+	temp := temporary.REST(oldHandler, valid, slog)
 	gw := gateway.New(hub)
-	mux := http.NewServeMux()
-	mux.Handle("/api/v1/minion", gw)
+
+	mux := ship.Default()
+	api := mux.Group("/")
+	api.Route("/api/v1/minion").CONNECT(func(c *ship.Context) error {
+		gw.ServeHTTP(c.ResponseWriter(), c.Request())
+		return nil
+	})
+	api.Route("/v1/minion/endpoint").GET(temp.Endpoint)
+	api.Route("/v1/edition/upgrade").GET(oldHandler.Upgrade)
+
+	// mux := http.NewServeMux()
+	// mux.Handle("/api/v1/minion", gw)
+	// mux.Handle("/api/minion/endpoint", nil)
+	// mux.Handle("/api/edition/upgrade", nil)
 
 	errCh := make(chan error, 1)
 
 	// 监听本地端口用于 minion 节点连接
-	ds := &daemonServer{listen: issue.Listen, handler: gw, errCh: errCh}
+	ds := &daemonServer{listen: issue.Listen, handler: mux, errCh: errCh}
 	go ds.Run()
 
 	// 连接 manager 的客户端，保持在线与接受指令

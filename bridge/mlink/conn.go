@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
-	"github.com/vela-ssoc/vela-common-mba/spdy"
+	"github.com/vela-ssoc/vela-common-mba/smux"
 )
 
 type Infer interface {
@@ -18,7 +18,8 @@ type connect struct {
 	id    int64
 	ident gateway.Ident
 	issue gateway.Issue
-	mux   spdy.Muxer
+	mux   *smux.Session
+	// mux   spdy.Muxer
 }
 
 func (c *connect) Ident() gateway.Ident { return c.ident }
