@@ -10,6 +10,7 @@ import (
 )
 
 type daemonServer struct {
+	hide    telecom.Hide   // 隐写配置
 	listen  telecom.Listen // 服务监听配置
 	handler http.Handler   // handler
 	server  *http.Server   // HTTP 服务
@@ -21,6 +22,12 @@ func (ds *daemonServer) Run() {
 	if err != nil {
 		ds.errCh <- err
 		return
+	}
+	if len(certs) == 0 {
+		if certs, err = ds.hide.Certifier(); err != nil {
+			ds.errCh <- err
+			return
+		}
 	}
 
 	srv := &http.Server{

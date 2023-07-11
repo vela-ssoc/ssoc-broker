@@ -209,3 +209,17 @@ func (bc *brokerClient) dialContext(_ context.Context, _, _ string) (net.Conn, e
 		return stream, nil
 	}
 }
+
+func (bc *brokerClient) heartbeat(du time.Duration) {
+	ticker := time.NewTicker(du)
+	defer ticker.Stop()
+
+	var over bool
+	for !over {
+		select {
+		case <-ticker.C:
+		case <-bc.parent.Done():
+			over = true
+		}
+	}
+}

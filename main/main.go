@@ -8,16 +8,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/vela-ssoc/vela-common-mba/ciphertext"
-
 	"github.com/vela-ssoc/vela-broker/banner"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-broker/launch"
 	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 )
 
 var args struct {
-	// dev 是否开发环境，开发环境时请在编译时指定 -tags=dev
+	// dev 是否开发环境，开发环境时请在编译时指定 go build -tags=dev
 	dev     bool
 	version bool
 	config  string

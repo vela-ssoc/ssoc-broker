@@ -47,7 +47,7 @@ func Dial(parent context.Context, hide Hide, slog logback.Logger) (Linker, error
 		return nil, err
 	}
 
-	// go bc.heartbeat(10 * time.Minute)
+	// go bc.heartbeat(time.Minute)
 
 	return bc, nil
 }

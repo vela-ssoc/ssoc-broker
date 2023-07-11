@@ -160,7 +160,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	errCh := make(chan error, 1)
 
 	// 监听本地端口用于 minion 节点连接
-	ds := &daemonServer{listen: issue.Listen, handler: mux, errCh: errCh}
+	ds := &daemonServer{listen: issue.Listen, hide: hide, handler: mux, errCh: errCh}
 	go ds.Run()
 
 	// 连接 manager 的客户端，保持在线与接受指令
