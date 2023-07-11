@@ -24,14 +24,14 @@ func (rest *taskREST) Route(r *ship.RouteGroupBuilder) {
 
 // Sync 即：向指定 agent 同步配置
 func (rest *taskREST) Sync(c *ship.Context) error {
-	var req accord.TaskSyncRequest
+	var req accord.IDs
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
 
 	ctx := c.Request().Context()
 
-	return rest.svc.Sync(ctx, req.MinionID)
+	return rest.svc.Sync(ctx, req.ID)
 }
 
 // Load 向指定节点发送指定配置（节点会重新加载指定配置）

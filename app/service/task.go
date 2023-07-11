@@ -12,7 +12,7 @@ import (
 )
 
 type TaskService interface {
-	Sync(ctx context.Context, mid int64) error
+	Sync(ctx context.Context, mids []int64) error
 	Load(ctx context.Context, mid, sid int64) error
 	Table(ctx context.Context, tid int64) error
 	Startup(ctx context.Context, id int64) error
@@ -35,9 +35,11 @@ type taskService struct {
 	slog logback.Logger
 }
 
-func (biz *taskService) Sync(ctx context.Context, mid int64) error {
-	task := subtask.SyncTask(biz.lnk, mid, biz.slog)
-	biz.pool.Submit(task)
+func (biz *taskService) Sync(ctx context.Context, mids []int64) error {
+	for _, mid := range mids {
+		task := subtask.SyncTask(biz.lnk, mid, biz.slog)
+		biz.pool.Submit(task)
+	}
 	return nil
 }
 

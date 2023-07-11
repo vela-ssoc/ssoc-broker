@@ -14,8 +14,8 @@ type AgentService interface {
 	UpgradeID(ctx context.Context, id int64, semver string) error
 	Upgrade(ctx context.Context, goos, arch string) error
 	Startup(ctx context.Context, id int64) error
-	Offline(ctx context.Context, id int64) error
-	Command(ctx context.Context, id int64, cmd string) error
+	Offline(ctx context.Context, ids []int64) error
+	Command(ctx context.Context, ids []int64, cmd string) error
 }
 
 func Agent(lnk mlink.Huber, pool gopool.Executor, slog logback.Logger) AgentService {
@@ -48,15 +48,20 @@ func (biz *agentService) Startup(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (biz *agentService) Offline(ctx context.Context, id int64) error {
-	biz.lnk.Knockout(id)
-	return nil
+func (biz *agentService) Offline(ctx context.Context, ids []int64) error {
+	return biz.Command(ctx, ids, "offline")
 }
 
-func (biz *agentService) Command(ctx context.Context, id int64, cmd string) error {
+func (biz *agentService) Command(ctx context.Context, ids []int64, cmd string) error {
 	dat := &accord.Command{Cmd: cmd}
 	path := "/api/v1/agent/notice/command"
-	return biz.lnk.Oneway(id, path, dat)
+	for _, id := range ids {
+		_ = biz.lnk.Oneway(id, path, dat)
+		if cmd == "offline" {
+			biz.lnk.Knockout(id)
+		}
+	}
+	return nil
 }
 
 func (biz *agentService) Batch(ctx context.Context, id int64, cmd string) error {

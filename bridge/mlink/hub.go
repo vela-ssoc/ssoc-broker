@@ -235,21 +235,32 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 
 	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
 	monTbl := query.Minion
-	_, err := monTbl.WithContext(ctx).Where(monTbl.ID.Eq(id)).UpdateColumns(mon)
+	info, err := monTbl.WithContext(ctx).
+		Where(monTbl.ID.Eq(id), monTbl.Status.Eq(uint8(model.MSOffline))).
+		UpdateColumns(mon)
 	cancel()
 	if err != nil {
+		hub.slog.Warnf("节点 %s(%d) 上线状态更新错误：%s", inet, id, err)
 		return err
 	}
+	if info.RowsAffected == 0 {
+		hub.slog.Warnf("节点 %s(%d) 上线状态未发生更新", inet, id)
+		return ErrMinionOnline
+	}
+
 	defer func() {
 		online := uint8(model.MSOnline)
 		offline := uint8(model.MSOffline)
 		dctx, dcancel := context.WithTimeout(parent, 10*time.Second)
-		_, _ = monTbl.WithContext(dctx).
+		_, exx := monTbl.WithContext(dctx).
 			Where(monTbl.ID.Eq(id)).
 			Where(monTbl.BrokerID.Eq(hub.bid)).
 			Where(monTbl.Status.Eq(online)).
 			UpdateColumnSimple(monTbl.Status.Value(offline))
 		dcancel()
+		if exx != nil {
+			hub.slog.Warnf("节点 %s(%d) 修改下线状态错误: %s", inet, id, exx)
+		}
 	}()
 
 	srv := &http.Server{
@@ -384,6 +395,10 @@ func (hub *minionHub) broadcast(path string, body any, ret chan *Future) {
 }
 
 func (hub *minionHub) Knockout(mid int64) {
+	if mid == 0 {
+		return
+	}
+
 	id := strconv.FormatInt(mid, 10)
 	if conn := hub.section.del(id); conn != nil {
 		_ = conn.mux.Close()

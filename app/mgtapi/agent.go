@@ -95,6 +95,7 @@ func (rest *agentREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route(accord.PathUpgrade).Data(route.Named("通知节点二进制升级")).POST(rest.Upgrade)
 	r.Route(accord.PathStartup).Data(route.Named("通知节点 startup 更新")).POST(rest.Startup)
 	r.Route(accord.PathCommand).Data(route.Named("通知节点执行命令")).POST(rest.Command)
+	r.Route(accord.PathOffline).Data(route.Named("通知节点下线")).POST(rest.Offline)
 }
 
 func (rest *agentREST) Upgrade(c *ship.Context) error {
@@ -127,9 +128,6 @@ func (rest *agentREST) Command(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	cmd := req.Cmd
-	if cmd == "offline" {
-		return rest.svc.Offline(ctx, req.ID)
-	}
 
 	return rest.svc.Command(ctx, req.ID, cmd)
 }
@@ -141,4 +139,13 @@ func (rest *agentREST) Batch(c *ship.Context) error {
 	}
 
 	return nil
+}
+
+func (rest *agentREST) Offline(c *ship.Context) error {
+	var req accord.IDs
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+	return rest.svc.Offline(ctx, req.ID)
 }
