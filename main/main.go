@@ -8,11 +8,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
+
 	"github.com/vela-ssoc/vela-broker/banner"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-broker/launch"
 	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-common-mba/encipher"
 )
 
 var args struct {
@@ -54,7 +55,7 @@ func main() {
 func loadHide() (telecom.Hide, error) {
 	var hide telecom.Hide
 	if !args.dev {
-		err := encipher.ReadFile(os.Args[0], &hide)
+		err := ciphertext.DecryptFile(os.Args[0], &hide)
 		return hide, err
 	}
 

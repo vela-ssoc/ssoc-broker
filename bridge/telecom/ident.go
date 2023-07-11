@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mba/encipher"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 )
 
 type Hide struct {
@@ -34,7 +34,7 @@ type Ident struct {
 }
 
 func (ide Ident) encrypt() ([]byte, error) {
-	return encipher.EncryptJSON(ide)
+	return ciphertext.EncryptJSON(ide)
 }
 
 func (ide Ident) String() string {

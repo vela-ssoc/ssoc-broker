@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net"
 
-	"github.com/vela-ssoc/vela-broker/ciphertext"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/xgfone/ship/v5"
 )
 

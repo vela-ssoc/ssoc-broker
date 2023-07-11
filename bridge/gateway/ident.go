@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mba/encipher"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 )
 
 // Ident minion 节点握手认证时需要携带的信息
@@ -31,5 +31,5 @@ type Ident struct {
 
 // Decrypt 认证身份信息解密
 func (ide *Ident) Decrypt(enc []byte) error {
-	return encipher.DecryptJSON(enc, ide)
+	return ciphertext.DecryptJSON(enc, ide)
 }

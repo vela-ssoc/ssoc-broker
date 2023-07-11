@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/vela-ssoc/vela-common-mb/dbms"
-	"github.com/vela-ssoc/vela-common-mba/encipher"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -24,7 +24,7 @@ type Issue struct {
 
 // decrypt 解密消息
 func (issue *Issue) decrypt(data []byte) error {
-	return encipher.DecryptJSON(data, issue)
+	return ciphertext.DecryptJSON(data, issue)
 }
 
 func (issue Issue) String() string {

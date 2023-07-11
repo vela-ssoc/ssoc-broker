@@ -1,6 +1,6 @@
 package gateway
 
-import "github.com/vela-ssoc/vela-common-mba/encipher"
+import "github.com/vela-ssoc/vela-common-mba/ciphertext"
 
 // Issue 信息
 type Issue struct {
@@ -9,5 +9,5 @@ type Issue struct {
 }
 
 func (iss Issue) Encrypt() ([]byte, error) {
-	return encipher.EncryptJSON(iss)
+	return ciphertext.EncryptJSON(iss)
 }

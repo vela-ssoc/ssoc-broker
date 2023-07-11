@@ -6,8 +6,8 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.0
 	github.com/vela-ssoc/vela-common-mb v0.0.0-20230711053306-e4af3c1adf97
-	github.com/vela-ssoc/vela-common-mba v0.0.0-20230711053229-8fc06730c0ca
-	github.com/vela-ssoc/vela-manager v0.0.0-20230706091936-bfae1d4a71b6
+	github.com/vela-ssoc/vela-common-mba v0.0.0-20230711072420-a2f072a189f3
+	github.com/vela-ssoc/vela-manager v0.0.0-20230711055156-396aff62b97f
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.12.0

@@ -4,13 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/app/temporary"
-	"github.com/vela-ssoc/vela-broker/app/temporary/linkhub"
-
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
 	"github.com/vela-ssoc/vela-broker/app/mgtapi"
 	"github.com/vela-ssoc/vela-broker/app/middle"
 	"github.com/vela-ssoc/vela-broker/app/service"
+	"github.com/vela-ssoc/vela-broker/app/temporary"
+	"github.com/vela-ssoc/vela-broker/app/temporary/linkhub"
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
