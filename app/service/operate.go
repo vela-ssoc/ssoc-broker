@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-broker/app/subtask"
@@ -10,7 +11,6 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gorm/clause"
 )
 
@@ -50,7 +50,7 @@ func (biz *operateService) Update(ctx context.Context, mid int64, req *param.Tag
 		return err
 	}
 	if mon.Status == model.MSDelete {
-		return errcode.ErrNodeStatus
+		return errors.New("节点已删除")
 	}
 
 	tbl := query.MinionTag

@@ -5,14 +5,13 @@ go 1.20
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.0
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20230711053306-e4af3c1adf97
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20230711101513-997515cdfedb
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20230711072420-a2f072a189f3
-	github.com/vela-ssoc/vela-manager v0.0.0-20230711055156-396aff62b97f
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.12.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	gorm.io/gen v0.3.22
+	gorm.io/gen v0.3.23
 	gorm.io/gorm v1.25.2
 )
 
