@@ -61,7 +61,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 
 	// minionHandler := handler.Minion()
 	cli := netutil.NewClient()
-	pool := gopool.New(4096, 1024, 10*time.Minute)
+	pool := gopool.New(4096, 2048, 10*time.Minute)
 	match := ntfmatch.NewMatch()
 	store := storage.NewStore()
 
@@ -115,7 +115,9 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbCli := cmdb.NewClient(cmdbCfg, cli, slog)
 	nodeEventService := service.NodeEvent(cmdbCli, pool, alert, slog)
-	hub := mlink.LinkHub(link, agt, nodeEventService, pool)
+
+	linkpool := gopool.New(1024, 1024, 10*time.Minute)
+	hub := mlink.LinkHub(link, agt, nodeEventService, linkpool)
 	_ = hub.ResetDB()
 
 	taskService := service.Task(hub, pool, slog)
@@ -138,6 +140,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	agentService := service.Agent(hub, pool, slog)
 	agentREST := mgtapi.Agent(agentService)
 	agentREST.Route(mv1)
+	mgtapi.Pprof(link).Route(mv1)
 
 	oldHandler := linkhub.New(db, link, slog, gfs)
 	temp := temporary.REST(oldHandler, valid, slog)
