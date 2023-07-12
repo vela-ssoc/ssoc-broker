@@ -88,7 +88,7 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	//goland:noinspection GoUnhandledErrorResult
 	defer file.Close()
 
-	hide := definition.MinionHide{
+	hide := &definition.MinionHide{
 		Servername: brk.Servername,
 		LAN:        brk.LAN,
 		VIP:        brk.VIP,

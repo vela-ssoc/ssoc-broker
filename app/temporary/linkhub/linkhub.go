@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm/clause"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/stegano"
@@ -111,9 +113,17 @@ func (hub *minionHub) Authorize(ident temporary.Ident) (claim temporary.Claim, e
 		mn.Inet, mn.Inet6, mn.MAC = inet, inet6, mac
 		mn.Goos, mn.Arch, mn.Edition = ident.Goos, ident.Arch, ident.Edition
 		mn.BrokerID, mn.BrokerName, mn.Status = bident.ID, issue.Name, model.MSOffline
+		// 创建数据、创建标签
 		if err = hub.db.Create(&mn).Error; err != nil {
 			return
 		}
+		mid := mn.ID
+		tags := []*model.MinionTag{
+			{Tag: inet, MinionID: mid, Kind: model.TkLifelong},
+			{Tag: ident.Arch, MinionID: mid, Kind: model.TkLifelong},
+			{Tag: ident.Goos, MinionID: mid, Kind: model.TkLifelong},
+		}
+		hub.db.Clauses(clause.OnConflict{DoNothing: true}).Create(tags)
 	}
 	if mn.Status == model.MSDelete { // 标记为删除则禁止登录
 		err = ship.ErrForbidden
@@ -430,7 +440,7 @@ func (hub *minionHub) Upgrade(c *ship.Context) error {
 	//goland:noinspection GoUnhandledErrorResult
 	defer file.Close()
 
-	hide := definition.MinionHide{
+	hide := &definition.MinionHide{
 		Servername: brk.Servername,
 		LAN:        brk.LAN,
 		VIP:        brk.VIP,

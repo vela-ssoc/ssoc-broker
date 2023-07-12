@@ -145,10 +145,11 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 			if exx := tx.WithContext(ctx).Minion.Create(join); exx != nil {
 				return exx
 			}
+			mid := join.ID
 			tags := model.MinionTags{
-				{Tag: ident.Goos, MinionID: join.ID, Kind: model.TkLifelong},
-				{Tag: ident.Arch, MinionID: join.ID, Kind: model.TkLifelong},
-				{Tag: inet, MinionID: join.ID, Kind: model.TkLifelong},
+				{Tag: ident.Goos, MinionID: mid, Kind: model.TkLifelong},
+				{Tag: ident.Arch, MinionID: mid, Kind: model.TkLifelong},
+				{Tag: inet, MinionID: mid, Kind: model.TkLifelong},
 			}
 			return tx.WithContext(ctx).MinionTag.
 				Clauses(clause.OnConflict{DoNothing: true}).
