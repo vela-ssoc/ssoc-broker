@@ -51,7 +51,7 @@ func (biz *minionService) Substances(ctx context.Context, mid int64, inet string
 	if len(tags) != 0 {
 		effTbl := query.Effect
 		effects, _ := effTbl.WithContext(ctx).
-			Where(effTbl.Tag.In(tags...)).
+			Where(effTbl.Tag.In(tags...), effTbl.Enable.Is(true)).
 			Find()
 		subIDs = model.Effects(effects).Exclusion(inet)
 	}

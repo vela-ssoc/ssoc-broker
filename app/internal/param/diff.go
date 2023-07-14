@@ -147,6 +147,4 @@ func (tr TaskReport) Diff(mid int64, subs []*model.Substance) *TaskDiff {
 	}
 
 	return diff
-
-	return nil
 }
