@@ -1,10 +1,10 @@
-package service
+package agtsvc
 
 import (
 	"context"
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/app/subtask"
+	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
@@ -16,34 +16,28 @@ import (
 
 type PhaseService interface {
 	mlink.NodePhaser
+	SetService(svc mgtsvc.AgentService)
 }
 
-func NodeEvent(cmdbc cmdb.Client, pool gopool.Executor, alert alarm.Alerter, slog logback.Logger) PhaseService {
+func Phase(cmdbc cmdb.Client, alert alarm.Alerter, slog logback.Logger) PhaseService {
 	return &nodeEventService{
-		pool:  pool,
 		cmdbc: cmdbc,
-		slog:  slog,
 		alert: alert,
+		slog:  slog,
+		pool:  gopool.New(64, 64, time.Minute),
 	}
 }
 
 type nodeEventService struct {
-	pool  gopool.Executor
-	slog  logback.Logger
+	svc   mgtsvc.AgentService
 	cmdbc cmdb.Client
 	alert alarm.Alerter
+	slog  logback.Logger
+	pool  gopool.Executor
 }
 
-func (biz *nodeEventService) Created(id int64, inet string, at time.Time) {
-	// 查询状态
-	ct := &cmdbTask{
-		cli:     biz.cmdbc,
-		id:      id,
-		inet:    inet,
-		slog:    biz.slog,
-		timeout: 5 * time.Second,
-	}
-	biz.pool.Submit(ct)
+func (biz *nodeEventService) SetService(svc mgtsvc.AgentService) {
+	biz.svc = svc
 }
 
 func (biz *nodeEventService) Repeated(id int64, ident gateway.Ident, at time.Time) {
@@ -53,22 +47,20 @@ func (biz *nodeEventService) Connected(lnk mlink.Linker, ident gateway.Ident, is
 	mid, inet := issue.ID, ident.Inet.String()
 	biz.slog.Infof("agent %s(%d) 上线了", inet, mid)
 
-	// 推送 startup
-	tsk := subtask.Startup(lnk, mid, biz.slog)
-	biz.pool.Submit(tsk)
-
-	task := subtask.SyncTask(lnk, mid, biz.slog)
-	biz.pool.Submit(task)
+	// 推送 startup 与配置脚本
+	ctx := context.Background()
+	_ = biz.svc.ReloadStartup(ctx, mid)
+	_ = biz.svc.RsyncTask(ctx, []int64{mid})
 
 	now := time.Now()
 	evt := &model.Event{
 		MinionID:  mid,
 		Inet:      inet,
-		Subject:   "节点下线",
-		FromCode:  "minion.offline",
-		Msg:       "节点下线",
+		Subject:   "节点上线",
+		FromCode:  "minion.online",
+		Msg:       "节点上线",
 		Level:     model.ELvlNote,
-		SendAlert: false,
+		SendAlert: true,
 		OccurAt:   now,
 		CreatedAt: now,
 	}
@@ -86,27 +78,10 @@ func (biz *nodeEventService) Disconnected(lnk mlink.Linker, ident gateway.Ident,
 		Subject:   "节点下线",
 		FromCode:  "minion.offline",
 		Msg:       "节点下线",
-		Level:     model.ELvlNote,
+		Level:     model.ELvlMajor,
 		SendAlert: true,
 		OccurAt:   now,
 		CreatedAt: now,
 	}
 	_ = biz.alert.EventSaveAndAlert(context.Background(), evt)
-}
-
-type cmdbTask struct {
-	cli     cmdb.Client
-	id      int64
-	inet    string
-	slog    logback.Logger
-	timeout time.Duration
-}
-
-func (ct *cmdbTask) Run() {
-	ctx, cancel := context.WithTimeout(context.Background(), ct.timeout)
-	defer cancel()
-
-	if err := ct.cli.FetchAndSave(ctx, ct.id, ct.inet); err != nil {
-		ct.slog.Infof("同步 %s 的 cmdb 发生错误：%s", ct.inet, err)
-	}
 }

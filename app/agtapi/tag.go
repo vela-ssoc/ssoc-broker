@@ -1,28 +1,28 @@
 package agtapi
 
 import (
+	"github.com/vela-ssoc/vela-broker/app/agtsvc"
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-broker/app/route"
-	"github.com/vela-ssoc/vela-broker/app/service"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/xgfone/ship/v5"
 )
 
-func Operate(svc service.OperateService) route.Router {
-	return &operateREST{
+func Tag(svc agtsvc.TagService) route.Router {
+	return &tagREST{
 		svc: svc,
 	}
 }
 
-type operateREST struct {
-	svc service.OperateService
+type tagREST struct {
+	svc agtsvc.TagService
 }
 
-func (rest *operateREST) Route(r *ship.RouteGroupBuilder) {
+func (rest *tagREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/broker/operate/tag").POST(rest.Tag)
 }
 
-func (rest *operateREST) Tag(c *ship.Context) error {
+func (rest *tagREST) Tag(c *ship.Context) error {
 	var req param.TagRequest
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -31,6 +31,9 @@ func (rest *operateREST) Tag(c *ship.Context) error {
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
 	mid := inf.Issue().ID
+	if req.Empty() {
+		return nil
+	}
 
-	return rest.svc.Update(ctx, mid, &req)
+	return rest.svc.Update(ctx, mid, req.Add, req.Del)
 }

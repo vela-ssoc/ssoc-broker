@@ -1,21 +1,22 @@
 package agtapi
 
 import (
+	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-broker/app/route"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
-	"github.com/vela-ssoc/vela-common-mb/audit"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
 	"github.com/xgfone/ship/v5"
 )
 
-func Audit(auditor audit.Auditor) route.Router {
+func Audit(alert alarm.Alerter) route.Router {
 	return &auditREST{
-		auditor: auditor,
+		alert: alert,
 	}
 }
 
 type auditREST struct {
-	auditor audit.Auditor
+	alert alarm.Alerter
 }
 
 func (rest *auditREST) Route(r *ship.RouteGroupBuilder) {
@@ -24,17 +25,19 @@ func (rest *auditREST) Route(r *ship.RouteGroupBuilder) {
 }
 
 func (rest *auditREST) Risk(c *ship.Context) error {
-	var req model.Risk
+	var req param.AuditRiskRequest
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
 
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
-	req.Inet = inf.Inet().String()
-	req.MinionID = inf.Issue().ID
+	mid := inf.Issue().ID
+	inet := inf.Inet().String()
 
-	return rest.auditor.Risk(ctx, &req)
+	rsk := req.Model(mid, inet)
+
+	return rest.alert.RiskSaveAndAlert(ctx, rsk)
 }
 
 func (rest *auditREST) Event(c *ship.Context) error {
@@ -48,5 +51,5 @@ func (rest *auditREST) Event(c *ship.Context) error {
 	req.Inet = inf.Inet().String()
 	req.MinionID = inf.Issue().ID
 
-	return rest.auditor.Event(ctx, &req)
+	return rest.alert.EventSaveAndAlert(ctx, &req)
 }

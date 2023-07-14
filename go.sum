@@ -45,12 +45,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
 github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/vela-ssoc/vela-common-mb v0.0.0-20230711101513-997515cdfedb h1:6BibBBUaMVh3kwZm/x832BSMQDJ49frjLe1SSO224ss=
-github.com/vela-ssoc/vela-common-mb v0.0.0-20230711101513-997515cdfedb/go.mod h1:fmB2qe64YCer/FdkLxMSMCsxiJTKESrDE3xRC25DJNw=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20230712054023-6e5d700b95da h1:/PuZ14MALvwat4qEBBGjhaolIkT7Z2m4U1cOjbggDBU=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20230712054023-6e5d700b95da/go.mod h1:OPlM92NR5HY0mCjk2omcbwwmLAOagXmnX3DWlZ5K7lE=
-github.com/vela-ssoc/vela-common-mba v0.0.0-20230711072420-a2f072a189f3 h1:EYochXODDz9GhfQZ5+H99YLbUg0ToCToON4oLQp0L6Y=
-github.com/vela-ssoc/vela-common-mba v0.0.0-20230711072420-a2f072a189f3/go.mod h1:RuIJ6nu4LXosp8CSygyoD2d2B0+Nqg21zl5wKDUqVkI=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20230712034230-0baa81b8b843 h1:lIv8qIqKqEXJQgfVNNKJovyQMOmcwSmAMTVlntdljZE=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20230712034230-0baa81b8b843/go.mod h1:RuIJ6nu4LXosp8CSygyoD2d2B0+Nqg21zl5wKDUqVkI=
 github.com/xgfone/ship/v5 v5.3.1 h1:e5qhMT6DSQOE6A/xDBL/Ftf28BGptNw6Etq+w+pme6E=

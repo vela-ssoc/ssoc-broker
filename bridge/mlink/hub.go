@@ -3,13 +3,13 @@ package mlink
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -42,37 +42,32 @@ type Linker interface {
 }
 
 type Huber interface {
+	Iter() Iter
+
 	Forward(http.ResponseWriter, *http.Request)
 
 	Stream(ctx context.Context, id int64, path string, header http.Header) (*websocket.Conn, *http.Response, error)
 
-	Oneway(id int64, path string, body any) error
+	Oneway(ctx context.Context, id int64, path string, body any) error
 
 	Unicast(ctx context.Context, id int64, path string, body, resp any) error
-
-	Multicast(ids []int64, path string, body any) <-chan *Future
-
-	Broadcast(path string, body any) <-chan *Future
 
 	// Knockout 根据 minionID 断开节点连接
 	Knockout(mid int64)
 }
 
-func LinkHub(link telecom.Linker, handler http.Handler, phase NodePhaser, pool gopool.Executor) Linker {
+func LinkHub(link telecom.Linker, handler http.Handler, phase NodePhaser) Linker {
 	seed := time.Now().UnixNano()
 	random := rand.New(rand.NewSource(seed))
-
-	ph := newAsyncPhase(phase, pool)
 
 	hub := &minionHub{
 		link:    link,
 		handler: handler,
 		bid:     link.Ident().ID,
 		name:    link.Name(),
-		section: container(),
-		phase:   ph,
+		section: newSegmentMap(128, 64), // 预分配 8192 个连接空间，已经足够使用了。
+		phase:   phase,
 		random:  random,
-		pool:    pool,
 	}
 
 	trip := &http.Transport{DialContext: hub.dialContext}
@@ -92,7 +87,7 @@ type minionHub struct {
 	stream  netutil.Streamer
 	phase   NodePhaser
 	pool    gopool.Executor
-	section subsection
+	section container
 	bid     int64  // 当前 broker ID
 	name    string // 当前 broker 名字
 	random  *rand.Rand
@@ -173,13 +168,11 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 	}
 
 	issue.ID = mon.ID
-	if ident.Encrypt {
-		// 随机生成一个 32-64 位长度的加密密钥
-		psz := hub.random.Intn(33) + 32
-		passwd := make([]byte, psz)
-		hub.random.Read(passwd)
-		issue.Passwd = passwd
-	}
+	// 随机生成一个 32-64 位长度的加密密钥
+	psz := hub.random.Intn(33) + 32
+	passwd := make([]byte, psz)
+	hub.random.Read(passwd)
+	issue.Passwd = passwd
 
 	return issue, nil, false, nil
 }
@@ -205,11 +198,11 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 		mux:   mux,
 	}
 
-	if !hub.section.put(sid, conn) {
+	if !hub.section.Put(sid, conn) {
 		hub.phase.Repeated(id, ident, before)
 		return ErrMinionOnline
 	}
-	defer hub.section.del(sid)
+	defer hub.section.Del(sid)
 
 	now := sql.NullTime{Valid: true, Time: time.Now()}
 	mon := &model.Minion{
@@ -303,95 +296,27 @@ func (hub *minionHub) Stream(ctx context.Context, id int64, path string, header 
 	return hub.stream.Stream(ctx, addr, header)
 }
 
-func (hub *minionHub) Oneway(id int64, path string, body any) error {
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	tsk := &onewayTask{
-		wg:   wg,
-		hub:  hub,
-		mid:  id,
-		path: path,
-		req:  body,
+func (hub *minionHub) Oneway(ctx context.Context, id int64, path string, body any) error {
+	res, err := hub.sendJSON(ctx, id, path, body)
+	if err == nil {
+		_ = res.Body.Close()
 	}
-	hub.pool.Submit(tsk)
-	return tsk.Wait()
+	return err
 }
 
 func (hub *minionHub) Unicast(ctx context.Context, id int64, path string, body, resp any) error {
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-
-	tsk := &unicastTask{
-		wg:   wg,
-		hub:  hub,
-		mid:  id,
-		path: path,
-		req:  body,
-		resp: resp,
+	res, err := hub.sendJSON(ctx, id, path, body)
+	if err != nil {
+		return err
 	}
-	hub.pool.Submit(tsk)
+	//goland:noinspection GoUnhandledErrorResult
+	defer res.Body.Close()
 
-	return tsk.Wait()
+	return json.NewDecoder(res.Body).Decode(resp)
 }
 
-func (hub *minionHub) Multicast(ids []int64, path string, body any) <-chan *Future {
-	size := len(ids)
-	ret := make(chan *Future, size)
-	go hub.multicast(ids, path, body, ret)
-
-	return ret
-}
-
-func (hub *minionHub) multicast(ids []int64, path string, body any, ret chan *Future) {
-	wg := new(sync.WaitGroup)
-	for _, id := range ids {
-		tsk := &futureTask{
-			wg:   wg,
-			hub:  hub,
-			mid:  id,
-			path: path,
-			req:  body,
-			ret:  ret,
-		}
-		wg.Add(1)
-		hub.pool.Submit(tsk)
-	}
-
-	wg.Wait()
-	close(ret)
-}
-
-func (hub *minionHub) Broadcast(path string, body any) <-chan *Future {
-	ret := make(chan *Future, 100)
-	go hub.broadcast(path, body, ret)
-
-	return ret
-}
-
-func (hub *minionHub) broadcast(path string, body any, ret chan *Future) {
-	wg := new(sync.WaitGroup)
-	iter := hub.section.iterator()
-	for iter.has() {
-		ids := iter.next()
-		if len(ids) == 0 {
-			continue
-		}
-		for _, id := range ids {
-			tsk := &futureTask{
-				wg:   wg,
-				hub:  hub,
-				mid:  id,
-				path: path,
-				req:  body,
-				ret:  ret,
-			}
-			wg.Add(1)
-			hub.pool.Submit(tsk)
-		}
-	}
-
-	wg.Wait()
-	close(ret)
+func (hub *minionHub) Iter() Iter {
+	return hub.section.Iter()
 }
 
 func (hub *minionHub) Knockout(mid int64) {
@@ -400,19 +325,21 @@ func (hub *minionHub) Knockout(mid int64) {
 	}
 
 	id := strconv.FormatInt(mid, 10)
-	if conn := hub.section.del(id); conn != nil {
+	if conn := hub.section.Del(id); conn != nil {
 		_ = conn.mux.Close()
 	}
 }
 
-func (hub *minionHub) silentJSON(ctx context.Context, id int64, path string, req any) error {
-	addr := hub.httpURL(id, path)
-	return hub.client.SilentJSON(ctx, http.MethodPost, addr, req, nil)
-}
+func (hub *minionHub) sendJSON(ctx context.Context, id int64, path string, req any) (*http.Response, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+	}
 
-func (hub *minionHub) json(ctx context.Context, id int64, path string, req, resp any) error {
 	addr := hub.httpURL(id, path)
-	return hub.client.JSON(ctx, http.MethodPost, addr, req, resp, nil)
+
+	return hub.client.DoJSON(ctx, http.MethodPost, addr, req, nil)
 }
 
 func (hub *minionHub) httpURL(id int64, path string) string {
@@ -431,15 +358,16 @@ func (hub *minionHub) dialContext(_ context.Context, _, addr string) (net.Conn, 
 		return nil, net.InvalidAddrError(addr)
 	}
 
-	if conn, ok := hub.section.get(id); ok {
-		if stream, exx := conn.mux.OpenStream(); exx != nil {
-			return nil, exx
-		} else {
-			return stream, nil
-		}
+	conn := hub.section.Get(id)
+	if conn == nil {
+		return nil, ErrMinionOffline
 	}
 
-	return nil, ErrMinionOffline
+	if stream, exx := conn.mux.OpenStream(); exx != nil {
+		return nil, exx
+	} else {
+		return stream, nil
+	}
 }
 
 func (hub *minionHub) forwardError(w http.ResponseWriter, r *http.Request, err error) {

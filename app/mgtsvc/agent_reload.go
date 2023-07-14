@@ -1,0 +1,64 @@
+package mgtsvc
+
+import (
+	"context"
+	"time"
+
+	"github.com/vela-ssoc/vela-broker/app/internal/param"
+	"github.com/vela-ssoc/vela-common-mb/dal/query"
+)
+
+func (biz *agentService) ReloadTask(_ context.Context, mid, sid int64) error {
+	task := &reloadTask{biz: biz, mid: mid, sid: sid}
+	biz.pool.Submit(task)
+
+	return nil
+}
+
+func (biz *agentService) reloadTask(ctx context.Context, mid, sid int64) error {
+	light, err := biz.mon.LightID(ctx, mid)
+	if err != nil {
+		return err
+	}
+	if light.Unload { // 如果是静默模式就只同步
+		biz.slog.Warnf("节点 %s 处于静默模式。", light)
+		return biz.rsync(ctx, light)
+	}
+
+	// 查询要下发的配置
+	subTbl := query.Substance
+	sub, err := subTbl.WithContext(ctx).Where(subTbl.ID.Eq(sid)).First()
+	if err != nil {
+		return biz.rsync(ctx, light)
+	}
+
+	// 执行下发配置
+	diff := &param.TaskDiff{
+		Updates: []*param.TaskChunk{
+			{
+				ID:      sub.ID,
+				Name:    sub.Name,
+				Dialect: sub.MinionID == mid,
+				Hash:    sub.Hash,
+				Chunk:   sub.Chunk,
+			},
+		},
+	}
+
+	_, _ = biz.fetchRsync(ctx, mid, diff)
+
+	// 2. 同步配置
+	return biz.rsync(ctx, light)
+}
+
+type reloadTask struct {
+	biz *agentService
+	mid int64
+	sid int64
+}
+
+func (rt *reloadTask) Run() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	_ = rt.biz.reloadTask(ctx, rt.mid, rt.sid)
+}

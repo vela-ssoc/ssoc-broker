@@ -111,3 +111,7 @@ func (tr TaskReport) ToModels(mid int64, inet string) []*model.MinionTask {
 
 	return ret
 }
+
+func (tr TaskReport) Diff(subs []*model.Substance) *TaskDiff {
+	return nil
+}

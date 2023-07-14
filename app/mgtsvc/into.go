@@ -1,4 +1,4 @@
-package service
+package mgtsvc
 
 import (
 	"context"

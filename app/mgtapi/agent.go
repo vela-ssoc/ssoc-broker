@@ -1,101 +1,29 @@
 package mgtapi
 
 import (
-	"github.com/vela-ssoc/vela-broker/app/internal/param"
+	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
 	"github.com/vela-ssoc/vela-broker/app/route"
-	"github.com/vela-ssoc/vela-broker/app/service"
 	"github.com/vela-ssoc/vela-common-mb/accord"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/xgfone/ship/v5"
-	"gorm.io/gen/field"
 )
 
-func Agent(svc service.AgentService) route.Router {
-	const (
-		idKey         = "minion.id"
-		tagKey        = "minion_tag.tag"
-		inetKey       = "minion.inet"
-		editionKey    = "minion.edition"
-		idcKey        = "minion.idc"
-		ibuKey        = "minion.ibu"
-		commentKey    = "minion.`comment`"
-		statusKey     = "minion.status"
-		goosKey       = "minion.goos"
-		archKey       = "minion.arch"
-		brokerNameKey = "minion.broker_name"
-		opDutyKey     = "minion.op_duty"
-		createdAtKey  = "minion.created_at"
-		uptimeKey     = "minion.uptime"
-	)
-
-	idCol := dynsql.IntColumn(idKey, "ID").Build()
-	tagCol := dynsql.StringColumn(tagKey, "标签").
-		Operators([]dynsql.Operator{dynsql.Eq, dynsql.Like, dynsql.In}).
-		Build()
-	inetCol := dynsql.StringColumn(inetKey, "终端IP").Build()
-	verCol := dynsql.StringColumn(editionKey, "版本").Build()
-	idcCol := dynsql.StringColumn(idcKey, "机房").Build()
-	ibuCol := dynsql.StringColumn(ibuKey, "部门").Build()
-	commentCol := dynsql.StringColumn(commentKey, "描述").Build()
-	statusEnums := dynsql.IntEnum().Set(1, "未激活").Set(2, "离线").
-		Set(3, "在线").Set(4, "已删除")
-	statusCol := dynsql.IntColumn(statusKey, "状态").
-		Enums(statusEnums).
-		Operators([]dynsql.Operator{dynsql.Eq, dynsql.Ne, dynsql.In, dynsql.NotIn}).
-		Build()
-	goosEnums := dynsql.StringEnum().Sames([]string{"linux", "windows", "darwin"})
-	goosCol := dynsql.StringColumn(goosKey, "操作系统").
-		Enums(goosEnums).
-		Operators([]dynsql.Operator{dynsql.Eq, dynsql.Ne, dynsql.In, dynsql.NotIn}).
-		Build()
-	archEnums := dynsql.StringEnum().Sames([]string{"amd64", "386", "arm64", "arm"})
-	archCol := dynsql.StringColumn(archKey, "系统架构").
-		Enums(archEnums).
-		Operators([]dynsql.Operator{dynsql.Eq, dynsql.Ne, dynsql.In, dynsql.NotIn}).
-		Build()
-	brkCol := dynsql.StringColumn(brokerNameKey, "代理节点").Build()
-	dutyCol := dynsql.StringColumn(opDutyKey, "运维负责人").Build()
-	catCol := dynsql.TimeColumn(createdAtKey, "创建时间").Build()
-	upCol := dynsql.TimeColumn(uptimeKey, "上线时间").Build()
-
-	tbl := dynsql.Builder().
-		Filters(tagCol, inetCol, goosCol, archCol, statusCol, verCol, idcCol, ibuCol, commentCol,
-			brkCol, dutyCol, catCol, upCol, idCol).
-		Build()
-
-	monTbl := query.Minion
-	likes := map[string]field.String{
-		tagKey:        query.MinionTag.Tag,
-		inetKey:       monTbl.Inet,
-		editionKey:    monTbl.Edition,
-		idcKey:        monTbl.IDC,
-		ibuKey:        monTbl.IBu,
-		commentKey:    monTbl.Comment,
-		goosKey:       monTbl.Goos,
-		archKey:       monTbl.Arch,
-		brokerNameKey: monTbl.BrokerName,
-		opDutyKey:     monTbl.OpDuty,
-	}
-
+func Agent(svc mgtsvc.AgentService) route.Router {
 	return &agentREST{
-		svc:   svc,
-		tbl:   tbl,
-		likes: likes,
+		svc: svc,
 	}
 }
 
 type agentREST struct {
-	svc   service.AgentService
-	tbl   dynsql.Table
-	likes map[string]field.String
+	svc mgtsvc.AgentService
 }
 
 func (rest *agentREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route(accord.PathUpgrade).Data(route.Named("通知节点二进制升级")).POST(rest.Upgrade)
 	r.Route(accord.PathStartup).Data(route.Named("通知节点 startup 更新")).POST(rest.Startup)
 	r.Route(accord.PathCommand).Data(route.Named("通知节点执行命令")).POST(rest.Command)
-	r.Route(accord.PathOffline).Data(route.Named("通知节点下线")).POST(rest.Offline)
+	r.Route(accord.PathTaskSync).Data(route.Named("通知节点同步配置")).POST(rest.RsyncTask)
+	r.Route(accord.PathTaskLoad).Data(route.Named("通知节点重启配置")).POST(rest.ReloadTask)
+	r.Route(accord.PathTaskTable).Data(route.Named("通知扫表任务")).POST(rest.TableTask)
 }
 
 func (rest *agentREST) Upgrade(c *ship.Context) error {
@@ -106,7 +34,7 @@ func (rest *agentREST) Upgrade(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 
-	return rest.svc.UpgradeID(ctx, req.ID, req.Semver)
+	return rest.svc.Upgrade(ctx, req.ID, req.Semver)
 }
 
 func (rest *agentREST) Startup(c *ship.Context) error {
@@ -117,28 +45,25 @@ func (rest *agentREST) Startup(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 
-	return rest.svc.Startup(ctx, req.ID)
+	return rest.svc.ReloadStartup(ctx, req.ID)
 }
 
 func (rest *agentREST) Command(c *ship.Context) error {
+	// resync restart upgrade offline
 	var req accord.Command
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
 	ctx := c.Request().Context()
 
-	cmd := req.Cmd
-
-	return rest.svc.Command(ctx, req.ID, cmd)
-}
-
-func (rest *agentREST) Batch(c *ship.Context) error {
-	var req param.MinionBatchRequest
-	if err := c.Bind(&req); err != nil {
-		return err
+	switch req.Cmd {
+	case "resync":
+		return rest.svc.RsyncTask(ctx, req.ID)
+	case "upgrade":
+		return rest.svc.Upgrade(ctx, req.ID, "")
 	}
 
-	return nil
+	return rest.svc.Command(ctx, req.ID, req.Cmd)
 }
 
 func (rest *agentREST) Offline(c *ship.Context) error {
@@ -147,5 +72,36 @@ func (rest *agentREST) Offline(c *ship.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	return rest.svc.Offline(ctx, req.ID)
+
+	return rest.svc.Command(ctx, req.ID, "offline")
+}
+
+func (rest *agentREST) RsyncTask(c *ship.Context) error {
+	var req accord.IDs
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	return rest.svc.RsyncTask(ctx, req.ID)
+}
+
+func (rest *agentREST) TableTask(c *ship.Context) error {
+	var req accord.TaskTable
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	return rest.svc.TableTask(ctx, req.TaskID)
+}
+
+func (rest *agentREST) ReloadTask(c *ship.Context) error {
+	var req accord.TaskLoadRequest
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	return rest.svc.ReloadTask(ctx, req.MinionID, req.SubstanceID)
 }

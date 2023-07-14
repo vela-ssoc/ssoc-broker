@@ -54,7 +54,8 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	dao := tbl.WithContext(ctx).
 		Where(tbl.Goos.Eq(goos),
 			tbl.Arch.Eq(arch),
-			tbl.Deprecated.Is(false))
+			tbl.Deprecated.Is(false)).
+		Order(tbl.Weight.Desc(), tbl.UpdatedAt.Desc())
 	if except != "" {
 		dao.Where(tbl.Semver.Eq(except))
 	} else {

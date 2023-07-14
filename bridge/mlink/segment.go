@@ -3,7 +3,7 @@ package mlink
 import "sync"
 
 // container 初始化连接存放容器
-func container() subsection {
+func container_() subsection {
 	// 128 * 32 = 4096
 	const size = 128
 	buckets := make([]*bucket, size)

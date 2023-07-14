@@ -2,23 +2,21 @@ package launch
 
 import (
 	"context"
-	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
+	"github.com/vela-ssoc/vela-broker/app/agtsvc"
 	"github.com/vela-ssoc/vela-broker/app/mgtapi"
+	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
 	"github.com/vela-ssoc/vela-broker/app/middle"
-	"github.com/vela-ssoc/vela-broker/app/service"
 	"github.com/vela-ssoc/vela-broker/app/temporary"
 	"github.com/vela-ssoc/vela-broker/app/temporary/linkhub"
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/accord"
-	"github.com/vela-ssoc/vela-common-mb/audit"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
-	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/integration/devops"
@@ -59,9 +57,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	query.SetDefault(db)
 	gfs := gridfs.NewCDN(sdb, "", 60*1024)
 
-	// minionHandler := handler.Minion()
 	cli := netutil.NewClient()
-	pool := gopool.New(4096, 2048, 10*time.Minute)
 	match := ntfmatch.NewMatch()
 	store := storage.NewStore()
 
@@ -69,8 +65,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	dongCli := dong.NewClient(dongCfg, cli, slog)
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
-
-	alert := alarm.UnifyAlerter(store, pool, match, slog, dongCli, devCli)
+	alert := alarm.UnifyAlerter(store, match, slog, dongCli, devCli)
 
 	// manager callback
 	name := link.Name()
@@ -91,56 +86,77 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	mv1 := mgt.Group(accord.PathPrefix).Use(middle.Oplog)
 	av1 := agt.Group(accord.PathPrefix).Use(middle.Oplog)
 
-	thirdService := service.Third(gfs)
-	thirdREST := agtapi.Third(thirdService)
-	thirdREST.Route(av1)
-	bid := link.Ident().ID
-	agtapi.Upgrade(bid, gfs).Route(av1)
-	agtapi.Task().Route(av1)
-
 	esCfg := elastic.NewConfigure(name)
 	esc := elastic.NewSearch(esCfg, cli)
-
-	agtapi.Stream(name, esc).Route(av1)
-	agtapi.Elastic(esc).Route(av1)
-	agtapi.Heart().Route(av1)
-	agtapi.Collect().Route(av1)
-	agtapi.Security().Route(av1)
-
-	auditor := audit.NewAuditor(slog)
-	agtapi.Audit(auditor).Route(av1)
-	agtapi.BPF().Route(av1)
-
 	ntfMatch := ntfmatch.NewMatch()
 	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbCli := cmdb.NewClient(cmdbCfg, cli, slog)
-	nodeEventService := service.NodeEvent(cmdbCli, pool, alert, slog)
-
-	linkpool := gopool.New(1024, 1024, 10*time.Minute)
-	hub := mlink.LinkHub(link, agt, nodeEventService, linkpool)
-	_ = hub.ResetDB()
-
-	taskService := service.Task(hub, pool, slog)
-	taskREST := mgtapi.Task(taskService)
-	taskREST.Route(mv1)
-
-	operateService := service.Operate(hub, pool, slog)
-	agtapi.Operate(operateService).Route(av1)
-	mgtapi.Reset(store, esCfg, ntfMatch).Route(mv1)
-	mgtapi.Third(hub, pool).Route(mv1)
 
 	sonaCfg := sonatype.HardConfig()
 	sonaCli := sonatype.NewClient(sonaCfg, cli)
 	vsync := vulnsync.New(db, sonaCli)
 	_ = vsync
 
-	intoService := service.Into(hub)
-	intoREST := mgtapi.Into(intoService)
-	intoREST.Route(mv1)
-	agentService := service.Agent(hub, pool, slog)
-	agentREST := mgtapi.Agent(agentService)
-	agentREST.Route(mv1)
-	mgtapi.Pprof(link).Route(mv1)
+	nodeEventService := agtsvc.Phase(cmdbCli, alert, slog)
+	hub := mlink.LinkHub(link, agt, nodeEventService)
+	_ = hub.ResetDB()
+
+	minionService := mgtsvc.Minion()
+	agentService := mgtsvc.Agent(hub, minionService, store, slog)
+	nodeEventService.SetService(agentService)
+
+	// manager api
+	{
+		agentREST := mgtapi.Agent(agentService)
+		agentREST.Route(mv1)
+
+		intoService := mgtsvc.Into(hub)
+		intoREST := mgtapi.Into(intoService)
+		intoREST.Route(mv1)
+
+		resetREST := mgtapi.Reset(store, esCfg, ntfMatch, dongCfg)
+		resetREST.Route(mv1)
+
+		pprofREST := mgtapi.Pprof(link)
+		pprofREST.Route(mv1)
+	}
+
+	{
+		auditorREST := agtapi.Audit(alert)
+		auditorREST.Route(av1)
+
+		bpfREST := agtapi.BPF()
+		bpfREST.Route(av1)
+
+		collectREST := agtapi.Collect()
+		collectREST.Route(av1)
+
+		elasticREST := agtapi.Elastic(esc)
+		elasticREST.Route(av1)
+
+		heartREST := agtapi.Heart()
+		heartREST.Route(av1)
+
+		securityREST := agtapi.Security()
+		securityREST.Route(av1)
+
+		streamREST := agtapi.Stream(name, esc)
+		streamREST.Route(av1)
+
+		tagService := agtsvc.Tag(agentService)
+		tagREST := agtapi.Tag(tagService)
+		tagREST.Route(av1)
+
+		taskREST := agtapi.Task()
+		taskREST.Route(av1)
+
+		thirdService := agtsvc.Third(gfs)
+		agtapi.Third(thirdService)
+
+		bid := link.Ident().ID
+		upgradeREST := agtapi.Upgrade(bid, gfs)
+		upgradeREST.Route(av1)
+	}
 
 	oldHandler := linkhub.New(db, link, slog, gfs)
 	temp := temporary.REST(oldHandler, valid, slog)
@@ -154,11 +170,6 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	})
 	api.Route("/v1/minion/endpoint").GET(temp.Endpoint)
 	api.Route("/v1/edition/upgrade").GET(oldHandler.Upgrade)
-
-	// mux := http.NewServeMux()
-	// mux.Handle("/api/v1/minion", gw)
-	// mux.Handle("/api/minion/endpoint", nil)
-	// mux.Handle("/api/edition/upgrade", nil)
 
 	errCh := make(chan error, 1)
 

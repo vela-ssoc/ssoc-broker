@@ -155,7 +155,7 @@ func (hub *minionHub) Connect(conn *temporary.Conn) {
 	goos, arch, edition := ident.Goos, ident.Arch, ident.Edition
 
 	brokerID, brokerName := hub.broker.Ident().ID, hub.broker.Issue().Name
-	hub.sugar.Infof("minion 节点 %s (%d) 上线", inet, minionID)
+	hub.sugar.Infof("minion 节点 %s (%d) 在 v2.0 接口上线", inet, minionID)
 
 	hub.minions.Store(minionID, conn)
 	columns := map[string]any{

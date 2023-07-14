@@ -3,17 +3,17 @@ package mgtapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
 	"github.com/vela-ssoc/vela-broker/app/route"
-	"github.com/vela-ssoc/vela-broker/app/service"
 	"github.com/xgfone/ship/v5"
 )
 
-func Into(svc service.IntoService) route.Router {
+func Into(svc mgtsvc.IntoService) route.Router {
 	return &intoREST{svc: svc}
 }
 
 type intoREST struct {
-	svc service.IntoService
+	svc mgtsvc.IntoService
 }
 
 func (rest *intoREST) Route(r *ship.RouteGroupBuilder) {

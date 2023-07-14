@@ -3,6 +3,7 @@ package mgtapi
 import (
 	"github.com/vela-ssoc/vela-broker/app/route"
 	"github.com/vela-ssoc/vela-common-mb/accord"
+	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-common-mb/integration/ntfmatch"
 	"github.com/vela-ssoc/vela-common-mb/storage"
@@ -13,11 +14,13 @@ func Reset(
 	store storage.Storer,
 	esCfg elastic.Configurer,
 	ntf ntfmatch.Matcher,
+	emc dong.Configurer,
 ) route.Router {
 	return &resetREST{
 		store: store,
 		esCfg: esCfg,
 		ntf:   ntf,
+		emc:   emc,
 	}
 }
 
@@ -25,6 +28,7 @@ type resetREST struct {
 	esCfg elastic.Configurer
 	ntf   ntfmatch.Matcher
 	store storage.Storer
+	emc   dong.Configurer
 }
 
 func (rest *resetREST) Route(r *ship.RouteGroupBuilder) {
@@ -33,7 +37,9 @@ func (rest *resetREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route(accord.PathStoreReset).
 		Data(route.Named("store 配置 reset")).POST(rest.Store)
 	r.Route(accord.PathNotifierReset).
-		Data(route.Named("告警人 reset")).POST(rest.Store)
+		Data(route.Named("告警人 reset")).POST(rest.Notifier)
+	r.Route(accord.PathEmcReset).
+		Data(route.Named("咚咚服务号 reset")).POST(rest.Emc)
 }
 
 func (rest *resetREST) Elastic(c *ship.Context) error {
@@ -56,7 +62,13 @@ func (rest *resetREST) Store(c *ship.Context) error {
 }
 
 func (rest *resetREST) Notifier(c *ship.Context) error {
-	c.Infof("store reset: %s")
+	c.Infof("告警人 reset")
 	rest.ntf.Reset()
+	return nil
+}
+
+func (rest *resetREST) Emc(c *ship.Context) error {
+	c.Infof("咚咚服务号 reset")
+	rest.emc.Reset()
 	return nil
 }

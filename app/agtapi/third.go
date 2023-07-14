@@ -4,20 +4,20 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/vela-ssoc/vela-broker/app/agtsvc"
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-broker/app/route"
-	"github.com/vela-ssoc/vela-broker/app/service"
 	"github.com/xgfone/ship/v5"
 )
 
-func Third(svc service.ThirdService) route.Router {
+func Third(svc agtsvc.ThirdService) route.Router {
 	return &thirdREST{
 		svc: svc,
 	}
 }
 
 type thirdREST struct {
-	svc service.ThirdService
+	svc agtsvc.ThirdService
 }
 
 func (rest *thirdREST) Route(r *ship.RouteGroupBuilder) {
