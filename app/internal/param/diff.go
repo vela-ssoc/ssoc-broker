@@ -112,6 +112,41 @@ func (tr TaskReport) ToModels(mid int64, inet string) []*model.MinionTask {
 	return ret
 }
 
-func (tr TaskReport) Diff(subs []*model.Substance) *TaskDiff {
+func (tr TaskReport) Diff(mid int64, subs []*model.Substance) *TaskDiff {
+	hm := tr.IDMap()
+	removes := make([]int64, 0, 10)
+	updates := make([]*TaskChunk, 0, 10)
+
+	for _, sub := range subs {
+		id := sub.ID
+		rp, ok := hm[id]
+		delete(hm, id)
+		if ok && rp.Hash == sub.Hash {
+			continue
+		}
+
+		chk := &TaskChunk{
+			ID:      id,
+			Name:    sub.Name,
+			Dialect: sub.MinionID == mid,
+			Hash:    sub.Hash,
+			Chunk:   sub.Chunk,
+		}
+		updates = append(updates, chk)
+	}
+
+	for _, rp := range hm {
+		if rp.From == "tunnel" {
+			removes = append(removes, rp.ID)
+		}
+	}
+
+	diff := &TaskDiff{
+		Removes: removes,
+		Updates: updates,
+	}
+
+	return diff
+
 	return nil
 }

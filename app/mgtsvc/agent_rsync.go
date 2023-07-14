@@ -57,14 +57,14 @@ func (biz *agentService) rsync(ctx context.Context, light *param.MinionLight) er
 func (biz *agentService) spinRsync(ctx context.Context, light *param.MinionLight, report *param.TaskReport, subs []*model.Substance) (*param.TaskReport, error) {
 	var cycle int
 	mid := light.ID
-	diff := report.Diff(subs)
+	diff := report.Diff(mid, subs)
 	for !diff.NotModified() && cycle < biz.cycle {
 		cycle++
 		nrp, err := biz.fetchRsync(ctx, mid, diff)
 		if err != nil {
 			return nil, err
 		}
-		diff = nrp.Diff(subs)
+		diff = nrp.Diff(mid, subs)
 		report = nrp
 	}
 
