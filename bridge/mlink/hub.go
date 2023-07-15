@@ -56,7 +56,7 @@ type Huber interface {
 	Knockout(mid int64)
 }
 
-func LinkHub(link telecom.Linker, handler http.Handler, phase NodePhaser) Linker {
+func LinkHub(link telecom.Linker, handler http.Handler, phase NodePhaser, slog logback.Logger) Linker {
 	seed := time.Now().UnixNano()
 	random := rand.New(rand.NewSource(seed))
 
@@ -65,6 +65,7 @@ func LinkHub(link telecom.Linker, handler http.Handler, phase NodePhaser) Linker
 		handler: handler,
 		bid:     link.Ident().ID,
 		name:    link.Name(),
+		slog:    slog,
 		section: newSegmentMap(128, 64), // 预分配 8192 个连接空间，已经足够使用了。
 		phase:   phase,
 		random:  random,

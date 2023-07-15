@@ -98,7 +98,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	_ = vsync
 
 	nodeEventService := agtsvc.Phase(cmdbCli, alert, slog)
-	hub := mlink.LinkHub(link, agt, nodeEventService)
+	hub := mlink.LinkHub(link, agt, nodeEventService, slog)
 	_ = hub.ResetDB()
 
 	minionService := mgtsvc.Minion()
