@@ -128,7 +128,8 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		bpfREST := agtapi.BPF()
 		bpfREST.Route(av1)
 
-		collectREST := agtapi.Collect()
+		collectService := agtsvc.Collect()
+		collectREST := agtapi.Collect(collectService)
 		collectREST.Route(av1)
 
 		elasticREST := agtapi.Elastic(esc)

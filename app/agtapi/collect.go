@@ -7,25 +7,25 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/vela-ssoc/vela-broker/app/agtsvc"
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-broker/app/route"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-func Collect() route.Router {
+func Collect(svc agtsvc.CollectService) route.Router {
 	return &collectREST{
-		pool: gopool.New(50, 1024, time.Minute),
+		svc: svc,
 	}
 }
 
 type collectREST struct {
-	pool gopool.Executor
+	svc agtsvc.CollectService
 }
 
 func (rest *collectREST) Route(r *ship.RouteGroupBuilder) {
@@ -57,9 +57,8 @@ func (rest *collectREST) Sysinfo(c *ship.Context) error {
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
 	dat := req.Model(inf.Issue().ID)
-	err := query.SysInfo.WithContext(ctx).Save(dat)
 
-	return err
+	return rest.svc.Sysinfo(dat)
 }
 
 func (rest *collectREST) ProcessDiff(c *ship.Context) error {
@@ -281,25 +280,13 @@ func (rest *collectREST) AccountFull(c *ship.Context) error {
 
 	// 1. 删除所有的该节点数据
 	size := len(req)
-	tbl := query.MinionAccount
-	_, err := tbl.WithContext(ctx).Where(tbl.MinionID.Eq(mid)).Delete()
-	if err != nil || size == 0 {
-		return err
-	}
-
 	dats := make([]*model.MinionAccount, 0, size)
 	for _, p := range req {
 		acc := p.Model(mid, inet)
 		dats = append(dats, acc)
 	}
 
-	if err = tbl.WithContext(ctx).
-		Clauses(clause.OnConflict{DoNothing: true}).
-		CreateInBatches(dats, 100); err != nil {
-		c.Warnf("账户全量信息插入错误：%s", err)
-	}
-
-	return err
+	return rest.svc.AccountFull(mid, dats)
 }
 
 func (rest *collectREST) GroupDiff(c *ship.Context) error {
