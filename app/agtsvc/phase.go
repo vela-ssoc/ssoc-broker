@@ -8,6 +8,7 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/logback"
@@ -22,6 +23,7 @@ func Phase(cmdbc cmdb.Client, alert alarm.Alerter, slog logback.Logger) PhaseSer
 	return &nodeEventService{
 		cmdbc: cmdbc,
 		alert: alert,
+		pool:  gopool.New(4, 10, time.Minute),
 		slog:  slog,
 	}
 }
@@ -30,6 +32,7 @@ type nodeEventService struct {
 	svc   mgtsvc.AgentService
 	cmdbc cmdb.Client
 	alert alarm.Alerter
+	pool  gopool.Executor
 	slog  logback.Logger
 }
 
