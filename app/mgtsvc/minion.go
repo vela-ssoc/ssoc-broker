@@ -10,7 +10,7 @@ import (
 
 type MinionService interface {
 	LightID(ctx context.Context, id int64) (*param.MinionLight, error)
-	Substances(ctx context.Context, mid int64, inet string) ([]*model.Substance, error)
+	Substances(ctx context.Context, light *param.MinionLight) ([]*model.Substance, error)
 }
 
 func Minion() MinionService {
@@ -37,8 +37,13 @@ func (biz *minionService) LightID(ctx context.Context, mid int64) (*param.Minion
 	return ret, nil
 }
 
-func (biz *minionService) Substances(ctx context.Context, mid int64, inet string) ([]*model.Substance, error) {
+func (biz *minionService) Substances(ctx context.Context, light *param.MinionLight) ([]*model.Substance, error) {
+	if light.Unload {
+		return nil, nil
+	}
+
 	// 查询该节点的所有标签
+	mid, inet := light.ID, light.Inet
 	tags := make([]string, 0, 10)
 	tagTbl := query.MinionTag
 	_ = tagTbl.WithContext(ctx).

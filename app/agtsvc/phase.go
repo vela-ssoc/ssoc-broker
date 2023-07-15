@@ -64,7 +64,11 @@ func (biz *nodeEventService) Connected(lnk mlink.Linker, ident gateway.Ident, is
 		OccurAt:   now,
 		CreatedAt: now,
 	}
-	_ = biz.alert.EventSaveAndAlert(context.Background(), evt)
+	task := &eventTask{
+		alert: biz.alert,
+		evt:   evt,
+	}
+	biz.pool.Submit(task)
 }
 
 func (biz *nodeEventService) Disconnected(lnk mlink.Linker, ident gateway.Ident, issue gateway.Issue, at time.Time, du time.Duration) {
@@ -83,5 +87,21 @@ func (biz *nodeEventService) Disconnected(lnk mlink.Linker, ident gateway.Ident,
 		OccurAt:   now,
 		CreatedAt: now,
 	}
-	_ = biz.alert.EventSaveAndAlert(context.Background(), evt)
+
+	task := &eventTask{
+		alert: biz.alert,
+		evt:   evt,
+	}
+	biz.pool.Submit(task)
+}
+
+type eventTask struct {
+	alert alarm.Alerter
+	evt   *model.Event
+}
+
+func (et *eventTask) Run() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	_ = et.alert.EventSaveAndAlert(ctx, et.evt)
 }

@@ -34,7 +34,7 @@ func (biz *agentService) rsync(ctx context.Context, light *param.MinionLight) er
 		return err
 	}
 
-	subs, err := biz.mon.Substances(ctx, mid, inet) // 查询数据库中关联的配置
+	subs, err := biz.mon.Substances(ctx, light) // 查询数据库中关联的配置
 	if err != nil {
 		return err
 	}

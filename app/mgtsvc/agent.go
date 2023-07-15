@@ -39,7 +39,7 @@ func Agent(lnk mlink.Linker, mon MinionService, store storage.Storer, slog logba
 		mon:   mon,
 		store: store,
 		slog:  slog,
-		pool:  gopool.New(512, 256, time.Minute),
+		pool:  gopool.New(50, 10, time.Minute),
 		cycle: 3,
 	}
 }

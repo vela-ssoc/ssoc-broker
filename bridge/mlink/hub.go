@@ -157,7 +157,7 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 	}
 
 	status := mon.Status
-	if status == model.MSInactive {
+	if status == model.MSInactive { // 2.0 遗留的状态
 		return issue, nil, false, ErrMinionInactive
 	}
 	if status == model.MSDelete {
@@ -227,33 +227,31 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 		UpdatedAt:  before,
 	}
 
-	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
+	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
 	monTbl := query.Minion
 	info, err := monTbl.WithContext(ctx).
 		Where(monTbl.ID.Eq(id), monTbl.Status.Eq(uint8(model.MSOffline))).
 		UpdateColumns(mon)
 	cancel()
-	if err != nil {
-		hub.slog.Warnf("节点 %s(%d) 上线状态更新错误：%s", inet, id, err)
+	if err != nil || info.RowsAffected == 0 {
+		hub.slog.Warnf("节点 %s(%d) 修改上线状态失败：%v", inet, id, err)
 		return err
-	}
-	if info.RowsAffected == 0 {
-		hub.slog.Warnf("节点 %s(%d) 上线状态未发生更新", inet, id)
-		return ErrMinionOnline
 	}
 
 	defer func() {
 		online := uint8(model.MSOnline)
 		offline := uint8(model.MSOffline)
-		dctx, dcancel := context.WithTimeout(parent, 10*time.Second)
-		_, exx := monTbl.WithContext(dctx).
+		dctx, dcancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ret, exx := monTbl.WithContext(dctx).
 			Where(monTbl.ID.Eq(id)).
 			Where(monTbl.BrokerID.Eq(hub.bid)).
 			Where(monTbl.Status.Eq(online)).
-			UpdateColumnSimple(monTbl.Status.Value(offline))
+			UpdateSimple(monTbl.Status.Value(offline))
 		dcancel()
-		if exx != nil {
-			hub.slog.Warnf("节点 %s(%d) 修改下线状态错误: %s", inet, id, exx)
+		if exx != nil || ret.RowsAffected == 0 {
+			hub.slog.Warnf("节点 %s(%d) 修改下线状态错误: %v", inet, id, exx)
+		} else {
+			hub.slog.Infof("节点 %s(%d) 修改下线状态成功", inet, id)
 		}
 	}()
 
