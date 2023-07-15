@@ -29,7 +29,7 @@ func (biz *collectService) Sysinfo(info *model.SysInfo) error {
 	fn := func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_ = query.SysInfo.WithContext(ctx).Create(info)
+		_ = query.SysInfo.WithContext(ctx).Save(info)
 	}
 	biz.pool.Execute(fn)
 	return nil
