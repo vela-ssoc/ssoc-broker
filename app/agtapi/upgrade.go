@@ -2,6 +2,7 @@ package agtapi
 
 import (
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
@@ -18,14 +19,18 @@ import (
 
 func Upgrade(bid int64, gfs gridfs.FS) route.Router {
 	return &upgradeREST{
-		bid: bid,
-		gfs: gfs,
+		bid:     bid,
+		gfs:     gfs,
+		maxsize: 100,
 	}
 }
 
 type upgradeREST struct {
-	bid int64
-	gfs gridfs.FS
+	bid     int64
+	gfs     gridfs.FS
+	mutex   sync.Mutex
+	maxsize int
+	count   int
 }
 
 func (rest *upgradeREST) Route(r *ship.RouteGroupBuilder) {
@@ -33,6 +38,11 @@ func (rest *upgradeREST) Route(r *ship.RouteGroupBuilder) {
 }
 
 func (rest *upgradeREST) Download(c *ship.Context) error {
+	if !rest.tryLock() {
+		return c.NoContent(http.StatusTooManyRequests)
+	}
+	defer rest.unlock()
+
 	var req param.UpgradeDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -109,4 +119,25 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	c.Header().Set(ship.HeaderContentDisposition, stm.Disposition())
 
 	return c.Stream(http.StatusOK, stm.ContentType(), stm)
+}
+
+func (rest *upgradeREST) tryLock() bool {
+	rest.mutex.Lock()
+	defer rest.mutex.Unlock()
+
+	ok := rest.maxsize > rest.count
+	if ok {
+		rest.count++
+	}
+
+	return ok
+}
+
+func (rest *upgradeREST) unlock() {
+	rest.mutex.Lock()
+	defer rest.mutex.Unlock()
+	rest.count--
+	if rest.count < 0 {
+		rest.count = 0
+	}
 }

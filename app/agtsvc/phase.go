@@ -8,7 +8,6 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/logback"
@@ -24,7 +23,6 @@ func Phase(cmdbc cmdb.Client, alert alarm.Alerter, slog logback.Logger) PhaseSer
 		cmdbc: cmdbc,
 		alert: alert,
 		slog:  slog,
-		pool:  gopool.New(64, 64, time.Minute),
 	}
 }
 
@@ -33,7 +31,6 @@ type nodeEventService struct {
 	cmdbc cmdb.Client
 	alert alarm.Alerter
 	slog  logback.Logger
-	pool  gopool.Executor
 }
 
 func (biz *nodeEventService) SetService(svc mgtsvc.AgentService) {
@@ -64,11 +61,7 @@ func (biz *nodeEventService) Connected(lnk mlink.Linker, ident gateway.Ident, is
 		OccurAt:   now,
 		CreatedAt: now,
 	}
-	task := &eventTask{
-		alert: biz.alert,
-		evt:   evt,
-	}
-	biz.pool.Submit(task)
+	_ = biz.alert.EventSaveAndAlert(ctx, evt)
 }
 
 func (biz *nodeEventService) Disconnected(lnk mlink.Linker, ident gateway.Ident, issue gateway.Issue, at time.Time, du time.Duration) {
@@ -88,20 +81,5 @@ func (biz *nodeEventService) Disconnected(lnk mlink.Linker, ident gateway.Ident,
 		CreatedAt: now,
 	}
 
-	task := &eventTask{
-		alert: biz.alert,
-		evt:   evt,
-	}
-	biz.pool.Submit(task)
-}
-
-type eventTask struct {
-	alert alarm.Alerter
-	evt   *model.Event
-}
-
-func (et *eventTask) Run() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-	_ = et.alert.EventSaveAndAlert(ctx, et.evt)
+	_ = biz.alert.EventSaveAndAlert(context.Background(), evt)
 }

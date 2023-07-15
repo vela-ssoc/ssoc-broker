@@ -12,16 +12,21 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 func Collect() route.Router {
-	return &collectREST{}
+	return &collectREST{
+		pool: gopool.New(50, 1024, time.Minute),
+	}
 }
 
-type collectREST struct{}
+type collectREST struct {
+	pool gopool.Executor
+}
 
 func (rest *collectREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/broker/collect/agent/sysinfo").POST(rest.Sysinfo)

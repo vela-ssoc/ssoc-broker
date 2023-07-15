@@ -151,7 +151,8 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		taskREST.Route(av1)
 
 		thirdService := agtsvc.Third(gfs)
-		agtapi.Third(thirdService)
+		thirdREST := agtapi.Third(thirdService)
+		thirdREST.Route(av1)
 
 		bid := link.Ident().ID
 		upgradeREST := agtapi.Upgrade(bid, gfs)
