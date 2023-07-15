@@ -38,10 +38,10 @@ func (rest *upgradeREST) Route(r *ship.RouteGroupBuilder) {
 }
 
 func (rest *upgradeREST) Download(c *ship.Context) error {
-	if !rest.tryLock() {
-		return c.NoContent(http.StatusTooManyRequests)
-	}
-	defer rest.unlock()
+	//if !rest.tryLock() {
+	//	return c.NoContent(http.StatusTooManyRequests)
+	//}
+	//defer rest.unlock()
 
 	var req param.UpgradeDownload
 	if err := c.BindQuery(&req); err != nil {
