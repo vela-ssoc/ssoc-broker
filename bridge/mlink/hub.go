@@ -242,7 +242,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	defer func() {
 		online := uint8(model.MSOnline)
 		offline := uint8(model.MSOffline)
-		dctx, dcancel := context.WithTimeout(context.Background(), 10*time.Second)
+		dctx, dcancel := context.WithTimeout(context.Background(), time.Minute)
 		ret, exx := monTbl.WithContext(dctx).
 			Where(monTbl.ID.Eq(id)).
 			Where(monTbl.BrokerID.Eq(hub.bid)).
