@@ -40,6 +40,8 @@ func (rest *resetREST) Route(r *ship.RouteGroupBuilder) {
 		Data(route.Named("告警人 reset")).POST(rest.Notifier)
 	r.Route(accord.PathEmcReset).
 		Data(route.Named("咚咚服务号 reset")).POST(rest.Emc)
+	r.Route(accord.PathEmailReset).
+		Data(route.Named("邮箱发送账号 reset")).POST(rest.Email)
 }
 
 func (rest *resetREST) Elastic(c *ship.Context) error {
@@ -70,5 +72,10 @@ func (rest *resetREST) Notifier(c *ship.Context) error {
 func (rest *resetREST) Emc(c *ship.Context) error {
 	c.Infof("咚咚服务号 reset")
 	rest.emc.Reset()
+	return nil
+}
+
+func (rest *resetREST) Email(c *ship.Context) error {
+	c.Infof("邮箱发送账号 reset")
 	return nil
 }
