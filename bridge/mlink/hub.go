@@ -154,6 +154,7 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 			return issue, nil, false, err
 		}
 
+		mon = join
 		hub.phase.Created(join.ID, inet, now)
 	}
 

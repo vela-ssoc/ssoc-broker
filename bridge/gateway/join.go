@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/vela-ssoc/vela-common-mb/problem"
+	"golang.org/x/time/rate"
 )
 
 type Joiner interface {
@@ -18,21 +19,33 @@ type Joiner interface {
 }
 
 func New(joiner Joiner) http.Handler {
+	maxsize := 150
+	throughput := rate.NewLimiter(rate.Limit(maxsize), maxsize)
+
 	return &minionGateway{
-		name:   joiner.Name(),
-		joiner: joiner,
+		name:       joiner.Name(),
+		joiner:     joiner,
+		throughput: throughput,
 	}
 }
 
 type minionGateway struct {
 	name   string
 	joiner Joiner
+	// throughput 限流器，防止 broker 上下线引起的
+	// agent 节点蜂涌重连，拖慢数据库。
+	throughput *rate.Limiter
 }
 
 func (gate *minionGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 验证 HTTP 方法
 	if method := r.Method; method != http.MethodConnect {
 		gate.writeError(w, r, http.StatusBadRequest, "不支持的请求方法：%s", method)
+		return
+	}
+
+	if !gate.throughput.Allow() {
+		gate.writeError(w, r, http.StatusTooManyRequests, "请求过多稍候再试。")
 		return
 	}
 

@@ -88,7 +88,6 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 
 	esCfg := elastic.NewConfigure(name)
 	esc := elastic.NewSearch(esCfg, cli)
-	ntfMatch := ntfmatch.NewMatch()
 	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbCli := cmdb.NewClient(cmdbCfg, cli, slog)
 
@@ -114,7 +113,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		intoREST := mgtapi.Into(intoService)
 		intoREST.Route(mv1)
 
-		resetREST := mgtapi.Reset(store, esCfg, ntfMatch, dongCfg)
+		resetREST := mgtapi.Reset(store, esCfg, match, dongCfg)
 		resetREST.Route(mv1)
 
 		pprofREST := mgtapi.Pprof(link)
