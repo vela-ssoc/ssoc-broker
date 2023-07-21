@@ -1,0 +1,17 @@
+{
+  "id": 193814535599439872,
+  "secret": "2bbeea7729c629ddf5ff45412bff8b1603d5994c",
+  "semver": "0.0.1",
+  "cert": "",
+  "pkey": "",
+  "servers": [
+    {
+      "addr": "10.1.1.1:8081"
+    },
+    {
+      "tls": true,
+      "addr": "10.10.10.10:8443",
+      "name": "test.example.com"
+    }
+  ]
+}
