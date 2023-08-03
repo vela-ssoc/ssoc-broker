@@ -1,6 +1,7 @@
 package agtapi
 
 import (
+	"errors"
 	"net/http"
 	"sync"
 	"time"
@@ -75,7 +76,7 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 
 	bin, err := dao.First()
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.WriteHeader(http.StatusNotModified)
 			return nil
 		}

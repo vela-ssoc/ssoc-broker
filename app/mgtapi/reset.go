@@ -6,7 +6,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-common-mb/integration/ntfmatch"
-	"github.com/vela-ssoc/vela-common-mb/storage"
+	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -58,7 +58,7 @@ func (rest *resetREST) Store(c *ship.Context) error {
 
 	id := req.ID
 	c.Infof("store reset: %s", id)
-	rest.store.Reset(id)
+	rest.store.Forget(id)
 
 	return nil
 }

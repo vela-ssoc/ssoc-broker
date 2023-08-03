@@ -21,6 +21,8 @@ type AuditRiskRequest struct {
 	Region     string          `json:"region"`                          // IP 归属地
 	Reference  string          `json:"reference"`                       // 参考引用
 	Alert      bool            `json:"alert"`                           // 是否需要发送告警
+	Template   string          `json:"template"`                        // 自定义告警模板
+	Metadata   map[string]any  `json:"metadata"`                        // 扩展数据
 	Time       time.Time       `json:"time"`                            // 风险产生的时间
 }
 
@@ -44,6 +46,8 @@ func (r AuditRiskRequest) Model(minionID int64, inet string) *model.Risk {
 		Region:     r.Region,
 		Reference:  r.Reference,
 		SendAlert:  r.Alert,
+		Template:   r.Template,
+		Metadata:   r.Metadata,
 		OccurAt:    r.Time,
 		Status:     model.RSUnprocessed,
 	}

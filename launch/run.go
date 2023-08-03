@@ -27,7 +27,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
-	"github.com/vela-ssoc/vela-common-mb/storage"
+	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mb/validate"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
