@@ -12,20 +12,18 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/gorm/clause"
-
-	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/stegano"
-	"github.com/vela-ssoc/vela-common-mba/definition"
-
 	"github.com/vela-ssoc/vela-broker/app/temporary"
 	"github.com/vela-ssoc/vela-broker/app/temporary/linkhub/concurrent"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
+	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
+	"github.com/vela-ssoc/vela-common-mba/definition"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type minionHub struct {
@@ -449,10 +447,12 @@ func (hub *minionHub) Upgrade(c *ship.Context) error {
 		Size:       file.Size(),
 		DownloadAt: time.Now(),
 	}
-	stm, err := stegano.AppendStream(file, hide)
+
+	enc, exx := ciphertext.EncryptPayload(hide)
 	if err != nil {
-		return err
+		return exx
 	}
+	stm := gridfs.Merge(file, enc)
 
 	// 此时的 Content-Length = 原始文件 + 隐藏文件
 	c.Header().Set(ship.HeaderContentLength, stm.ContentLength())

@@ -12,7 +12,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/stegano"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-common-mba/definition"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
@@ -110,10 +110,12 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 		Tags:       req.Tags,
 		DownloadAt: time.Now(),
 	}
-	stm, err := stegano.AppendStream(file, hide)
+
+	enc, exx := ciphertext.EncryptPayload(hide)
 	if err != nil {
-		return err
+		return exx
 	}
+	stm := gridfs.Merge(file, enc)
 
 	// 此时的 Content-Length = 原始文件 + 隐藏文件
 	c.Header().Set(ship.HeaderContentLength, stm.ContentLength())
