@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/logback"
@@ -28,13 +30,12 @@ type Linker interface {
 }
 
 func Dial(parent context.Context, hide Hide, slog logback.Logger) (Linker, error) {
-	if len(hide.Servers) == 0 {
+	addrs := formatAddrs(hide.Servers)
+	if len(addrs) == 0 {
 		return nil, ErrEmptyAddress
 	}
-	hide.Servers.Preformat()
 
-	dialer := newIterDial(hide.Servers)
-
+	dialer := newIterDial(addrs)
 	bc := &brokerClient{
 		hide:   hide,
 		slog:   slog,
@@ -50,4 +51,40 @@ func Dial(parent context.Context, hide Hide, slog logback.Logger) (Linker, error
 	// go bc.heartbeat(time.Minute)
 
 	return bc, nil
+}
+
+func formatAddrs(addrs []string) Addresses {
+	ret := make(Addresses, 0, len(addrs))
+	for _, addr := range addrs {
+		addr = strings.TrimSpace(addr)
+		if addr == "" {
+			continue
+		}
+
+		host, port := splitHostPort(addr)
+		if port != "" {
+			dest := net.JoinHostPort(host, port)
+			ret = append(ret, &Address{TLS: true, Addr: dest, Name: host})
+			ret = append(ret, &Address{Addr: dest, Name: host})
+		} else {
+			safe := net.JoinHostPort(host, "443")
+			nosafe := net.JoinHostPort(host, "80")
+			ret = append(ret, &Address{TLS: true, Addr: safe, Name: host})
+			ret = append(ret, &Address{Addr: nosafe, Name: host})
+		}
+	}
+
+	return ret
+}
+
+func splitHostPort(addr string) (string, string) {
+	if u, err := url.Parse(addr); err == nil && u.Host != "" {
+		addr = u.Host
+	}
+
+	if host, port, err := net.SplitHostPort(addr); err == nil {
+		return host, port
+	}
+
+	return addr, ""
 }

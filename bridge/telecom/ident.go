@@ -17,7 +17,8 @@ type Hide struct {
 	Cert    string       `json:"cert"`
 	Pkey    string       `json:"pkey"`
 	Key     string       `json:"key"`
-	Servers Addresses    `json:"servers"`
+	Servers []string     `json:"servers"`
+	// Servers  Addresses    `json:"servers"`
 }
 
 type Ident struct {
