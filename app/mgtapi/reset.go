@@ -71,7 +71,7 @@ func (rest *resetREST) Notifier(c *ship.Context) error {
 
 func (rest *resetREST) Emc(c *ship.Context) error {
 	c.Infof("咚咚服务号 reset")
-	rest.emc.Reset()
+	rest.emc.Forget()
 	return nil
 }
 

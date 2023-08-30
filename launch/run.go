@@ -13,6 +13,7 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
+	"github.com/vela-ssoc/vela-broker/foreign/bytedance"
 	"github.com/vela-ssoc/vela-common-mb/accord"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
@@ -61,7 +62,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	match := ntfmatch.NewMatch()
 	store := storage.NewStore()
 
-	dongCfg := dong.NewConfigure()
+	dongCfg := dong.NewConfig()
 	dongCli := dong.NewClient(dongCfg, cli, slog)
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
@@ -133,6 +134,9 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 
 		elasticREST := agtapi.Elastic(esc)
 		elasticREST.Route(av1)
+
+		elkeidFS := bytedance.ElkeidFS("resources/elkeid/", cli)
+		agtapi.Reverse(elkeidFS).Route(av1)
 
 		heartREST := agtapi.Heart()
 		heartREST.Route(av1)
