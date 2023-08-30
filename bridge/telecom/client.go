@@ -74,6 +74,7 @@ func (bc *brokerClient) dial(parent context.Context) error {
 			continue
 		}
 
+		bc.slog.Infof("dial %s 成功，准备握手协商。", addr)
 		ident, issue, err := bc.consult(bc.ctx, conn, addr)
 		if err == nil {
 			cfg := smux.DefaultConfig()
@@ -154,9 +155,9 @@ func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *net
 	//goland:noinspection GoUnhandledErrorResult
 	defer res.Body.Close()
 
-	resp := make([]byte, 10*1024)
 	code := res.StatusCode
 	if code != http.StatusAccepted {
+		resp := make([]byte, 10*1024)
 		n, _ := io.ReadFull(res.Body, resp)
 		pd := new(problem.Detail)
 		if err = json.Unmarshal(resp[:n], pd); err == nil {
@@ -166,6 +167,7 @@ func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *net
 		return ident, issue, exr
 	}
 
+	resp := make([]byte, 1024*1024)
 	n, _ := res.Body.Read(resp)
 	err = issue.decrypt(resp[:n])
 

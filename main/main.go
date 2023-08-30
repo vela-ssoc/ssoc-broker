@@ -54,7 +54,8 @@ func main() {
 func loadHide() (telecom.Hide, error) {
 	var hide telecom.Hide
 	if !args.dev {
-		err := ciphertext.DecryptFile(os.Args[0], &hide)
+		arg := os.Args[0]
+		err := ciphertext.DecryptFile(arg, &hide)
 		return hide, err
 	}
 

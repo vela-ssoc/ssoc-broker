@@ -35,8 +35,8 @@ func (issue Issue) String() string {
 // Listen 本地服务监听配置
 type Listen struct {
 	Addr string `json:"addr"` // 监听地址 :8080 192.168.1.2:8080
-	Cert []byte `json:"cert"` // 证书
-	Pkey []byte `json:"pkey"` // 私钥
+	Cert string `json:"cert"` // 证书
+	Pkey string `json:"pkey"` // 私钥
 }
 
 // Certifier 初始化证书
@@ -45,7 +45,7 @@ func (ln Listen) Certifier() ([]tls.Certificate, error) {
 		return nil, nil
 	}
 
-	cert, err := tls.X509KeyPair(ln.Cert, ln.Pkey)
+	cert, err := tls.X509KeyPair([]byte(ln.Cert), []byte(ln.Pkey))
 	if err != nil {
 		return nil, err
 	}

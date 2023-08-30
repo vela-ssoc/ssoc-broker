@@ -17,7 +17,6 @@ type Hide struct {
 	Semver  model.Semver      `json:"semver"`
 	Cert    string            `json:"cert"`
 	Pkey    string            `json:"pkey"`
-	Key     string            `json:"key"`
 	Servers netutil.Addresses `json:"servers"`
 }
 
@@ -50,10 +49,6 @@ func (ide Ident) String() string {
 // Certifier 初始化证书
 func (h Hide) Certifier() ([]tls.Certificate, error) {
 	cert, pkey := h.Cert, h.Pkey
-	if pkey == "" {
-		pkey = h.Key
-	}
-
 	if cert == "" || pkey == "" {
 		return nil, nil
 	}
