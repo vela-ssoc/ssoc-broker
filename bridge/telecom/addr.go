@@ -2,6 +2,7 @@ package telecom
 
 import (
 	"net"
+	"net/url"
 	"strings"
 )
 
@@ -44,27 +45,56 @@ func (ad Address) String() string {
 	return build.String()
 }
 
+// Addresses broker 地址切片
 type Addresses []*Address
 
 // Preformat 对地址进行格式化处理，即：如果地址内有显式端口号，
 // 则根据是否开启 TLS 补充默认端口号
-func (ads Addresses) Preformat() {
+func (ads Addresses) Preformat() Addresses {
+	size := len(ads)
+	tmap := make(map[string]*Address, size)
+	smap := make(map[string]*Address, size)
+	ret := make(Addresses, 0, 2*size)
 	for _, ad := range ads {
-		addr := ad.Addr
-		host, port, err := net.SplitHostPort(addr)
-		if err == nil && port != "" {
-			if ad.Name == "" {
-				ad.Name = host
-			}
-			continue
+		host, port := ads.splitHostPort(ad.Addr)
+		sport, tport := port, port
+		if port == "" {
+			sport, tport = "443", "80"
 		}
-		if ad.Name == "" {
-			ad.Name = addr
+		name := ad.Name
+		if name == "" {
+			name = host
 		}
-		if ad.TLS {
-			ad.Addr = addr + ":443"
-		} else {
-			ad.Addr = addr + ":80"
+
+		saddr := net.JoinHostPort(host, sport)
+		if old := smap[saddr]; old == nil {
+			addr := &Address{TLS: true, Addr: saddr, Name: name}
+			smap[saddr] = addr
+			ret = append(ret, addr)
+		}
+
+		taddr := net.JoinHostPort(host, tport)
+		if old := tmap[taddr]; old == nil {
+			addr := &Address{Addr: taddr, Name: name}
+			tmap[saddr] = addr
+			ret = append(ret, addr)
 		}
 	}
+
+	return ret
+}
+
+// splitHostPort 截取 host 和 port
+func (Addresses) splitHostPort(str string) (string, string) {
+	if u, err := url.Parse(str); err == nil {
+		if u.Host != "" && u.Scheme != "" {
+			str = u.Host
+		}
+	}
+
+	if host, port, err := net.SplitHostPort(str); err == nil {
+		return host, port
+	}
+
+	return str, ""
 }

@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"net"
 	"time"
+
+	"github.com/vela-ssoc/vela-common-mba/netutil"
 )
 
-func newIterDial(addrs Addresses) *iterDial {
+func newIterDial(addrs netutil.Addresses) *iterDial {
 	dialer := &tls.Dialer{NetDialer: new(net.Dialer)}
 	macs := make(map[string]net.HardwareAddr, 4)
 	length := len(addrs)
@@ -23,12 +25,12 @@ func newIterDial(addrs Addresses) *iterDial {
 type iterDial struct {
 	dial   *tls.Dialer
 	macs   map[string]net.HardwareAddr
-	addrs  Addresses
+	addrs  netutil.Addresses
 	length int
 	index  int
 }
 
-func (dl *iterDial) iterDial(parent context.Context, timeout time.Duration) (net.Conn, *Address, error) {
+func (dl *iterDial) iterDial(parent context.Context, timeout time.Duration) (net.Conn, *netutil.Address, error) {
 	idx := dl.index
 	addr := dl.addrs[idx]
 	dl.index = (idx + 1) % dl.length

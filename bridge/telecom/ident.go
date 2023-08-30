@@ -8,17 +8,17 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
+	"github.com/vela-ssoc/vela-common-mba/netutil"
 )
 
 type Hide struct {
-	ID      int64        `json:"id"`
-	Secret  string       `json:"secret"`
-	Semver  model.Semver `json:"semver"`
-	Cert    string       `json:"cert"`
-	Pkey    string       `json:"pkey"`
-	Key     string       `json:"key"`
-	Servers []string     `json:"servers"`
-	// Servers  Addresses    `json:"servers"`
+	ID      int64             `json:"id"`
+	Secret  string            `json:"secret"`
+	Semver  model.Semver      `json:"semver"`
+	Cert    string            `json:"cert"`
+	Pkey    string            `json:"pkey"`
+	Key     string            `json:"key"`
+	Servers netutil.Addresses `json:"servers"`
 }
 
 type Ident struct {

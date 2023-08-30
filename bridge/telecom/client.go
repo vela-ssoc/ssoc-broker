@@ -103,7 +103,7 @@ func (bc *brokerClient) dial(parent context.Context) error {
 }
 
 // consult 当建立好 TCP 连接后进行应用层协商
-func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *Address) (Ident, Issue, error) {
+func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *netutil.Address) (Ident, Issue, error) {
 	ip := conn.LocalAddr().(*net.TCPAddr).IP
 	mac := bc.dialer.lookupMAC(ip)
 
