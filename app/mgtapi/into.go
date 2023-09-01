@@ -2,6 +2,7 @@ package mgtapi
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
 	"github.com/vela-ssoc/vela-broker/app/route"
@@ -23,6 +24,7 @@ func (rest *intoREST) Route(r *ship.RouteGroupBuilder) {
 		ship.PROPFIND, "LOCK", "MKCOL", "PROPPATCH", "COPY", "MOVE", "UNLOCK",
 	}
 	r.Route("/arr/*path").Data(route.Named("ARR 直接调用")).Method(rest.ARR, methods...)
+	r.Route("/aws/*path").Data(route.Named("AWS 直接调用")).GET(rest.AWS)
 }
 
 func (rest *intoREST) ARR(c *ship.Context) error {
@@ -36,5 +38,14 @@ func (rest *intoREST) ARR(c *ship.Context) error {
 }
 
 func (rest *intoREST) AWS(c *ship.Context) error {
-	return ship.ErrStatusNotImplemented
+	if !c.IsWebSocket() {
+		return ship.ErrBadRequest
+	}
+
+	w, r := c.Response(), c.Request()
+	ctx := r.Context()
+	sid := r.Header.Get("X-Node-Id")
+	id, _ := strconv.ParseInt(sid, 10, 64)
+
+	return rest.svc.AWS(ctx, w, r, id)
 }

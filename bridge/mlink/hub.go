@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -343,12 +344,20 @@ func (hub *minionHub) sendJSON(ctx context.Context, id int64, path string, req a
 }
 
 func (hub *minionHub) httpURL(id int64, path string) string {
-	u := &url.URL{Scheme: "http", Host: strconv.FormatInt(id, 10), Path: path}
-	return u.String()
+	return hub.newURL(id, "http", path)
 }
 
 func (hub *minionHub) wsURL(id int64, path string) string {
-	u := &url.URL{Scheme: "ws", Host: strconv.FormatInt(id, 10), Path: path}
+	return hub.newURL(id, "ws", path)
+}
+
+func (*minionHub) newURL(id int64, scheme, path string) string {
+	sid := strconv.FormatInt(id, 10)
+	sn := strings.SplitN(path, "?", 2)
+	u := &url.URL{Scheme: scheme, Host: sid, Path: sn[0]}
+	if len(sn) == 2 {
+		u.RawQuery = sn[1]
+	}
 	return u.String()
 }
 

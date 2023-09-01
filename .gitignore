@@ -15,7 +15,8 @@
 # vendor/
 
 .idea
-broker.json
+!broker-example.json
+*.json
 
 !resources/log/.gitkeep
 resources/log/
