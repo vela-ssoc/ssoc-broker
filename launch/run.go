@@ -5,6 +5,7 @@ import (
 
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
 	"github.com/vela-ssoc/vela-broker/app/agtsvc"
+	"github.com/vela-ssoc/vela-broker/app/crontbl"
 	"github.com/vela-ssoc/vela-broker/app/mgtapi"
 	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
 	"github.com/vela-ssoc/vela-broker/app/middle"
@@ -175,6 +176,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	})
 	api.Route("/v1/minion/endpoint").GET(temp.Endpoint)
 	api.Route("/v1/edition/upgrade").GET(oldHandler.Upgrade)
+	crontbl.Run(parent, link.Ident().ID, link.Issue().Name, slog)
 
 	errCh := make(chan error, 1)
 
