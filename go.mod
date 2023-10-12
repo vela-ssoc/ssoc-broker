@@ -5,15 +5,15 @@ go 1.20
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.0
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20231009010658-d8147687b0eb
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20231011024819-59fb885a17d7
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20230830084957-da2ff0015ca5
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.26.0
-	golang.org/x/net v0.16.0
+	golang.org/x/net v0.17.0
 	golang.org/x/time v0.3.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/gen v0.3.23
-	gorm.io/gorm v1.25.4
+	gorm.io/gorm v1.25.5
 )
 
 require (
@@ -32,7 +32,7 @@ require (
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect
 	gorm.io/datatypes v1.2.0 // indirect
-	gorm.io/driver/mysql v1.5.1 // indirect
+	gorm.io/driver/mysql v1.5.2 // indirect
 	gorm.io/hints v1.1.2 // indirect
 	gorm.io/plugin/dbresolver v1.4.7 // indirect
 )
