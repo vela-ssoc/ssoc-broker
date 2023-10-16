@@ -12,11 +12,14 @@
 # 不同 linux 的软件管理对该包有不同的名字，一般为 libpcap-devel 或 libpcap-dev，
 # 一个名字搜不到可以试试另一个。
 
-# ubuntu
+# ubuntu/debian 系
 apt install libpcap-dev
 
-# manjaro
+# arch/manjaro 系
 pacman -S libpcap-devel
+
+# redhat/centos 系
+yum install libpcap-devel
 ```
 
 ### windows
