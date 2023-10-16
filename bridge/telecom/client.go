@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -167,9 +168,11 @@ func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *net
 		return ident, issue, exr
 	}
 
-	resp := make([]byte, 1024*1024)
-	n, _ := res.Body.Read(resp)
-	err = issue.decrypt(resp[:n])
+	resp := make([]byte, 100*1024) // 100KiB 缓冲区
+	n, err := io.ReadFull(res.Body, resp)
+	if err == nil || err == io.EOF || errors.Is(err, io.ErrUnexpectedEOF) {
+		err = issue.decrypt(resp[:n])
+	}
 
 	return ident, issue, err
 }
