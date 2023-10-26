@@ -1,6 +1,7 @@
 package agtapi
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"sync"
@@ -61,20 +62,7 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	}
 
 	// 查询最新的版本信息
-	tbl := query.MinionBin
-	dao := tbl.WithContext(ctx).
-		Where(tbl.Goos.Eq(goos),
-			tbl.Arch.Eq(arch),
-			tbl.Deprecated.Is(false)).
-		Order(tbl.Weight.Desc(), tbl.UpdatedAt.Desc())
-	if except != "" {
-		dao.Where(tbl.Semver.Eq(except))
-	} else {
-		weight := model.Semver(ident.Semver).Int64()
-		dao.Where(tbl.Weight.Gt(weight))
-	}
-
-	bin, err := dao.First()
+	bin, err := rest.suitableMinion(ctx, goos, arch, except)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.WriteHeader(http.StatusNotModified)
@@ -143,4 +131,20 @@ func (rest *upgradeREST) unlock() {
 	if rest.count < 0 {
 		rest.count = 0
 	}
+}
+
+func (rest *upgradeREST) suitableMinion(ctx context.Context, goos, arch, version string) (*model.MinionBin, error) {
+	tbl := query.MinionBin
+	dao := tbl.WithContext(ctx).
+		Where(tbl.Deprecated.Is(false), tbl.Goos.Eq(goos), tbl.Arch.Eq(arch)).
+		Order(tbl.Weight.Desc(), tbl.UpdatedAt.Desc())
+	if version != "" {
+		return dao.Where(tbl.Semver.Eq(version)).First()
+	}
+
+	// 版本号包含 - + 的权重会下降，例如：
+	// 0.0.1-debug < 0.0.1
+	// 0.0.1+20230720 < 0.0.1
+	return dao.Where(tbl.Semver.NotLike("%-%"), tbl.Semver.NotLike("%+%")).
+		First()
 }

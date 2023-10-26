@@ -31,6 +31,9 @@ func ElkeidFS(dir string, cli netutil.HTTPClient) fs.FS {
 	}
 }
 
+// elkeidFS 文件下载
+//
+// https://github.com/bytedance/Elkeid/blob/a540bb8a225ebd071148fffe51ff66adea49f755/driver/README-zh_CN.md
 type elkeidFS struct {
 	dir   string
 	cli   netutil.HTTPClient

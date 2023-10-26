@@ -6,6 +6,7 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/xgfone/ship/v5"
+	"gorm.io/gorm/clause"
 )
 
 func Task() route.Router {
@@ -36,7 +37,7 @@ func (rest *taskREST) Status(c *ship.Context) error {
 	tbl := query.MinionTask
 	_, _ = tbl.WithContext(ctx).Where(tbl.MinionID.Eq(mid)).Delete()
 	if len(dats) != 0 {
-		_ = tbl.WithContext(ctx).Create(dats...)
+		_ = tbl.WithContext(ctx).Clauses(clause.OnConflict{UpdateAll: true}).Save(dats...)
 	}
 
 	return nil

@@ -285,13 +285,20 @@ type SbomProcExt struct {
 }
 
 func (sr SbomRequest) Components(minionID int64, inet string, projectID int64) []*model.SBOMComponent {
-	ret := make([]*model.SBOMComponent, 0, len(sr.SDKs))
+	size := len(sr.SDKs)
+	unique := make(map[string]struct{}, size)
+	ret := make([]*model.SBOMComponent, 0, size)
 	for _, sk := range sr.SDKs {
 		purl := sk.Purl
 		if !strings.Contains(purl, "@") {
 			purl += "@0.0.0"
 			sk.Version = "0.0.0"
 		}
+		if _, exist := unique[purl]; exist {
+			continue
+		}
+		unique[purl] = struct{}{}
+
 		cpt := &model.SBOMComponent{
 			MinionID:  minionID,
 			Inet:      inet,

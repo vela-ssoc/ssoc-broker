@@ -31,7 +31,12 @@ func (rest *reverseREST) Elkeid(c *ship.Context) error {
 		return err
 	}
 
-	name := "hids_driver_" + req.Version + "_" + req.Uname + "_amd64.ko"
+	version, uname, arch := req.Version, req.Uname, req.Arch
+	if arch == "" {
+		arch = "amd64"
+	}
+
+	name := "hids_driver_" + version + "_" + uname + "_" + arch + ".ko"
 	file, err := rest.elkeidFS.Open(name)
 	if err != nil {
 		return err

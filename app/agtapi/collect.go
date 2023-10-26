@@ -3,6 +3,7 @@ package agtapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -386,7 +387,7 @@ func (rest *collectREST) Sbom(c *ship.Context) error {
 		Where(ptjTbl.MinionID.Eq(mid), ptjTbl.Filepath.Eq(req.Filename)).
 		First()
 	if err != nil {
-		if err != gorm.ErrRecordNotFound {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			c.Warnf("查询节点 %d %s 旧的 SBOM 错误：%s", mid, req.Filename, err)
 			return err
 		}
