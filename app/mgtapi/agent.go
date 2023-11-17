@@ -24,6 +24,7 @@ func (rest *agentREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route(accord.PathTaskSync).Data(route.Named("通知节点同步配置")).POST(rest.RsyncTask)
 	r.Route(accord.PathTaskLoad).Data(route.Named("通知节点重启配置")).POST(rest.ReloadTask)
 	r.Route(accord.PathTaskTable).Data(route.Named("通知扫表任务")).POST(rest.TableTask)
+	r.Route(accord.PathThirdDiff).Data(route.Named("通知三方文件更新")).POST(rest.ThirdDiff)
 }
 
 func (rest *agentREST) Upgrade(c *ship.Context) error {
@@ -104,4 +105,14 @@ func (rest *agentREST) ReloadTask(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	return rest.svc.ReloadTask(ctx, req.MinionID, req.SubstanceID)
+}
+
+func (rest *agentREST) ThirdDiff(c *ship.Context) error {
+	var req accord.ThirdDiff
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	return rest.svc.ThirdDiff(ctx, req.Name, req.Event)
 }

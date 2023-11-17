@@ -43,7 +43,7 @@ type Linker interface {
 }
 
 type Huber interface {
-	Iter() Iter
+	ConnectIDs() []int64
 
 	Forward(http.ResponseWriter, *http.Request)
 
@@ -131,6 +131,8 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 			// Workdir:    ident.Workdir,
 			// Executable: ident.Executable,
 			// JoinedAt:   now,
+			Unstable:   ident.Unstable,
+			Customized: ident.Customized,
 			Unload:     ident.Unload,
 			BrokerID:   hub.link.Ident().ID,
 			BrokerName: hub.link.Issue().Name,
@@ -224,6 +226,8 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 		// Executable: ident.Executable,
 		// PingedAt:   now,
 		// JoinedAt:   now,
+		Unstable:   ident.Unstable,
+		Customized: ident.Customized,
 		Uptime:     now,
 		BrokerID:   hub.link.Ident().ID,
 		BrokerName: hub.link.Issue().Name,
@@ -316,8 +320,8 @@ func (hub *minionHub) Unicast(ctx context.Context, id int64, path string, body, 
 	return json.NewDecoder(res.Body).Decode(resp)
 }
 
-func (hub *minionHub) Iter() Iter {
-	return hub.section.Iter()
+func (hub *minionHub) ConnectIDs() []int64 {
+	return hub.section.IDs()
 }
 
 func (hub *minionHub) Knockout(mid int64) {

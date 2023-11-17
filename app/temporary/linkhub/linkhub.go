@@ -438,14 +438,34 @@ func (hub *minionHub) Upgrade(c *ship.Context) error {
 	//goland:noinspection GoUnhandledErrorResult
 	defer file.Close()
 
-	hide := &definition.MinionHide{
+	addrs := make([]string, 0, 16)
+	unique := make(map[string]struct{}, 16)
+	for _, addr := range brk.LAN {
+		if _, ok := unique[addr]; ok {
+			continue
+		}
+		unique[addr] = struct{}{}
+		addrs = append(addrs, addr)
+	}
+	for _, addr := range brk.VIP {
+		if _, ok := unique[addr]; ok {
+			continue
+		}
+		unique[addr] = struct{}{}
+		addrs = append(addrs, addr)
+	}
+	hide := &definition.MHide{
 		Servername: brk.Servername,
-		LAN:        brk.LAN,
-		VIP:        brk.VIP,
-		Edition:    string(edt.Semver),
-		Hash:       file.MD5(),
-		Size:       file.Size(),
+		Addrs:      addrs,
+		Semver:     string(edt.Semver),
+		Hash:       edt.Hash,
+		Size:       edt.Size,
+		Goos:       ident.Goos,
+		Arch:       ident.Arch,
 		DownloadAt: time.Now(),
+		VIP:        brk.VIP,
+		LAN:        brk.LAN,
+		Edition:    string(edt.Semver),
 	}
 
 	enc, exx := ciphertext.EncryptPayload(hide)

@@ -16,6 +16,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-common-mba/definition"
 	"github.com/xgfone/ship/v5"
+	"gorm.io/gen"
 	"gorm.io/gorm"
 )
 
@@ -54,22 +55,12 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	ctx := r.Context()
 	inf := mlink.Ctx(r.Context()) // 获取节点的信息
 	ident := inf.Ident()
-	goos, arch := ident.Goos, ident.Arch
-	except := req.Version
-	if except != "" && except == ident.Semver { // 如果请求的版本
+	except := req.Version // 期望升级到的版本
+	if req.Unstable == ident.Unstable &&
+		req.Customized == req.Customized &&
+		except == ident.Semver {
 		c.WriteHeader(http.StatusNotModified)
 		return nil
-	}
-
-	// 查询最新的版本信息
-	bin, err := rest.suitableMinion(ctx, goos, arch, except)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.WriteHeader(http.StatusNotModified)
-			return nil
-		}
-		c.Warnf("查询更新版本出错：%s", err)
-		return err
 	}
 
 	// 查询 broker 信息
@@ -77,6 +68,31 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(rest.bid)).First()
 	if err != nil {
 		c.Warnf("更新版本查询 broker 信息错误：%s", err)
+		return err
+	}
+
+	tbl := query.MinionBin
+	cond := []gen.Condition{
+		tbl.Goos.Eq(ident.Goos),
+		tbl.Arch.Eq(ident.Arch),
+		tbl.Unstable.Is(req.Unstable),
+	}
+	if except != "" {
+		cond = append(cond, tbl.Semver.Eq(except))
+	}
+	customized := req.Customized
+	if customized == "" {
+		customized = ident.Customized
+	}
+	cond = append(cond, tbl.Customized.Eq(customized))
+
+	bin, err := tbl.WithContext(ctx).Where(cond...).Order(tbl.Weight.Desc()).First()
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.WriteHeader(http.StatusNotModified)
+			return nil
+		}
+		c.Warnf("查询更新版本出错：%s", err)
 		return err
 	}
 
@@ -88,15 +104,37 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	//goland:noinspection GoUnhandledErrorResult
 	defer file.Close()
 
-	hide := &definition.MinionHide{
+	addrs := make([]string, 0, 16)
+	unique := make(map[string]struct{}, 16)
+	for _, addr := range brk.LAN {
+		if _, ok := unique[addr]; ok {
+			continue
+		}
+		unique[addr] = struct{}{}
+		addrs = append(addrs, addr)
+	}
+	for _, addr := range brk.VIP {
+		if _, ok := unique[addr]; ok {
+			continue
+		}
+		unique[addr] = struct{}{}
+		addrs = append(addrs, addr)
+	}
+	hide := &definition.MHide{
 		Servername: brk.Servername,
-		LAN:        brk.LAN,
-		VIP:        brk.VIP,
-		Edition:    string(bin.Semver),
-		Hash:       file.MD5(),
-		Size:       file.Size(),
+		Addrs:      addrs,
+		Semver:     string(bin.Semver),
+		Hash:       bin.Hash,
+		Size:       bin.Size,
 		Tags:       req.Tags,
+		Goos:       bin.Goos,
+		Arch:       bin.Arch,
+		Unstable:   bin.Unstable,
+		Customized: bin.Customized,
 		DownloadAt: time.Now(),
+		VIP:        brk.VIP,
+		LAN:        brk.LAN,
+		Edition:    string(bin.Semver),
 	}
 
 	enc, exx := ciphertext.EncryptPayload(hide)

@@ -6,9 +6,8 @@ import (
 )
 
 func (biz *agentService) broadcast(path string, data any) {
-	iter := biz.lnk.Iter()
-	for iter.Has() {
-		mid := iter.Next()
+	ids := biz.lnk.ConnectIDs()
+	for _, mid := range ids {
 		task := &messageTask{
 			biz:  biz,
 			mid:  mid,

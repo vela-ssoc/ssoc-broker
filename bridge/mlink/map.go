@@ -6,7 +6,7 @@ type container interface {
 	Put(id string, conn *connect) bool
 	Get(id string) *connect
 	Del(id string) *connect
-	Iter() Iter
+	IDs() []int64
 }
 
 type Iter interface {
@@ -14,7 +14,7 @@ type Iter interface {
 	Next() int64
 }
 
-func newSafeMap(size int) container {
+func newSafeMap(size int) *safeMap {
 	if size <= 0 {
 		size = 16
 	}
@@ -56,16 +56,6 @@ func (sm *safeMap) Del(id string) *connect {
 	return c
 }
 
-func (sm *safeMap) Iter() Iter {
-	connects := sm.connections()
-	size := len(connects)
-
-	return &safeMapIter{
-		size:  size,
-		elems: connects,
-	}
-}
-
 func (sm *safeMap) connections() []*connect {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
@@ -79,34 +69,13 @@ func (sm *safeMap) connections() []*connect {
 	return elems
 }
 
-type safeMapIter struct {
-	cursor int
-	size   int
-	elems  []*connect
-}
-
-func (it *safeMapIter) Has() bool {
-	return it.cursor < it.size
-}
-
-func (it *safeMapIter) Next() int64 {
-	if it.cursor >= it.size {
-		return 0
-	}
-
-	c := it.elems[it.cursor]
-	it.cursor++
-
-	return c.id
-}
-
 func newSegmentMap(slot, size int) container {
 	if slot <= 0 {
 		slot = 8
 	}
 	sm := &segmentMap{
 		size: slot,
-		slot: make([]container, slot),
+		slot: make([]*safeMap, slot),
 	}
 	for i := 0; i < slot; i++ {
 		sm.slot[i] = newSafeMap(size)
@@ -117,7 +86,7 @@ func newSegmentMap(slot, size int) container {
 
 type segmentMap struct {
 	size int
-	slot []container
+	slot []*safeMap
 }
 
 func (sm *segmentMap) Put(id string, conn *connect) bool {
@@ -132,14 +101,21 @@ func (sm *segmentMap) Del(id string) *connect {
 	return sm.getSLOT(id).Del(id)
 }
 
-func (sm *segmentMap) Iter() Iter {
-	return &segmentMapIter{
-		slot: sm.slot,
+func (sm *segmentMap) IDs() []int64 {
+	ret := make([]int64, 0, 2000)
+	for _, c := range sm.slot {
+		cs := c.connections()
+		for _, c2 := range cs {
+			ret = append(ret, c2.id)
+		}
+
 	}
+
+	return ret
 }
 
 // getSLOT 根据 key 计算所在的存储桶
-func (sm *segmentMap) getSLOT(key string) container {
+func (sm *segmentMap) getSLOT(key string) *safeMap {
 	hash := sm.fnv32(key)
 	idx := int(hash) % sm.size
 	return sm.slot[idx]
@@ -155,42 +131,4 @@ func (*segmentMap) fnv32(key string) uint32 {
 		hash ^= uint32(key[i])
 	}
 	return hash
-}
-
-type segmentMapIter struct {
-	iter   Iter
-	cursor int
-	slot   []container
-}
-
-func (sm *segmentMapIter) Has() bool {
-	iter := sm.currentIter()
-	if iter == nil {
-		return false
-	}
-	return iter.Has()
-}
-
-func (sm *segmentMapIter) Next() int64 {
-	iter := sm.currentIter()
-	if iter == nil {
-		return 0
-	}
-	return iter.Next()
-}
-
-func (sm *segmentMapIter) currentIter() Iter {
-	iter := sm.iter
-	if iter == nil || !iter.Has() {
-		size := len(sm.slot)
-		if size <= sm.cursor {
-			return nil
-		}
-		next := sm.slot[sm.cursor].Iter()
-		sm.iter = next
-		sm.cursor++
-
-		return next
-	}
-	return iter
 }
