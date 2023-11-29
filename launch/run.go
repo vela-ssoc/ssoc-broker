@@ -25,6 +25,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-common-mb/integration/ntfmatch"
+	"github.com/vela-ssoc/vela-common-mb/integration/proxy"
 	"github.com/vela-ssoc/vela-common-mb/integration/sonatype"
 	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/vela-common-mb/logback"
@@ -141,6 +142,11 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 
 		heartREST := agtapi.Heart()
 		heartREST.Route(av1)
+
+		siemProxy, err := proxy.New(issue.SIEM.URL, issue.SIEM.Token)
+		if err == nil {
+			agtapi.Proxy(siemProxy)
+		}
 
 		securityREST := agtapi.Security()
 		securityREST.Route(av1)

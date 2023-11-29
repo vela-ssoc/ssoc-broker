@@ -20,6 +20,7 @@ type Issue struct {
 	Listen   Listen      `json:"listen"`   // 服务监听配置
 	Logger   Logger      `json:"logger"`   // 日志配置
 	Database dbms.Config `json:"database"` // 数据库配置
+	SIEM     SIEM        `json:"siem"`     // SIEM 配置
 }
 
 // decrypt 解密消息
@@ -30,6 +31,11 @@ func (issue *Issue) decrypt(data []byte) error {
 func (issue Issue) String() string {
 	dat, _ := json.MarshalIndent(issue, "", "    ")
 	return string(dat)
+}
+
+type SIEM struct {
+	URL   string `json:"url"   yaml:"url"`
+	Token string `json:"token" yaml:"token"`
 }
 
 // Listen 本地服务监听配置
