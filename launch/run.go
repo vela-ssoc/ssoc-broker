@@ -145,7 +145,8 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 
 		siemProxy, err := proxy.New(issue.SIEM.URL, issue.SIEM.Token)
 		if err == nil {
-			agtapi.Proxy(siemProxy)
+			proxyAPI := agtapi.Proxy(siemProxy)
+			proxyAPI.Route(av1)
 		}
 
 		securityREST := agtapi.Security()
