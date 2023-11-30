@@ -45,8 +45,8 @@ github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ
 github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20231129020811-162c98a5d85f h1:IMCloxOQssowLgc+Gs6wCBFRw6B7bhJ225pdVUZaqBk=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20231129020811-162c98a5d85f/go.mod h1:eqpKMqRb3nkPQnm2cphSriGxiGElPdzffNcouVSpxb0=
-github.com/vela-ssoc/vela-common-mba v0.0.0-20231110031019-8401a542e951 h1:LXBFdj77Uu7GapPTrXg8BRt+1Q2m06GBxTzkv41vNwY=
-github.com/vela-ssoc/vela-common-mba v0.0.0-20231110031019-8401a542e951/go.mod h1:FEaDUNnUyo5ZMXUjs9YQL7ZqxGwKkeau3hmnUKxKUOw=
+github.com/vela-ssoc/vela-common-mba v0.0.0-20231129020857-de2b2be3073a h1:80BvVblF6PCtT1ZbilKCIfnvr5XXetzDmbPTQjGSZiQ=
+github.com/vela-ssoc/vela-common-mba v0.0.0-20231129020857-de2b2be3073a/go.mod h1:0FjqcG3ShJ3krtSR27ZkzyI+Lo5UP+WWMiNqmA0g83I=
 github.com/xgfone/ship/v5 v5.3.1 h1:e5qhMT6DSQOE6A/xDBL/Ftf28BGptNw6Etq+w+pme6E=
 github.com/xgfone/ship/v5 v5.3.1/go.mod h1:mGI+65lLL3kaOseMkWUYgy+OFl27WV2LY1NSsecu/9g=
 go.uber.org/goleak v1.2.0 h1:xqgm/S+aQvhWFTtR0XK3Jvg7z8kGV8P4X14IzwN3Eqk=
