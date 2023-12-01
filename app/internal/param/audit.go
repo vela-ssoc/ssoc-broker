@@ -10,7 +10,7 @@ type AuditRiskRequest struct {
 	// Class 风险类型
 	// ["暴力破解", "病毒事件", "弱口令", "数据爬虫", "蜜罐应用", "web 攻击", "监控事件", "登录事件"]
 	Class      string          `json:"class"       validate:"required"`
-	Level      model.RiskLevel `json:"level"       validate:"required"` // 风险级别
+	Level      model.RiskLevel `json:"level"`                           // 风险级别
 	Payload    string          `json:"payload"`                         // 攻击载荷
 	Subject    string          `json:"subject"     validate:"required"` // 风险事件主题
 	LocalIP    string          `json:"local_ip"`                        // 本地 IP
