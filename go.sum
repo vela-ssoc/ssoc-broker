@@ -43,8 +43,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
 github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/vela-ssoc/vela-common-mb v0.0.0-20231129020811-162c98a5d85f h1:IMCloxOQssowLgc+Gs6wCBFRw6B7bhJ225pdVUZaqBk=
-github.com/vela-ssoc/vela-common-mb v0.0.0-20231129020811-162c98a5d85f/go.mod h1:eqpKMqRb3nkPQnm2cphSriGxiGElPdzffNcouVSpxb0=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20231202015909-a8011bfb971f h1:jozYIkJyKG2zsipUu9DO/JlT42BV2Up7GY7Hm26hrDE=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20231202015909-a8011bfb971f/go.mod h1:lC/p06PQrHMP2jtdpSSVuQgms1RphoicG+7FYBDaOtE=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20231129020857-de2b2be3073a h1:80BvVblF6PCtT1ZbilKCIfnvr5XXetzDmbPTQjGSZiQ=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20231129020857-de2b2be3073a/go.mod h1:0FjqcG3ShJ3krtSR27ZkzyI+Lo5UP+WWMiNqmA0g83I=
 github.com/xgfone/ship/v5 v5.3.1 h1:e5qhMT6DSQOE6A/xDBL/Ftf28BGptNw6Etq+w+pme6E=
