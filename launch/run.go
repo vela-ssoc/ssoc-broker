@@ -169,6 +169,10 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		bid := link.Ident().ID
 		upgradeREST := agtapi.Upgrade(bid, gfs)
 		upgradeREST.Route(av1)
+
+		sharedStringsService := agtsvc.SharedStrings()
+		sharedREST := agtapi.Shared(sharedStringsService)
+		sharedREST.Route(av1)
 	}
 
 	oldHandler := linkhub.New(db, link, slog, gfs)
