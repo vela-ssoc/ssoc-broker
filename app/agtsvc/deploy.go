@@ -22,22 +22,29 @@ type DeployService interface {
 	OpenMinion(ctx context.Context, req *param.DeployMinionDownload) (gridfs.File, error)
 }
 
-func Deploy(store storage.Storer, gfs gridfs.FS) DeployService {
+func Deploy(store storage.Storer, gfs gridfs.FS, bid int64) DeployService {
 	return &deployService{
 		store: store,
 		gfs:   gfs,
+		bid:   bid,
 	}
 }
 
 type deployService struct {
 	store storage.Storer
 	gfs   gridfs.FS
+	bid   int64
 }
 
 func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinionDownload) (gridfs.File, error) {
+	brokerID := req.BrokerID
+	if brokerID == 0 {
+		brokerID = biz.bid
+	}
+
 	// 查询 broker 节点信息
 	brkTbl := query.Broker
-	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(req.BrokerID)).First()
+	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(brokerID)).First()
 	if err != nil {
 		return nil, err
 	}

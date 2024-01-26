@@ -178,7 +178,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	oldHandler := linkhub.New(db, link, slog, gfs)
 	temp := temporary.REST(oldHandler, valid, slog)
 	gw := gateway.New(hub)
-	deployService := agtsvc.Deploy(store, gfs)
+	deployService := agtsvc.Deploy(store, gfs, ident.ID)
 	deployAPI := agtapi.Deploy(deployService)
 
 	mux := ship.Default()
