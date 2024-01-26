@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20240112060731-804c15728721
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20240126010240-4181ff733555
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240109050951-9a18a7be3650
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.26.0
@@ -20,7 +20,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.16.0 // indirect
+	github.com/go-playground/validator/v10 v10.17.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
