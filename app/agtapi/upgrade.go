@@ -41,11 +41,6 @@ func (rest *upgradeREST) Route(r *ship.RouteGroupBuilder) {
 }
 
 func (rest *upgradeREST) Download(c *ship.Context) error {
-	if !rest.tryLock() {
-		return c.NoContent(http.StatusTooManyRequests)
-	}
-	defer rest.unlock()
-
 	var req param.UpgradeDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -55,12 +50,25 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	ctx := r.Context()
 	inf := mlink.Ctx(r.Context()) // 获取节点的信息
 	ident := inf.Ident()
-	except := req.Version // 期望升级到的版本
-	if req.Unstable == ident.Unstable &&
-		req.Customized == req.Customized &&
-		except == ident.Semver {
+	if ident.Customized == req.Customized &&
+		ident.Semver == req.Version {
 		c.WriteHeader(http.StatusNotModified)
 		return nil
+	}
+
+	if !rest.tryLock() {
+		return c.NoContent(http.StatusTooManyRequests)
+	}
+	defer rest.unlock()
+
+	bin, err := rest.matchBinary(ctx, inf, &req)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.WriteHeader(http.StatusNotModified)
+			return nil
+		}
+		c.Warnf("查询更新版本出错：%s", err)
+		return err
 	}
 
 	// 查询 broker 信息
@@ -68,31 +76,6 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(rest.bid)).First()
 	if err != nil {
 		c.Warnf("更新版本查询 broker 信息错误：%s", err)
-		return err
-	}
-
-	tbl := query.MinionBin
-	cond := []gen.Condition{
-		tbl.Goos.Eq(ident.Goos),
-		tbl.Arch.Eq(ident.Arch),
-		tbl.Unstable.Is(req.Unstable),
-	}
-	if except != "" {
-		cond = append(cond, tbl.Semver.Eq(except))
-	}
-	customized := req.Customized
-	if customized == "" {
-		customized = ident.Customized
-	}
-	cond = append(cond, tbl.Customized.Eq(customized))
-
-	bin, err := tbl.WithContext(ctx).Where(cond...).Order(tbl.Weight.Desc()).First()
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.WriteHeader(http.StatusNotModified)
-			return nil
-		}
-		c.Warnf("查询更新版本出错：%s", err)
 		return err
 	}
 
@@ -120,10 +103,12 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 		unique[addr] = struct{}{}
 		addrs = append(addrs, addr)
 	}
+
+	semver := string(bin.Semver)
 	hide := &definition.MHide{
 		Servername: brk.Servername,
 		Addrs:      addrs,
-		Semver:     string(bin.Semver),
+		Semver:     semver,
 		Hash:       bin.Hash,
 		Size:       bin.Size,
 		Tags:       req.Tags,
@@ -134,7 +119,7 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 		DownloadAt: time.Now(),
 		VIP:        brk.VIP,
 		LAN:        brk.LAN,
-		Edition:    string(bin.Semver),
+		Edition:    semver,
 	}
 
 	enc, exx := ciphertext.EncryptPayload(hide)
@@ -171,18 +156,33 @@ func (rest *upgradeREST) unlock() {
 	}
 }
 
-func (rest *upgradeREST) suitableMinion(ctx context.Context, goos, arch, version string) (*model.MinionBin, error) {
+func (rest *upgradeREST) matchBinary(ctx context.Context, inf mlink.Infer, req *param.UpgradeDownload) (*model.MinionBin, error) {
 	tbl := query.MinionBin
-	dao := tbl.WithContext(ctx).
-		Where(tbl.Deprecated.Is(false), tbl.Goos.Eq(goos), tbl.Arch.Eq(arch)).
-		Order(tbl.Weight.Desc(), tbl.UpdatedAt.Desc())
-	if version != "" {
-		return dao.Where(tbl.Semver.Eq(version)).First()
+	ident := inf.Ident()
+	goos, arch := ident.Goos, ident.Arch
+	conds := []gen.Condition{
+		tbl.Deprecated.Is(false),
+		tbl.Goos.Eq(goos),
+		tbl.Arch.Eq(arch),
 	}
 
-	// 版本号包含 - + 的权重会下降，例如：
-	// 0.0.1-debug < 0.0.1
-	// 0.0.1+20230720 < 0.0.1
-	return dao.Where(tbl.Semver.NotLike("%-%"), tbl.Semver.NotLike("%+%")).
-		First()
+	semver := req.Version
+	if semver == "" { // 版本号为空说明是全局推送更新。
+		if ident.Unstable { // 节点当前运行的是测试版，忽略更新指令。
+			return nil, gorm.ErrRecordNotFound
+		}
+		weight := model.Semver(ident.Semver).Int64() // 当前节点运行的版本。
+		// 按照节点当前的运行版本查找最新版本。
+		conds = append(conds, tbl.Unstable.Is(false))
+		conds = append(conds, tbl.Weight.Gt(weight))
+		return tbl.WithContext(ctx).
+			Where(conds...).
+			Order(tbl.Weight.Desc(), tbl.Semver.Desc()).
+			First()
+	}
+
+	conds = append(conds, tbl.Semver.Eq(semver))
+	conds = append(conds, tbl.Customized.Eq(ident.Customized))
+
+	return tbl.WithContext(ctx).Where(conds...).First()
 }
