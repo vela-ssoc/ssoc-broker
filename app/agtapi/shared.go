@@ -29,7 +29,7 @@ func (api *sharedAPI) Route(r *ship.RouteGroupBuilder) {
 
 func (api *sharedAPI) StringsGet(c *ship.Context) error {
 	data := make([]*param.SharedKey, 0, 10)
-	req := &param.Data{Data: data}
+	req := &param.Data{Data: &data}
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (api *sharedAPI) StringsGet(c *ship.Context) error {
 
 func (api *sharedAPI) StringsSet(c *ship.Context) error {
 	data := make([]*param.SharedKeyValue, 0, 10)
-	req := &param.Data{Data: data}
+	req := &param.Data{Data: &data}
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (api *sharedAPI) StringsSet(c *ship.Context) error {
 
 func (api *sharedAPI) StringsDel(c *ship.Context) error {
 	data := make([]*param.SharedKey, 0, 10)
-	req := &param.Data{Data: data}
+	req := &param.Data{Data: &data}
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (api *sharedAPI) StringsDel(c *ship.Context) error {
 
 func (api *sharedAPI) StringsIncr(c *ship.Context) error {
 	data := make([]*param.SharedKeyIncr, 0, 10)
-	req := &param.Data{Data: data}
+	req := &param.Data{Data: &data}
 	if err := c.Bind(req); err != nil {
 		return err
 	}

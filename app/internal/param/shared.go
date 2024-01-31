@@ -10,7 +10,7 @@ type SharedKey struct {
 type SharedKeyValue struct {
 	Bucket   string        `json:"bucket" validate:"required,lte=255"`
 	Key      string        `json:"key"    validate:"required,lte=255"`
-	Value    []byte        `json:"value"`
+	Value    string        `json:"value"`
 	Lifetime time.Duration `json:"lifetime"`
 	Audit    bool          `json:"audit"`
 }

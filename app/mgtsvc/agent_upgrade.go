@@ -6,11 +6,11 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/accord"
 )
 
-func (biz *agentService) Upgrade(_ context.Context, mids []int64, semver string) error {
+func (biz *agentService) Upgrade(_ context.Context, req *accord.Upgrade) error {
 	path := "/api/v1/agent/notice/upgrade"
-	data := &accord.Upgrade{Semver: semver}
+	data := &accord.Upgrade{Semver: req.Semver, Customized: req.Customized}
 
-	for _, mid := range mids {
+	for _, mid := range req.ID {
 		task := &messageTask{
 			biz:  biz,
 			mid:  mid,

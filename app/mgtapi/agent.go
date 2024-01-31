@@ -35,7 +35,7 @@ func (rest *agentREST) Upgrade(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 
-	return rest.svc.Upgrade(ctx, req.ID, req.Semver)
+	return rest.svc.Upgrade(ctx, &req)
 }
 
 func (rest *agentREST) Startup(c *ship.Context) error {
@@ -61,7 +61,7 @@ func (rest *agentREST) Command(c *ship.Context) error {
 	case "resync":
 		return rest.svc.RsyncTask(ctx, req.ID)
 	case "upgrade":
-		return rest.svc.Upgrade(ctx, req.ID, "")
+		return rest.svc.Upgrade(ctx, &accord.Upgrade{ID: req.ID})
 	}
 
 	return rest.svc.Command(ctx, req.ID, req.Cmd)

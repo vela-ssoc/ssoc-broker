@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
+	"github.com/vela-ssoc/vela-common-mb/accord"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
@@ -30,7 +31,7 @@ type AgentService interface {
 	Command(ctx context.Context, mids []int64, cmd string) error
 
 	// Upgrade 向节点发送升级命令
-	Upgrade(ctx context.Context, mids []int64, semver string) error
+	Upgrade(ctx context.Context, req *accord.Upgrade) error
 }
 
 func Agent(lnk mlink.Linker, mon MinionService, store storage.Storer, slog logback.Logger) AgentService {
