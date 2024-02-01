@@ -28,59 +28,73 @@ func (api *sharedAPI) Route(r *ship.RouteGroupBuilder) {
 }
 
 func (api *sharedAPI) StringsGet(c *ship.Context) error {
-	data := make([]*param.SharedKey, 0, 10)
-	req := &param.Data{Data: &data}
+	req := new(param.SharedKey)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
 
 	ctx := c.Request().Context()
-	dats, err := api.stringsSvc.Get(ctx, data)
+	ret, err := api.stringsSvc.Get(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, &param.Data{Data: dats})
+	return c.JSON(http.StatusOK, ret)
 }
 
 func (api *sharedAPI) StringsSet(c *ship.Context) error {
-	data := make([]*param.SharedKeyValue, 0, 10)
-	req := &param.Data{Data: &data}
+	req := new(param.SharedKeyValue)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
 
 	ctx := c.Request().Context()
-	inf := mlink.Ctx(ctx)
-
-	return api.stringsSvc.Set(ctx, data, inf)
-}
-
-func (api *sharedAPI) StringsDel(c *ship.Context) error {
-	data := make([]*param.SharedKey, 0, 10)
-	req := &param.Data{Data: &data}
-	if err := c.Bind(req); err != nil {
-		return err
-	}
-
-	ctx := c.Request().Context()
-
-	return api.stringsSvc.Del(ctx, data)
-}
-
-func (api *sharedAPI) StringsIncr(c *ship.Context) error {
-	data := make([]*param.SharedKeyIncr, 0, 10)
-	req := &param.Data{Data: &data}
-	if err := c.Bind(req); err != nil {
-		return err
-	}
-
-	ctx := c.Request().Context()
-	inf := mlink.Ctx(ctx)
-	dats, err := api.stringsSvc.Incr(ctx, data, inf)
+	ret, err := api.stringsSvc.Set(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, &param.Data{Data: dats})
+	return c.JSON(http.StatusOK, ret)
+}
+
+func (api *sharedAPI) StringsStore(c *ship.Context) error {
+	req := new(param.SharedKeyValue)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	ret, err := api.stringsSvc.Store(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, ret)
+}
+
+func (api *sharedAPI) StringsIncr(c *ship.Context) error {
+	req := new(param.SharedKeyIncr)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	inf := mlink.Ctx(ctx)
+	ret, err := api.stringsSvc.Incr(ctx, req, inf)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, ret)
+}
+
+func (api *sharedAPI) StringsDel(c *ship.Context) error {
+	req := new(param.SharedKey)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return api.stringsSvc.Del(ctx, req)
 }

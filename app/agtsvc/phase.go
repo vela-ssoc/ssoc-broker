@@ -2,6 +2,7 @@ package agtsvc
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
@@ -52,13 +53,14 @@ func (biz *nodeEventService) Connected(lnk mlink.Linker, ident gateway.Ident, is
 	_ = biz.svc.ReloadStartup(ctx, mid)
 	_ = biz.svc.RsyncTask(ctx, []int64{mid})
 
+	msg := fmt.Sprintf("当前 agent 版本：%s", ident.Semver)
 	now := time.Now()
 	evt := &model.Event{
 		MinionID:  mid,
 		Inet:      inet,
 		Subject:   "节点上线",
 		FromCode:  "minion.online",
-		Msg:       "节点上线",
+		Msg:       msg,
 		Level:     model.ELvlNote,
 		SendAlert: true,
 		OccurAt:   now,
@@ -71,13 +73,14 @@ func (biz *nodeEventService) Disconnected(lnk mlink.Linker, ident gateway.Ident,
 	mid, inet := issue.ID, ident.Inet.String()
 	biz.slog.Warnf("agent %s(%d) 下线了", inet, mid)
 
+	msg := fmt.Sprintf("当前 agent 版本：%s", ident.Semver)
 	now := time.Now()
 	evt := &model.Event{
 		MinionID:  mid,
 		Inet:      inet,
 		Subject:   "节点下线",
 		FromCode:  "minion.offline",
-		Msg:       "节点下线",
+		Msg:       msg,
 		Level:     model.ELvlMajor,
 		SendAlert: true,
 		OccurAt:   now,

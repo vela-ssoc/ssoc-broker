@@ -171,10 +171,11 @@ func (rest *upgradeREST) matchBinary(ctx context.Context, inf mlink.Infer, req *
 		if ident.Unstable { // 节点当前运行的是测试版，忽略更新指令。
 			return nil, gorm.ErrRecordNotFound
 		}
-		weight := model.Semver(ident.Semver).Int64() // 当前节点运行的版本。
 		// 按照节点当前的运行版本查找最新版本。
-		conds = append(conds, tbl.Unstable.Is(false))
+		weight := model.Semver(ident.Semver).Int64() // 当前节点运行的版本。
 		conds = append(conds, tbl.Weight.Gt(weight))
+		conds = append(conds, tbl.Customized.Value(req.Customized))
+		conds = append(conds, tbl.Unstable.Is(false))
 		return tbl.WithContext(ctx).
 			Where(conds...).
 			Order(tbl.Weight.Desc(), tbl.Semver.Desc()).

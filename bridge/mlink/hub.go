@@ -194,7 +194,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 
 	id := issue.ID
 	inet := ident.Inet.String()
-	before := time.Now()
+	now := time.Now()
 	sid := strconv.FormatInt(id, 10) // 方便 dialContext
 	conn := &connect{
 		id:    id,
@@ -204,41 +204,33 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	}
 
 	if !hub.section.Put(sid, conn) {
-		hub.phase.Repeated(id, ident, before)
+		hub.phase.Repeated(id, ident, now)
 		return ErrMinionOnline
 	}
 	defer hub.section.Del(sid)
 
-	now := sql.NullTime{Valid: true, Time: time.Now()}
-	mon := &model.Minion{
-		ID:      id,
-		Inet:    inet,
-		Status:  model.MSOnline,
-		MAC:     ident.MAC,
-		Goos:    ident.Goos,
-		Arch:    ident.Arch,
-		Edition: ident.Semver,
-		// CPU:        ident.CPU,
-		// PID:        ident.PID,
-		// Username:   ident.Username,
-		// Hostname:   ident.Hostname,
-		// Workdir:    ident.Workdir,
-		// Executable: ident.Executable,
-		// PingedAt:   now,
-		// JoinedAt:   now,
-		Unstable:   ident.Unstable,
-		Customized: ident.Customized,
-		Uptime:     now,
-		BrokerID:   hub.link.Ident().ID,
-		BrokerName: hub.link.Issue().Name,
-		UpdatedAt:  before,
-	}
+	nullableAt := sql.NullTime{Valid: true, Time: now}
 
+	brokerID, brokerName := hub.link.Ident().ID, hub.link.Issue().Name
+	online, offline := uint8(model.MSOnline), uint8(model.MSOffline)
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
 	monTbl := query.Minion
 	info, err := monTbl.WithContext(ctx).
 		Where(monTbl.ID.Eq(id), monTbl.Status.Eq(uint8(model.MSOffline))).
-		UpdateColumns(mon)
+		UpdateSimple(
+			monTbl.Status.Value(online),
+			monTbl.MAC.Value(ident.MAC),
+			monTbl.Goos.Value(ident.Goos),
+			monTbl.Arch.Value(ident.Arch),
+			monTbl.Arch.Value(ident.Arch),
+			monTbl.Edition.Value(ident.Semver),
+			monTbl.Unstable.Value(ident.Unstable),
+			monTbl.Customized.Value(ident.Customized),
+			monTbl.Uptime.Value(nullableAt),
+			monTbl.BrokerID.Value(brokerID),
+			monTbl.BrokerName.Value(brokerName),
+			monTbl.UpdatedAt.Value(now),
+		)
 	cancel()
 	if err != nil || info.RowsAffected == 0 {
 		hub.slog.Warnf("节点 %s(%d) 修改上线状态失败：%v", inet, id, err)
@@ -246,8 +238,6 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	}
 
 	defer func() {
-		online := uint8(model.MSOnline)
-		offline := uint8(model.MSOffline)
 		dctx, dcancel := context.WithTimeout(context.Background(), time.Minute)
 		ret, exx := monTbl.WithContext(dctx).
 			Where(monTbl.ID.Eq(id)).
@@ -269,10 +259,10 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 		},
 	}
 
-	hub.phase.Connected(hub, ident, issue, before)
+	hub.phase.Connected(hub, ident, issue, now)
 	_ = srv.Serve(mux)
 	after := time.Now()
-	du := after.Sub(before)
+	du := after.Sub(now)
 	hub.phase.Disconnected(hub, ident, issue, after, du)
 
 	return nil

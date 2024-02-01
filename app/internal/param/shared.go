@@ -13,12 +13,11 @@ type SharedKeyValue struct {
 	Value    string        `json:"value"`
 	Lifetime time.Duration `json:"lifetime"`
 	Audit    bool          `json:"audit"`
+	Reply    bool          `json:"reply"`
 }
 
 type SharedKeyIncr struct {
-	Bucket   string        `json:"bucket" validate:"required,lte=255"`
-	Key      string        `json:"key"    validate:"required,lte=255"`
-	N        int64         `json:"n"`
-	Lifetime time.Duration `json:"lifetime"`
-	Audit    bool          `json:"audit"`
+	Bucket string `json:"bucket" validate:"required,lte=255"`
+	Key    string `json:"key"    validate:"required,lte=255"`
+	N      int64  `json:"n"`
 }
