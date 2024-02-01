@@ -174,7 +174,7 @@ func (rest *upgradeREST) matchBinary(ctx context.Context, inf mlink.Infer, req *
 		// 按照节点当前的运行版本查找最新版本。
 		weight := model.Semver(ident.Semver).Int64() // 当前节点运行的版本。
 		conds = append(conds, tbl.Weight.Gt(weight))
-		conds = append(conds, tbl.Customized.Value(req.Customized))
+		conds = append(conds, tbl.Customized.Value(ident.Customized))
 		conds = append(conds, tbl.Unstable.Is(false))
 		return tbl.WithContext(ctx).
 			Where(conds...).
@@ -183,7 +183,7 @@ func (rest *upgradeREST) matchBinary(ctx context.Context, inf mlink.Infer, req *
 	}
 
 	conds = append(conds, tbl.Semver.Eq(semver))
-	conds = append(conds, tbl.Customized.Eq(ident.Customized))
+	conds = append(conds, tbl.Customized.Eq(req.Customized))
 
 	return tbl.WithContext(ctx).Where(conds...).First()
 }
