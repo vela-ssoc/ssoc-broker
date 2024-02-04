@@ -2,15 +2,13 @@ package agtsvc
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+	"gorm.io/gen"
 )
 
 type SharedStringsService interface {
@@ -75,6 +73,7 @@ func (biz *sharedStringsService) Set(ctx context.Context, req *param.SharedKeyVa
 		dat := &model.KVData{
 			Bucket:    bucket,
 			Key:       key,
+			Value:     req.Value,
 			Lifetime:  lifetime,
 			ExpiredAt: now.Add(lifetime),
 			CreatedAt: now,
@@ -129,6 +128,7 @@ func (biz *sharedStringsService) Store(ctx context.Context, req *param.SharedKey
 		dat := &model.KVData{
 			Bucket:    bucket,
 			Key:       key,
+			Value:     req.Value,
 			Lifetime:  lifetime,
 			ExpiredAt: now.Add(lifetime),
 			CreatedAt: now,
@@ -155,45 +155,6 @@ func (biz *sharedStringsService) Store(ctx context.Context, req *param.SharedKey
 	}
 
 	return nil, nil
-}
-
-func (biz *sharedStringsService) Set1(ctx context.Context, values []*param.SharedKeyValue, inf mlink.Infer) error {
-	size := len(values)
-	if size == 0 {
-		return nil
-	}
-
-	return query.Q.Transaction(func(tx *query.Query) error {
-		tbl := tx.KVData
-		tblCtx := tbl.WithContext(ctx)
-		now := time.Now()
-		var err error
-		for _, val := range values {
-			lifetime := val.Lifetime
-			dat := &model.KVData{
-				Bucket:    val.Bucket,
-				Key:       val.Key,
-				Value:     val.Value,
-				Lifetime:  lifetime,
-				ExpiredAt: now.Add(val.Lifetime),
-			}
-
-			assigns := map[string]any{"value": val.Value}
-			if lifetime > 0 {
-				assigns["lifetime"] = lifetime
-				assigns["expired_at"] = gorm.Expr("TIMESTAMPADD(MICROSECOND, ?, CURRENT_TIMESTAMP)", lifetime.Microseconds())
-			} else {
-				// 1us = 1000ns
-				assigns["expired_at"] = gorm.Expr("TIMESTAMPADD(MICROSECOND, ?, CURRENT_TIMESTAMP)", gorm.Expr("lifetime/1000"))
-			}
-			conflict := clause.OnConflict{DoUpdates: clause.Assignments(assigns)}
-			if err = tblCtx.UnderlyingDB().Clauses(conflict).Create(dat).Error; err != nil {
-				break
-			}
-		}
-
-		return err
-	})
 }
 
 func (biz *sharedStringsService) Incr(ctx context.Context, req *param.SharedKeyIncr, _ mlink.Infer) (*model.KVData, error) {
@@ -244,8 +205,13 @@ func (biz *sharedStringsService) Incr(ctx context.Context, req *param.SharedKeyI
 
 func (biz *sharedStringsService) Del(ctx context.Context, req *param.SharedKey) error {
 	tbl := query.KVData
+	cond := []gen.Condition{tbl.Bucket.Eq(req.Bucket)}
+	if key := req.Key; key != "" {
+		cond = append(cond, tbl.Key.Eq(key))
+	}
+
 	_, err := tbl.WithContext(ctx).
-		Where(tbl.Bucket.Eq(req.Bucket), tbl.Key.Eq(req.Key)).
+		Where(cond...).
 		Delete()
 
 	return err
@@ -258,9 +224,4 @@ func (biz *sharedStringsService) find(ctx context.Context, bucket, key string) *
 		First()
 
 	return dat
-}
-
-func (biz *sharedStringsService) Testing() {
-	_, err := biz.Get(context.Background(), &param.SharedKey{Bucket: "bucket", Key: "key"})
-	fmt.Print(err)
 }
