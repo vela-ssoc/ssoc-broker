@@ -58,7 +58,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		return err
 	}
 	query.SetDefault(db)
-	gfs := gridfs.NewCDN(sdb, "", 60*1024)
+	gfs := gridfs.NewCache(sdb, issue.Section.CDN)
 
 	cli := netutil.NewClient()
 	match := ntfmatch.NewMatch()

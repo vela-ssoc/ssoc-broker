@@ -21,6 +21,7 @@ type Issue struct {
 	Logger   Logger      `json:"logger"`   // 日志配置
 	Database dbms.Config `json:"database"` // 数据库配置
 	SIEM     SIEM        `json:"siem"`     // SIEM 配置
+	Section  Section     `json:"section"`
 }
 
 // decrypt 解密消息
@@ -36,6 +37,10 @@ func (issue Issue) String() string {
 type SIEM struct {
 	URL   string `json:"url"   yaml:"url"`
 	Token string `json:"token" yaml:"token"`
+}
+
+type Section struct {
+	CDN string `json:"cdn"`
 }
 
 // Listen 本地服务监听配置
