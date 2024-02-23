@@ -9,13 +9,14 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"gorm.io/gen"
+	"gorm.io/gorm/clause"
 )
 
 type SharedStringsService interface {
 	Get(ctx context.Context, req *param.SharedKey) (*model.KVData, error)
-	Set(ctx context.Context, req *param.SharedKeyValue) (*model.KVData, error)
-	Store(ctx context.Context, req *param.SharedKeyValue) (*model.KVData, error)
-	Incr(ctx context.Context, req *param.SharedKeyIncr, inf mlink.Infer) (*model.KVData, error)
+	Set(ctx context.Context, inf mlink.Infer, req *param.SharedKeyValue) (*model.KVData, error)
+	Store(ctx context.Context, inf mlink.Infer, req *param.SharedKeyValue) (*model.KVData, error)
+	Incr(ctx context.Context, inf mlink.Infer, req *param.SharedKeyIncr) (*model.KVData, error)
 	Del(ctx context.Context, req *param.SharedKey) error
 }
 
@@ -45,7 +46,7 @@ func (biz *sharedStringsService) Get(ctx context.Context, req *param.SharedKey) 
 		First()
 }
 
-func (biz *sharedStringsService) Set(ctx context.Context, req *param.SharedKeyValue) (*model.KVData, error) {
+func (biz *sharedStringsService) Set(ctx context.Context, inf mlink.Infer, req *param.SharedKeyValue) (*model.KVData, error) {
 	// 1. 当 req.lifetime <= 0 时
 	//    ├─ 如果没有数据：直接插入一条不过期的数据。
 	//    └─ 如果存在数据（old）：
@@ -100,6 +101,19 @@ func (biz *sharedStringsService) Set(ctx context.Context, req *param.SharedKeyVa
 		}
 	}
 
+	if req.Audit { // 审计功能
+		ident := inf.Ident()
+		issue := inf.Issue()
+		audit := &model.KVAudit{
+			MinionID: issue.ID,
+			Inet:     ident.Inet.String(),
+			Bucket:   bucket,
+			Key:      key,
+		}
+		_ = query.KVAudit.WithContext(ctx).
+			Clauses(clause.OnConflict{UpdateAll: true}).
+			Create(audit)
+	}
 	if req.Reply {
 		return biz.Get(ctx, &param.SharedKey{Bucket: bucket, Key: key})
 	}
@@ -107,7 +121,7 @@ func (biz *sharedStringsService) Set(ctx context.Context, req *param.SharedKeyVa
 	return nil, nil
 }
 
-func (biz *sharedStringsService) Store(ctx context.Context, req *param.SharedKeyValue) (*model.KVData, error) {
+func (biz *sharedStringsService) Store(ctx context.Context, inf mlink.Infer, req *param.SharedKeyValue) (*model.KVData, error) {
 	now := time.Now()
 	bucket, key, lifetime := req.Bucket, req.Key, req.Lifetime
 	if lifetime < 0 {
@@ -150,6 +164,19 @@ func (biz *sharedStringsService) Store(ctx context.Context, req *param.SharedKey
 		}
 	}
 
+	if req.Audit { // 审计功能
+		ident := inf.Ident()
+		issue := inf.Issue()
+		audit := &model.KVAudit{
+			MinionID: issue.ID,
+			Inet:     ident.Inet.String(),
+			Bucket:   bucket,
+			Key:      key,
+		}
+		_ = query.KVAudit.WithContext(ctx).
+			Clauses(clause.OnConflict{UpdateAll: true}).
+			Create(audit)
+	}
 	if req.Reply {
 		return biz.Get(ctx, &param.SharedKey{Bucket: bucket, Key: key})
 	}
@@ -157,7 +184,7 @@ func (biz *sharedStringsService) Store(ctx context.Context, req *param.SharedKey
 	return nil, nil
 }
 
-func (biz *sharedStringsService) Incr(ctx context.Context, req *param.SharedKeyIncr, _ mlink.Infer) (*model.KVData, error) {
+func (biz *sharedStringsService) Incr(ctx context.Context, inf mlink.Infer, req *param.SharedKeyIncr) (*model.KVData, error) {
 	now := time.Now()
 	bucket, key := req.Bucket, req.Key
 	old := biz.find(ctx, bucket, key)
@@ -198,6 +225,20 @@ func (biz *sharedStringsService) Incr(ctx context.Context, req *param.SharedKeyI
 			); err != nil {
 			return nil, err
 		}
+	}
+
+	if req.Audit { // 审计功能
+		ident := inf.Ident()
+		issue := inf.Issue()
+		audit := &model.KVAudit{
+			MinionID: issue.ID,
+			Inet:     ident.Inet.String(),
+			Bucket:   bucket,
+			Key:      key,
+		}
+		_ = query.KVAudit.WithContext(ctx).
+			Clauses(clause.OnConflict{UpdateAll: true}).
+			Create(audit)
 	}
 
 	return biz.Get(ctx, &param.SharedKey{Bucket: bucket, Key: key})

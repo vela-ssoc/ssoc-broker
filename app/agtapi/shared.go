@@ -49,7 +49,8 @@ func (api *sharedAPI) StringsSet(c *ship.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	ret, err := api.stringsSvc.Set(ctx, req)
+	inf := mlink.Ctx(ctx)
+	ret, err := api.stringsSvc.Set(ctx, inf, req)
 	if err != nil {
 		return err
 	}
@@ -64,7 +65,8 @@ func (api *sharedAPI) StringsStore(c *ship.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	ret, err := api.stringsSvc.Store(ctx, req)
+	inf := mlink.Ctx(ctx)
+	ret, err := api.stringsSvc.Store(ctx, inf, req)
 	if err != nil {
 		return err
 	}
@@ -80,7 +82,7 @@ func (api *sharedAPI) StringsIncr(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
-	ret, err := api.stringsSvc.Incr(ctx, req, inf)
+	ret, err := api.stringsSvc.Incr(ctx, inf, req)
 	if err != nil {
 		return err
 	}
