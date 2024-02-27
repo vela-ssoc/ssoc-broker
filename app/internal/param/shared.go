@@ -20,8 +20,9 @@ type SharedKeyValue struct {
 }
 
 type SharedKeyIncr struct {
-	Bucket string `json:"bucket" validate:"required,lte=255"`
-	Key    string `json:"key"    validate:"required,lte=255"`
-	N      int64  `json:"n"`
-	Audit  bool   `json:"audit"`
+	Bucket   string        `json:"bucket"   validate:"required,lte=255"`
+	Key      string        `json:"key"      validate:"required,lte=255"`
+	Lifetime time.Duration `json:"lifetime"`
+	N        int64         `json:"n"`
+	Audit    bool          `json:"audit"`
 }

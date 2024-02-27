@@ -186,19 +186,27 @@ func (biz *sharedStringsService) Store(ctx context.Context, inf mlink.Infer, req
 
 func (biz *sharedStringsService) Incr(ctx context.Context, inf mlink.Infer, req *param.SharedKeyIncr) (*model.KVData, error) {
 	now := time.Now()
-	bucket, key := req.Bucket, req.Key
-	old := biz.find(ctx, bucket, key)
-
-	n := req.N
+	n, lifetime := req.N, req.Lifetime
 	if n == 0 {
 		n = 1
 	}
+	bucket, key := req.Bucket, req.Key
 
+	old := biz.find(ctx, bucket, key)
+	if lifetime <= 0 {
+		if old == nil {
+			lifetime = old.Lifetime
+		} else {
+			lifetime = 0
+		}
+	}
+
+	expiredAt := now.Add(lifetime)
 	tbl := query.KVData
 	if old == nil || old.Expired(now) { // 如果不存在老数据则直接插入
 		if old != nil {
 			if _, err := tbl.WithContext(ctx).
-				Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key), tbl.Version.Eq(old.Version)).
+				Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key)).
 				Delete(); err != nil {
 				return nil, err
 			}
@@ -207,7 +215,7 @@ func (biz *sharedStringsService) Incr(ctx context.Context, inf mlink.Infer, req 
 			Bucket:    bucket,
 			Key:       key,
 			Count:     n,
-			ExpiredAt: now,
+			ExpiredAt: expiredAt,
 			CreatedAt: now,
 			UpdatedAt: now,
 			Version:   1,
@@ -220,6 +228,8 @@ func (biz *sharedStringsService) Incr(ctx context.Context, inf mlink.Infer, req 
 			Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key), tbl.Version.Eq(old.Version)).
 			UpdateSimple(
 				tbl.Count.Value(old.Count+n),
+				tbl.Lifetime.Value(int64(lifetime)),
+				tbl.ExpiredAt.Value(expiredAt),
 				tbl.UpdatedAt.Value(now),
 				tbl.Version.Value(old.Version+1),
 			); err != nil {
