@@ -194,7 +194,7 @@ func (biz *sharedStringsService) Incr(ctx context.Context, inf mlink.Infer, req 
 
 	old := biz.find(ctx, bucket, key)
 	if lifetime <= 0 {
-		if old == nil {
+		if old != nil {
 			lifetime = old.Lifetime
 		} else {
 			lifetime = 0
