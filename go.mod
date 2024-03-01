@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20240229094559-f799c0e8d7a6
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20240301100443-5515268d0b84
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240220012708-458dc14abc4c
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.27.0
