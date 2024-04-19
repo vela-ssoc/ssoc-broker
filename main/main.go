@@ -11,7 +11,7 @@ import (
 	"github.com/vela-ssoc/vela-broker/banner"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-broker/launch"
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb-itai/logback"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 )
 

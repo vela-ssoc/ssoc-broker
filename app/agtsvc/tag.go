@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
 	"gorm.io/gorm/clause"
 )
 
@@ -51,7 +51,6 @@ func (biz *tagService) Update(ctx context.Context, mid int64, creates, deletes [
 		return table.Clauses(clause.OnConflict{DoNothing: true}).
 			CreateInBatches(news, 100)
 	})
-
 	if err != nil {
 		return err
 	}

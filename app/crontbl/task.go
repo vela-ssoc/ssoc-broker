@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb-itai/logback"
 )
 
 type cronTask struct {

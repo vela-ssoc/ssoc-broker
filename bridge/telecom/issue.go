@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/vela-ssoc/vela-common-mb/dbms"
+	"github.com/vela-ssoc/vela-common-mb-itai/dbms"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

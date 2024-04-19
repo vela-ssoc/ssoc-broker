@@ -2,7 +2,7 @@ package agtapi
 
 import (
 	"github.com/vela-ssoc/vela-broker/app/route"
-	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
+	"github.com/vela-ssoc/vela-common-mb-itai/integration/elastic"
 	"github.com/xgfone/ship/v5"
 )
 

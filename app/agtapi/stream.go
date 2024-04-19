@@ -11,8 +11,8 @@ import (
 	"github.com/vela-ssoc/vela-broker/app/middle"
 	"github.com/vela-ssoc/vela-broker/app/route"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
-	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
-	"github.com/vela-ssoc/vela-common-mb/problem"
+	"github.com/vela-ssoc/vela-common-mb-itai/integration/elastic"
+	"github.com/vela-ssoc/vela-common-mb-itai/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
 )

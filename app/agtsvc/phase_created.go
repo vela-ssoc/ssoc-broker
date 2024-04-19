@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb-itai/integration/cmdb"
+	"github.com/vela-ssoc/vela-common-mb-itai/logback"
 )
 
 func (biz *nodeEventService) Created(id int64, inet string, at time.Time) {

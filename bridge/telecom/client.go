@@ -16,8 +16,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-common-mb/problem"
+	"github.com/vela-ssoc/vela-common-mb-itai/logback"
+	"github.com/vela-ssoc/vela-common-mb-itai/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
 )

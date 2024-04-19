@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb-itai/logback"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 )
 

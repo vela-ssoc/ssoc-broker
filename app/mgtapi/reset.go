@@ -2,11 +2,11 @@ package mgtapi
 
 import (
 	"github.com/vela-ssoc/vela-broker/app/route"
-	"github.com/vela-ssoc/vela-common-mb/accord"
-	"github.com/vela-ssoc/vela-common-mb/integration/dong"
-	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
-	"github.com/vela-ssoc/vela-common-mb/integration/ntfmatch"
-	"github.com/vela-ssoc/vela-common-mb/storage/v2"
+	"github.com/vela-ssoc/vela-common-mb-itai/accord"
+	"github.com/vela-ssoc/vela-common-mb-itai/integration/dong"
+	"github.com/vela-ssoc/vela-common-mb-itai/integration/elastic"
+	"github.com/vela-ssoc/vela-common-mb-itai/integration/ntfmatch"
+	"github.com/vela-ssoc/vela-common-mb-itai/storage/v2"
 	"github.com/xgfone/ship/v5"
 )
 

@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/vela-ssoc/vela-common-mb/problem"
+	"github.com/vela-ssoc/vela-common-mb-itai/problem"
 	"golang.org/x/time/rate"
 )
 

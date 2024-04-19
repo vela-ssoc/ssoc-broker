@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb-itai/logback"
 )
 
 type daemonServer struct {

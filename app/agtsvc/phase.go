@@ -8,11 +8,11 @@ import (
 	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/gopool"
-	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
-	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/gopool"
+	"github.com/vela-ssoc/vela-common-mb-itai/integration/alarm"
+	"github.com/vela-ssoc/vela-common-mb-itai/integration/cmdb"
+	"github.com/vela-ssoc/vela-common-mb-itai/logback"
 )
 
 type PhaseService interface {

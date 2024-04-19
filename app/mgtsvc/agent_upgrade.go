@@ -3,7 +3,7 @@ package mgtsvc
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-common-mb/accord"
+	"github.com/vela-ssoc/vela-common-mb-itai/accord"
 )
 
 func (biz *agentService) Upgrade(_ context.Context, req *accord.Upgrade) error {

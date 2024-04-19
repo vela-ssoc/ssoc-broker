@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
-	"github.com/vela-ssoc/vela-common-mb/accord"
-	"github.com/vela-ssoc/vela-common-mb/gopool"
-	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-common-mb/storage/v2"
+	"github.com/vela-ssoc/vela-common-mb-itai/accord"
+	"github.com/vela-ssoc/vela-common-mb-itai/gopool"
+	"github.com/vela-ssoc/vela-common-mb-itai/logback"
+	"github.com/vela-ssoc/vela-common-mb-itai/storage/v2"
 )
 
 type AgentService interface {

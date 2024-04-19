@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/accord"
+	"github.com/vela-ssoc/vela-common-mb-itai/accord"
 )
 
 func (biz *agentService) Command(_ context.Context, mids []int64, cmd string) error {
