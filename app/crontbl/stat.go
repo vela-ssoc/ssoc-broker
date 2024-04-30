@@ -52,5 +52,6 @@ func (bs *brokerStat) Func(parent context.Context, at time.Time) error {
 		CPUPercent: percent,
 	}
 
-	return query.BrokerStat.WithContext(ctx).Save(data)
+	tbl := query.BrokerStat
+	return tbl.WithContext(ctx).Save(data)
 }
