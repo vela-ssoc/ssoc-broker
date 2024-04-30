@@ -228,7 +228,6 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 			monTbl.Uptime.Value(nullableAt),
 			monTbl.BrokerID.Value(brokerID),
 			monTbl.BrokerName.Value(brokerName),
-			monTbl.UpdatedAt.Value(now),
 		)
 	cancel()
 	if err != nil || info.RowsAffected == 0 {
