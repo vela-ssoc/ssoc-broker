@@ -222,7 +222,6 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 			monTbl.MAC.Value(ident.MAC),
 			monTbl.Goos.Value(ident.Goos),
 			monTbl.Arch.Value(ident.Arch),
-			monTbl.Arch.Value(ident.Arch),
 			monTbl.Edition.Value(ident.Semver),
 			monTbl.Unstable.Value(ident.Unstable),
 			monTbl.Customized.Value(ident.Customized),
