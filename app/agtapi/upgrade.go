@@ -182,8 +182,12 @@ func (rest *upgradeREST) matchBinary(ctx context.Context, inf mlink.Infer, req *
 			First()
 	}
 
+	custom := tbl.Customized.Eq(req.Customized)
+	if req.Customized == "" {
+		custom = tbl.Customized.IsNull()
+	}
 	conds = append(conds, tbl.Semver.Eq(semver))
-	conds = append(conds, tbl.Customized.Eq(req.Customized))
+	conds = append(conds, custom)
 
 	return tbl.WithContext(ctx).Where(conds...).First()
 }
