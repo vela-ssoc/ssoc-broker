@@ -5,11 +5,11 @@ go 1.22.2
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240506060229-770beea7f23e
+	github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240507060210-c09c03868559
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240415091935-2a717f864eae
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.24.0
+	golang.org/x/net v0.25.0
 	golang.org/x/time v0.5.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/gen v0.3.26
@@ -33,12 +33,12 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
-	golang.org/x/tools v0.20.0 // indirect
+	golang.org/x/tools v0.21.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	gorm.io/datatypes v1.2.0 // indirect
 	gorm.io/driver/mysql v1.5.6 // indirect
