@@ -5,8 +5,8 @@ go 1.20
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20240628031013-61553f2dca18
-	github.com/vela-ssoc/vela-common-mba v0.0.0-20240628030633-4c80de169f25
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20240705043030-3d3c9190db3a
+	github.com/vela-ssoc/vela-common-mba v0.0.0-20240705041659-14fcfa4b1df3
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.26.0
@@ -28,9 +28,9 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/mod v0.18.0 // indirect
+	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	gorm.io/datatypes v1.2.1 // indirect
