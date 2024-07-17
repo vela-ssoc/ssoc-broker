@@ -12,6 +12,7 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-broker/launch"
 	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb/ulimit"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 )
 
@@ -44,6 +45,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), cares...)
 	defer cancel()
 	slog.Infof("按 Ctrl+C 结束运行")
+
+	const limit = 65536
+	if err = ulimit.Least(limit); err != nil {
+		slog.Warnf("调整文件描述符个数为 %d 时错误: %v", limit, err)
+	}
 
 	if err = launch.Run(ctx, hide, slog); err != nil {
 		slog.Warnf("程序运行错误：%v", err)

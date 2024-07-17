@@ -35,8 +35,8 @@ github.com/mattn/go-sqlite3 v1.14.16/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S
 github.com/microsoft/go-mssqldb v0.17.0 h1:Fto83dMZPnYv1Zwx5vHHxpNraeEaUlQ/hhHLgZiaenE=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
-github.com/vela-ssoc/vela-common-mb v0.0.0-20240717015829-7a2748b1bad2 h1:3mYhfrRe8oBaDPvvgNgnHxGwiAF7mWN5TsB5qI/Sqvk=
-github.com/vela-ssoc/vela-common-mb v0.0.0-20240717015829-7a2748b1bad2/go.mod h1:qO4dQfPblYlOSyWVA1FKr9/fPfG9GwLMtxWC4fNXQhY=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20240717060248-681147a161e8 h1:dxSi7t2s2iesgM0FKbOQYDxY96KmlgesY93U/TmgAfw=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20240717060248-681147a161e8/go.mod h1:qO4dQfPblYlOSyWVA1FKr9/fPfG9GwLMtxWC4fNXQhY=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240705041659-14fcfa4b1df3 h1:O0ovJrLCNg61WO/50GLaTFuQxHK+civH1b3Ra5S7quA=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240705041659-14fcfa4b1df3/go.mod h1:N5n028BNgMjq/XMSgUzSEdit6soDvOu2q6XoSP/vmoI=
 github.com/xgfone/ship/v5 v5.3.1 h1:e5qhMT6DSQOE6A/xDBL/Ftf28BGptNw6Etq+w+pme6E=
