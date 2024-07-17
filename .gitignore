@@ -18,6 +18,8 @@
 !broker-example.json
 *.json
 
+ssoc-broker*
+
 !resources/log/.gitkeep
 resources/log/
 resources/elkeid/

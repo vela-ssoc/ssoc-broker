@@ -238,7 +238,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	}
 
 	defer func() {
-		dctx, dcancel := context.WithTimeout(context.Background(), time.Minute)
+		dctx, dcancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		ret, exx := monTbl.WithContext(dctx).
 			Where(monTbl.ID.Eq(id)).
 			Where(monTbl.BrokerID.Eq(hub.bid)).

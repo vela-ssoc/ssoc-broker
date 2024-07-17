@@ -65,7 +65,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	store := storage.NewStore()
 
 	dongCfg := dong.NewConfig()
-	dongCli := dong.NewClient(dongCfg, cli, slog)
+	dongCli := dong.NewCompatible(dong.NewClient(dongCfg, cli, slog), dong.NewSIEM(cli, issue.SIEM))
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
 	alert := alarm.UnifyAlerter(store, match, slog, dongCli, devCli)

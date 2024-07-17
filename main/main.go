@@ -37,6 +37,7 @@ func main() {
 	hide, err := loadHide()  // 读取 hide 配置
 	if err != nil {
 		slog.Warnf("读取 hide 配置错误：%v", err)
+		return
 	}
 
 	cares := []os.Signal{syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL, syscall.SIGINT}
