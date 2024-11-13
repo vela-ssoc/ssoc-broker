@@ -69,7 +69,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		URL:   issue.SIEM.URL,
 		Token: issue.SIEM.Token,
 	}
-	dongCli := dong.NewCompatible(dong.NewClient(dongCfg, cli, slog), dong.NewSIEM(cli, dongSIEM))
+	dongCli := dong.NewSIEM(cli, dongSIEM)
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
 	alert := alarm.UnifyAlerter(store, match, slog, dongCli, devCli)
