@@ -17,12 +17,12 @@ type CollectService interface {
 
 func Collect() CollectService {
 	return &collectService{
-		pool: gopool.New(30, 1024, time.Minute),
+		pool: gopool.NewV2(1024),
 	}
 }
 
 type collectService struct {
-	pool gopool.Executor
+	pool gopool.Pool
 }
 
 func (biz *collectService) Sysinfo(info *model.SysInfo) error {
@@ -31,7 +31,7 @@ func (biz *collectService) Sysinfo(info *model.SysInfo) error {
 		defer cancel()
 		_ = query.SysInfo.WithContext(ctx).Save(info)
 	}
-	biz.pool.Execute(fn)
+	biz.pool.Go(fn)
 	return nil
 }
 
@@ -49,6 +49,6 @@ func (biz *collectService) AccountFull(mid int64, dats []*model.MinionAccount) e
 				Create(dats...)
 		}
 	}
-	biz.pool.Execute(fn)
+	biz.pool.Go(fn)
 	return nil
 }

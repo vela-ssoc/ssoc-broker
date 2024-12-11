@@ -12,7 +12,7 @@ import (
 func (biz *agentService) RsyncTask(_ context.Context, mids []int64) error {
 	for _, mid := range mids {
 		task := &rsyncTask{biz: biz, mid: mid}
-		biz.pool.Submit(task)
+		biz.pool.Go(task.Run)
 	}
 	return nil
 }

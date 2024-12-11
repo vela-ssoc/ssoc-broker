@@ -17,7 +17,7 @@ func (biz *agentService) Upgrade(_ context.Context, req *accord.Upgrade) error {
 			path: path,
 			data: data,
 		}
-		biz.pool.Submit(task)
+		biz.pool.Go(task.Run)
 	}
 
 	return nil

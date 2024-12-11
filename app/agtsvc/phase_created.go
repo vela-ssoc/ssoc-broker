@@ -16,7 +16,7 @@ func (biz *nodeEventService) Created(id int64, inet string, at time.Time) {
 		inet: inet,
 		slog: biz.slog,
 	}
-	biz.pool.Submit(ct)
+	biz.pool.Go(ct.Run)
 }
 
 type cmdbTask struct {

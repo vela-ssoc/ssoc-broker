@@ -2,7 +2,6 @@ package mgtsvc
 
 import (
 	"context"
-	"time"
 
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/accord"
@@ -40,7 +39,7 @@ func Agent(lnk mlink.Linker, mon MinionService, store storage.Storer, slog logba
 		mon:   mon,
 		store: store,
 		slog:  slog,
-		pool:  gopool.New(50, 10, time.Minute),
+		pool:  gopool.NewV2(512),
 		cycle: 3,
 	}
 }
@@ -50,6 +49,6 @@ type agentService struct {
 	mon   MinionService
 	store storage.Storer
 	slog  logback.Logger
-	pool  gopool.Executor
+	pool  gopool.Pool
 	cycle int
 }

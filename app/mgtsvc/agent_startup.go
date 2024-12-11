@@ -13,7 +13,7 @@ import (
 
 func (biz *agentService) ReloadStartup(_ context.Context, mid int64) error {
 	task := &startupTask{biz: biz, mid: mid}
-	biz.pool.Submit(task)
+	biz.pool.Go(task.Run)
 	return nil
 }
 

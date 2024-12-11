@@ -42,7 +42,7 @@ func (biz *agentService) scanTableTask(bid, tid int64) {
 				tid: tid,
 				mid: mid,
 			}
-			biz.pool.Submit(task)
+			biz.pool.Go(task.Run)
 		}
 	}
 }

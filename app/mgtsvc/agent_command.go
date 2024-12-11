@@ -10,7 +10,7 @@ import (
 func (biz *agentService) Command(_ context.Context, mids []int64, cmd string) error {
 	for _, mid := range mids {
 		task := &commandTask{biz: biz, mid: mid, cmd: cmd}
-		biz.pool.Submit(task)
+		biz.pool.Go(task.Run)
 	}
 	return nil
 }

@@ -14,7 +14,7 @@ func (biz *agentService) broadcast(path string, data any) {
 			path: path,
 			data: data,
 		}
-		biz.pool.Submit(task)
+		biz.pool.Go(task.Run)
 	}
 }
 

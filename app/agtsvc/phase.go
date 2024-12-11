@@ -24,7 +24,7 @@ func Phase(cmdbc cmdb.Client, alert alarm.Alerter, slog logback.Logger) PhaseSer
 	return &nodeEventService{
 		cmdbc: cmdbc,
 		alert: alert,
-		pool:  gopool.New(4, 10, time.Minute),
+		pool:  gopool.NewV2(1024),
 		slog:  slog,
 	}
 }
@@ -33,7 +33,7 @@ type nodeEventService struct {
 	svc   mgtsvc.AgentService
 	cmdbc cmdb.Client
 	alert alarm.Alerter
-	pool  gopool.Executor
+	pool  gopool.Pool
 	slog  logback.Logger
 }
 
