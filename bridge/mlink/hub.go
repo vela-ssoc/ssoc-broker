@@ -18,7 +18,6 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
@@ -88,7 +87,6 @@ type minionHub struct {
 	proxy   netutil.Forwarder
 	stream  netutil.Streamer
 	phase   NodePhaser
-	pool    gopool.Executor
 	section container
 	bid     int64  // 当前 broker ID
 	name    string // 当前 broker 名字

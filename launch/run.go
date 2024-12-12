@@ -2,6 +2,8 @@ package launch
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
 	"github.com/vela-ssoc/vela-broker/app/agtsvc"
@@ -64,15 +66,18 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	match := ntfmatch.NewMatch()
 	store := storage.NewStore()
 
-	dongCfg := dong.NewConfig()
-	dongSIEM := dong.SIEMConfig{
-		URL:   issue.SIEM.URL,
-		Token: issue.SIEM.Token,
-	}
-	dongCli := dong.NewSIEM(cli, dongSIEM)
+	tunCli := dong.NewTunnel(link.Client())
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			tunCli.Send(context.Background(), []string{"200858"}, nil, "TITLE", "BODY")
+			log.Println("==========================")
+		}
+	}()
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
-	alert := alarm.UnifyAlerter(store, match, slog, dongCli, devCli)
+	alert := alarm.UnifyAlerter(store, match, slog, tunCli, devCli)
 
 	// manager callback
 	name := link.Name()
@@ -120,7 +125,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		intoREST := mgtapi.Into(intoService)
 		intoREST.Route(mv1)
 
-		resetREST := mgtapi.Reset(store, esCfg, match, dongCfg)
+		resetREST := mgtapi.Reset(store, esCfg, match)
 		resetREST.Route(mv1)
 
 		pprofREST := mgtapi.Pprof(link)
