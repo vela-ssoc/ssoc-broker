@@ -2,7 +2,8 @@ package launch
 
 import (
 	"context"
-	"log"
+	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
@@ -24,7 +25,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/integration/devops"
-	"github.com/vela-ssoc/vela-common-mb/integration/dong"
+	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-common-mb/integration/ntfmatch"
 	"github.com/vela-ssoc/vela-common-mb/integration/proxy"
@@ -66,18 +67,22 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	match := ntfmatch.NewMatch()
 	store := storage.NewStore()
 
-	tunCli := dong.NewTunnel(link.Client())
-	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			tunCli.Send(context.Background(), []string{"200858"}, nil, "TITLE", "BODY")
-			log.Println("==========================")
-		}
-	}()
+	tunCli := &http.Client{
+		Transport: &http.Transport{
+			DialContext: link.DialContext,
+		},
+	}
+	dongCli := dong.NewTunnel(tunCli)
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
-	alert := alarm.UnifyAlerter(store, match, slog, tunCli, devCli)
+	alert := alarm.UnifyAlerter(store, match, slog, dongCli, devCli)
+
+	{
+		go func() {
+			time.Sleep(5 * time.Second)
+			dongCli.Send(context.Background(), []string{"200858", "256874", "302554"}, nil, "标题", "内容")
+		}()
+	}
 
 	// manager callback
 	name := link.Name()
@@ -200,10 +205,11 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	api.Route("/v1/edition/upgrade").GET(oldHandler.Upgrade)
 	api.Route("/api/v1/deploy/minion").GET(deployAPI.Script)
 	api.Route("/api/v1/deploy/minion/download").GET(deployAPI.MinionDownload)
-	crontbl.Run(parent, link.Ident().ID, link.Issue().Name, slog)
+	if runtime.GOOS != "windows" {
+		crontbl.Run(parent, link.Ident().ID, link.Issue().Name, slog)
+	}
 
 	errCh := make(chan error, 1)
-
 	// 监听本地端口用于 minion 节点连接
 	ds := &daemonServer{listen: issue.Listen, hide: hide, handler: mux, errCh: errCh}
 	go ds.Run()

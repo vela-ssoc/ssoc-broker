@@ -36,11 +36,13 @@ type brokerClient struct {
 	cancel context.CancelFunc
 }
 
-func (bc *brokerClient) Client() netutil.HTTPClient { return bc.client }
-func (bc *brokerClient) Hide() Hide                 { return bc.hide }
-func (bc *brokerClient) Ident() Ident               { return bc.ident }
-func (bc *brokerClient) Issue() Issue               { return bc.issue }
-func (bc *brokerClient) Listen() net.Listener       { return bc.mux }
+func (bc *brokerClient) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	return bc.dialContext(ctx, network, addr)
+}
+func (bc *brokerClient) Hide() Hide           { return bc.hide }
+func (bc *brokerClient) Ident() Ident         { return bc.ident }
+func (bc *brokerClient) Issue() Issue         { return bc.issue }
+func (bc *brokerClient) Listen() net.Listener { return bc.mux }
 
 func (bc *brokerClient) JoinAt() time.Time {
 	return bc.joinAt

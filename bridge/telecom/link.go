@@ -21,7 +21,7 @@ type Linker interface {
 	JoinAt() time.Time
 	Listen() net.Listener
 	Reconnect(context.Context) error
-	Client() netutil.HTTPClient
+	DialContext(ctx context.Context, network, addr string) (net.Conn, error)
 	// Fetch(context.Context, opcode.URLer, io.Reader, http.Header) (*http.Response, error)
 	// Oneway(context.Context, opcode.URLer, io.Reader, http.Header) error
 	// JSON(context.Context, opcode.URLer, any, any) error
