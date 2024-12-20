@@ -70,7 +70,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 			DialContext: link.DialContext,
 		},
 	}
-	dongCli := dong.NewTunnel(tunCli)
+	dongCli := dong.NewTunnel(tunCli, slog)
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
 	alert := alarm.UnifyAlerter(store, match, slog, dongCli, devCli)
