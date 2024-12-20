@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"runtime"
-	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
 	"github.com/vela-ssoc/vela-broker/app/agtsvc"
@@ -28,7 +27,6 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-common-mb/integration/ntfmatch"
-	"github.com/vela-ssoc/vela-common-mb/integration/proxy"
 	"github.com/vela-ssoc/vela-common-mb/integration/sonatype"
 	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/vela-common-mb/logback"
@@ -76,13 +74,6 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
 	alert := alarm.UnifyAlerter(store, match, slog, dongCli, devCli)
-
-	{
-		go func() {
-			time.Sleep(5 * time.Second)
-			dongCli.Send(context.Background(), []string{"200858", "256874", "302554"}, nil, "标题", "内容")
-		}()
-	}
 
 	// manager callback
 	name := link.Name()
@@ -157,11 +148,8 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		heartREST := agtapi.Heart()
 		heartREST.Route(av1)
 
-		siemProxy, err := proxy.New(issue.SIEM.URL, issue.SIEM.Token)
-		if err == nil {
-			proxyAPI := agtapi.Proxy(siemProxy)
-			proxyAPI.Route(av1)
-		}
+		proxyAPI := agtapi.Proxy(link.DialContext)
+		proxyAPI.Route(av1)
 
 		securityREST := agtapi.Security()
 		securityREST.Route(av1)
