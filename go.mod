@@ -7,7 +7,7 @@ toolchain go1.23.3
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20241220094333-9f7b4044d137
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20241224085133-669de1c8ed69
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240705041659-14fcfa4b1df3
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.27.0
