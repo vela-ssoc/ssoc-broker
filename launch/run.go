@@ -58,12 +58,12 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	if err != nil {
 		return err
 	}
-	query.SetDefault(db)
+	qry := query.Use(db)
 	gfs := gridfs.NewCache(sdb, issue.Section.CDN)
 
 	cli := netutil.NewClient()
-	match := ntfmatch.NewMatch()
-	store := storage.NewStore()
+	match := ntfmatch.NewMatch(qry)
+	store := storage.NewStore(qry)
 
 	tunCli := &http.Client{
 		Transport: &http.Transport{
@@ -94,10 +94,10 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	mv1 := mgt.Group(accord.PathPrefix).Use(middle.Oplog)
 	av1 := agt.Group(accord.PathPrefix).Use(middle.Oplog)
 
-	esCfg := elastic.NewConfigure(name)
+	esCfg := elastic.NewConfigure(qry, name)
 	esc := elastic.NewSearch(esCfg, cli)
 	cmdbCfg := cmdb.NewConfigure(store)
-	cmdbCli := cmdb.NewClient(cmdbCfg, cli, slog)
+	cmdbCli := cmdb.NewClient(qry, cmdbCfg, cli, slog)
 
 	sonaCfg := sonatype.HardConfig()
 	sonaCli := sonatype.NewClient(sonaCfg, cli)
@@ -105,11 +105,11 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	_ = vsync
 
 	nodeEventService := agtsvc.Phase(cmdbCli, alert, slog)
-	hub := mlink.LinkHub(link, agt, nodeEventService, slog)
+	hub := mlink.LinkHub(qry, link, agt, nodeEventService, slog)
 	_ = hub.ResetDB()
 
-	minionService := mgtsvc.Minion()
-	agentService := mgtsvc.Agent(hub, minionService, store, slog)
+	minionService := mgtsvc.Minion(qry)
+	agentService := mgtsvc.Agent(qry, hub, minionService, store, slog)
 	nodeEventService.SetService(agentService)
 
 	// manager api
@@ -135,8 +135,8 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		bpfREST := agtapi.BPF()
 		bpfREST.Route(av1)
 
-		collectService := agtsvc.Collect()
-		collectREST := agtapi.Collect(collectService)
+		collectService := agtsvc.Collect(qry)
+		collectREST := agtapi.Collect(qry, collectService)
 		collectREST.Route(av1)
 
 		elasticREST := agtapi.Elastic(esc)
@@ -151,36 +151,36 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		proxyAPI := agtapi.Proxy(link.DialContext)
 		proxyAPI.Route(av1)
 
-		securityREST := agtapi.Security()
+		securityREST := agtapi.Security(qry)
 		securityREST.Route(av1)
 
 		streamREST := agtapi.Stream(name, esc)
 		streamREST.Route(av1)
 
-		tagService := agtsvc.Tag(agentService)
+		tagService := agtsvc.Tag(qry, agentService)
 		tagREST := agtapi.Tag(tagService)
 		tagREST.Route(av1)
 
-		taskREST := agtapi.Task()
+		taskREST := agtapi.Task(qry)
 		taskREST.Route(av1)
 
-		thirdService := agtsvc.Third(gfs)
+		thirdService := agtsvc.Third(qry, gfs)
 		thirdREST := agtapi.Third(thirdService)
 		thirdREST.Route(av1)
 
 		bid := link.Ident().ID
-		upgradeREST := agtapi.Upgrade(bid, gfs)
+		upgradeREST := agtapi.Upgrade(qry, bid, gfs)
 		upgradeREST.Route(av1)
 
-		sharedStringsService := agtsvc.SharedStrings()
+		sharedStringsService := agtsvc.SharedStrings(qry)
 		sharedREST := agtapi.Shared(sharedStringsService)
 		sharedREST.Route(av1)
 	}
 
-	oldHandler := linkhub.New(db, link, slog, gfs)
+	oldHandler := linkhub.New(db, qry, link, slog, gfs)
 	temp := temporary.REST(oldHandler, valid, slog)
 	gw := gateway.New(hub)
-	deployService := agtsvc.Deploy(store, gfs, ident.ID)
+	deployService := agtsvc.Deploy(qry, store, gfs, ident.ID)
 	deployAPI := agtapi.Deploy(deployService)
 
 	mux := ship.Default()
@@ -194,7 +194,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	api.Route("/api/v1/deploy/minion").GET(deployAPI.Script)
 	api.Route("/api/v1/deploy/minion/download").GET(deployAPI.MinionDownload)
 	if runtime.GOOS != "windows" {
-		crontbl.Run(parent, link.Ident().ID, link.Issue().Name, slog)
+		crontbl.Run(parent, qry, link.Ident().ID, link.Issue().Name, slog)
 	}
 
 	errCh := make(chan error, 1)

@@ -10,8 +10,9 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/sigar"
 )
 
-func Run(ctx context.Context, id int64, name string, log logback.Logger) {
+func Run(ctx context.Context, qry *query.Query, id int64, name string, log logback.Logger) {
 	bs := &brokerStat{
+		qry:  qry,
 		id:   id,
 		name: name,
 	}
@@ -27,6 +28,7 @@ func Run(ctx context.Context, id int64, name string, log logback.Logger) {
 }
 
 type brokerStat struct {
+	qry  *query.Query
 	id   int64
 	name string
 }
@@ -52,5 +54,5 @@ func (bs *brokerStat) Func(parent context.Context, at time.Time) error {
 		CPUPercent: percent,
 	}
 
-	return query.BrokerStat.WithContext(ctx).Save(data)
+	return bs.qry.BrokerStat.WithContext(ctx).Save(data)
 }

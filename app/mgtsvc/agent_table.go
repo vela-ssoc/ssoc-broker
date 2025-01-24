@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"gorm.io/gen/field"
 )
 
@@ -18,7 +17,7 @@ func (biz *agentService) scanTableTask(bid, tid int64) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	tbl := query.SubstanceTask
+	tbl := biz.qry.SubstanceTask
 	dao := tbl.WithContext(ctx).
 		Distinct(tbl.MinionID).
 		Where(tbl.TaskID.Eq(tid), tbl.BrokerID.Eq(bid), tbl.Executed.Is(false)).
@@ -64,7 +63,7 @@ func (st *tableTask) Run() {
 		defer cancel()
 	}
 
-	tbl := query.SubstanceTask
+	tbl := st.biz.qry.SubstanceTask
 	assigns := []field.AssignExpr{
 		tbl.Executed.Value(true),
 	}

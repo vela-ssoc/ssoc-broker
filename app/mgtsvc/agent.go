@@ -5,6 +5,7 @@ import (
 
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/accord"
+	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
@@ -33,18 +34,20 @@ type AgentService interface {
 	Upgrade(ctx context.Context, req *accord.Upgrade) error
 }
 
-func Agent(lnk mlink.Linker, mon MinionService, store storage.Storer, slog logback.Logger) AgentService {
+func Agent(qry *query.Query, lnk mlink.Linker, mon MinionService, store storage.Storer, slog logback.Logger) AgentService {
 	return &agentService{
+		qry:   qry,
 		lnk:   lnk,
 		mon:   mon,
 		store: store,
 		slog:  slog,
 		pool:  gopool.NewV2(512),
-		cycle: 3,
+		cycle: 5,
 	}
 }
 
 type agentService struct {
+	qry   *query.Query
 	lnk   mlink.Linker
 	mon   MinionService
 	store storage.Storer

@@ -11,13 +11,15 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Security() route.Router {
+func Security(qry *query.Query) route.Router {
 	return &securityREST{
+		qry:   qry,
 		limit: 1000,
 	}
 }
 
 type securityREST struct {
+	qry   *query.Query
 	limit int
 }
 
@@ -41,7 +43,7 @@ func (rest *securityREST) RiskIP(c *ship.Context) error {
 
 	now := time.Now()
 	ctx := c.Request().Context()
-	tbl := query.RiskIP
+	tbl := rest.qry.RiskIP
 	dao := tbl.WithContext(ctx).
 		Where(tbl.IP.In(body.Data...), tbl.BeforeAt.Gte(now))
 	if len(qry.Kind) != 0 {
@@ -69,7 +71,7 @@ func (rest *securityREST) PassIP(c *ship.Context) error {
 
 	now := time.Now()
 	ctx := c.Request().Context()
-	tbl := query.PassIP
+	tbl := rest.qry.PassIP
 	dao := tbl.WithContext(ctx).
 		Where(tbl.IP.In(body.Data...), tbl.BeforeAt.Gte(now))
 	if len(qry.Kind) != 0 {
@@ -97,7 +99,7 @@ func (rest *securityREST) RiskDNS(c *ship.Context) error {
 
 	now := time.Now()
 	ctx := c.Request().Context()
-	tbl := query.RiskDNS
+	tbl := rest.qry.RiskDNS
 	dao := tbl.WithContext(ctx).
 		Where(tbl.Domain.In(body.Data...), tbl.BeforeAt.Gte(now))
 	if len(qry.Kind) != 0 {
@@ -125,7 +127,7 @@ func (rest *securityREST) PassDNS(c *ship.Context) error {
 
 	now := time.Now()
 	ctx := c.Request().Context()
-	tbl := query.PassDNS
+	tbl := rest.qry.PassDNS
 	dao := tbl.WithContext(ctx).
 		Where(tbl.Domain.In(body.Data...), tbl.BeforeAt.Gte(now))
 	if len(qry.Kind) != 0 {
@@ -152,7 +154,7 @@ func (rest *securityREST) RiskFile(c *ship.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	tbl := query.RiskFile
+	tbl := rest.qry.RiskFile
 	dao := tbl.WithContext(ctx).
 		Where(tbl.Checksum.In(body.Data...), tbl.BeforeAt.Gte(time.Now()))
 	if len(qry.Kind) != 0 {

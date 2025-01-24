@@ -20,11 +20,13 @@ type SharedStringsService interface {
 	Del(ctx context.Context, req *param.SharedKey) error
 }
 
-func SharedStrings() SharedStringsService {
-	return &sharedStringsService{}
+func SharedStrings(qry *query.Query) SharedStringsService {
+	return &sharedStringsService{qry: qry}
 }
 
-type sharedStringsService struct{}
+type sharedStringsService struct {
+	qry *query.Query
+}
 
 func (biz *sharedStringsService) Get(ctx context.Context, req *param.SharedKey) (*model.KVData, error) {
 	// SELECT *
@@ -34,7 +36,7 @@ func (biz *sharedStringsService) Get(ctx context.Context, req *param.SharedKey) 
 	//   AND (lifetime <= 0 OR (lifetime > 0 AND expired_at >= ?));
 
 	now := time.Now()
-	tbl := query.KVData
+	tbl := biz.qry.KVData
 	tblCtx := tbl.WithContext(ctx)
 
 	survival := tblCtx.Or(tbl.Lifetime.Gte(0)).
@@ -60,7 +62,7 @@ func (biz *sharedStringsService) Set(ctx context.Context, inf mlink.Infer, req *
 		lifetime = 0
 	}
 
-	tbl := query.KVData
+	tbl := biz.qry.KVData
 	old := biz.find(ctx, bucket, key) // 查询数据库中的数据
 
 	if old == nil || old.Expired(now) {
@@ -110,7 +112,7 @@ func (biz *sharedStringsService) Set(ctx context.Context, inf mlink.Infer, req *
 			Bucket:   bucket,
 			Key:      key,
 		}
-		_ = query.KVAudit.WithContext(ctx).
+		_ = biz.qry.KVAudit.WithContext(ctx).
 			Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(audit)
 	}
@@ -128,7 +130,7 @@ func (biz *sharedStringsService) Store(ctx context.Context, inf mlink.Infer, req
 		lifetime = 0
 	}
 
-	tbl := query.KVData
+	tbl := biz.qry.KVData
 	old := biz.find(ctx, bucket, key) // 查询数据库中的数据
 
 	if old == nil || old.Expired(now) {
@@ -173,7 +175,7 @@ func (biz *sharedStringsService) Store(ctx context.Context, inf mlink.Infer, req
 			Bucket:   bucket,
 			Key:      key,
 		}
-		_ = query.KVAudit.WithContext(ctx).
+		_ = biz.qry.KVAudit.WithContext(ctx).
 			Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(audit)
 	}
@@ -202,7 +204,7 @@ func (biz *sharedStringsService) Incr(ctx context.Context, inf mlink.Infer, req 
 	}
 
 	expiredAt := now.Add(lifetime)
-	tbl := query.KVData
+	tbl := biz.qry.KVData
 	if old == nil || old.Expired(now) { // 如果不存在老数据则直接插入
 		if old != nil {
 			if _, err := tbl.WithContext(ctx).
@@ -246,7 +248,7 @@ func (biz *sharedStringsService) Incr(ctx context.Context, inf mlink.Infer, req 
 			Bucket:   bucket,
 			Key:      key,
 		}
-		_ = query.KVAudit.WithContext(ctx).
+		_ = biz.qry.KVAudit.WithContext(ctx).
 			Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(audit)
 	}
@@ -255,7 +257,7 @@ func (biz *sharedStringsService) Incr(ctx context.Context, inf mlink.Infer, req 
 }
 
 func (biz *sharedStringsService) Del(ctx context.Context, req *param.SharedKey) error {
-	tbl := query.KVData
+	tbl := biz.qry.KVData
 	cond := []gen.Condition{tbl.Bucket.Eq(req.Bucket)}
 	if key := req.Key; key != "" {
 		cond = append(cond, tbl.Key.Eq(key))
@@ -269,7 +271,7 @@ func (biz *sharedStringsService) Del(ctx context.Context, req *param.SharedKey) 
 }
 
 func (biz *sharedStringsService) find(ctx context.Context, bucket, key string) *model.KVData {
-	tbl := query.KVData
+	tbl := biz.qry.KVData
 	dat, _ := tbl.WithContext(ctx).
 		Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key)).
 		First()

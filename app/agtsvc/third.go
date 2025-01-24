@@ -12,18 +12,20 @@ type ThirdService interface {
 	Open(ctx context.Context, name string) (*model.Third, gridfs.File, error)
 }
 
-func Third(gfs gridfs.FS) ThirdService {
+func Third(qry *query.Query, gfs gridfs.FS) ThirdService {
 	return &thirdService{
+		qry: qry,
 		gfs: gfs,
 	}
 }
 
 type thirdService struct {
+	qry *query.Query
 	gfs gridfs.FS
 }
 
 func (biz *thirdService) Open(ctx context.Context, name string) (*model.Third, gridfs.File, error) {
-	tbl := query.Third
+	tbl := biz.qry.Third
 	th, err := tbl.WithContext(ctx).Where(tbl.Name.Eq(name)).First()
 	if err != nil {
 		return nil, nil, err

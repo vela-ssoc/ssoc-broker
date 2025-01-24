@@ -9,11 +9,13 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func Task() route.Router {
-	return &taskREST{}
+func Task(qry *query.Query) route.Router {
+	return &taskREST{qry: qry}
 }
 
-type taskREST struct{}
+type taskREST struct {
+	qry *query.Query
+}
 
 func (rest *taskREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/broker/task/status").
@@ -34,7 +36,7 @@ func (rest *taskREST) Status(c *ship.Context) error {
 	inet := inf.Inet().String()
 	dats := req.ToModels(mid, inet)
 
-	tbl := query.MinionTask
+	tbl := rest.qry.MinionTask
 	_, _ = tbl.WithContext(ctx).Where(tbl.MinionID.Eq(mid)).Delete()
 	if len(dats) != 0 {
 		_ = tbl.WithContext(ctx).Clauses(clause.OnConflict{UpdateAll: true}).Save(dats...)

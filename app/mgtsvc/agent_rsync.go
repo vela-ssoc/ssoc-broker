@@ -6,7 +6,6 @@ import (
 
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
 )
 
 func (biz *agentService) RsyncTask(_ context.Context, mids []int64) error {
@@ -42,7 +41,7 @@ func (biz *agentService) rsync(ctx context.Context, light *param.MinionLight) er
 	nrp, err := biz.spinRsync(ctx, light, report, subs) // 循环同步
 
 	// 更新上报状态表
-	tbl := query.MinionTask
+	tbl := biz.qry.MinionTask
 	_, _ = tbl.WithContext(ctx).Where(tbl.MinionID.Eq(mid)).Delete()
 	if nrp != nil {
 		tasks := nrp.ToModels(mid, inet)

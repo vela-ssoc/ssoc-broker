@@ -15,13 +15,15 @@ type CollectService interface {
 	AccountFull(mid int64, dats []*model.MinionAccount) error
 }
 
-func Collect() CollectService {
+func Collect(qry *query.Query) CollectService {
 	return &collectService{
+		qry:  qry,
 		pool: gopool.NewV2(1024),
 	}
 }
 
 type collectService struct {
+	qry  *query.Query
 	pool gopool.Pool
 }
 
@@ -29,7 +31,7 @@ func (biz *collectService) Sysinfo(info *model.SysInfo) error {
 	fn := func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_ = query.SysInfo.WithContext(ctx).Save(info)
+		_ = biz.qry.SysInfo.WithContext(ctx).Save(info)
 	}
 	biz.pool.Go(fn)
 	return nil
@@ -40,7 +42,7 @@ func (biz *collectService) AccountFull(mid int64, dats []*model.MinionAccount) e
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		tbl := query.MinionAccount
+		tbl := biz.qry.MinionAccount
 		_, _ = tbl.WithContext(ctx).Where(tbl.MinionID.Eq(mid)).Delete()
 
 		if len(dats) != 0 {

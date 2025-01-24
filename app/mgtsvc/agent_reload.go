@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
 )
 
 func (biz *agentService) ReloadTask(_ context.Context, mid, sid int64) error {
@@ -26,7 +25,7 @@ func (biz *agentService) reloadTask(ctx context.Context, mid, sid int64) error {
 	}
 
 	// 查询要下发的配置
-	subTbl := query.Substance
+	subTbl := biz.qry.Substance
 	sub, err := subTbl.WithContext(ctx).Where(subTbl.ID.Eq(sid)).First()
 	if err != nil {
 		return biz.rsync(ctx, light)

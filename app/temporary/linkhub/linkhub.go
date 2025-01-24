@@ -28,6 +28,7 @@ import (
 
 type minionHub struct {
 	db        *gorm.DB
+	qry       *query.Query
 	broker    telecom.Linker
 	sugar     logback.Logger
 	outbox    chan *outboxMsg
@@ -39,7 +40,7 @@ type minionHub struct {
 }
 
 // New 新建 minion 消息处理器
-func New(db *gorm.DB, brk telecom.Linker, sugar logback.Logger, gfs gridfs.FS) *minionHub {
+func New(db *gorm.DB, qry *query.Query, brk telecom.Linker, sugar logback.Logger, gfs gridfs.FS) *minionHub {
 	minions := concurrent.NewBucketMap[int64, *temporary.Conn](128, 32) // 128*32=4096
 	processes := concurrent.NewMap[temporary.Opcode, process](16)
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -48,6 +49,7 @@ func New(db *gorm.DB, brk telecom.Linker, sugar logback.Logger, gfs gridfs.FS) *
 	// stm := stream.New(hcli, sugar)
 	hub := &minionHub{
 		db:        db,
+		qry:       qry,
 		broker:    brk,
 		sugar:     sugar,
 		outbox:    outbox,
@@ -402,7 +404,7 @@ func (hub *minionHub) Upgrade(c *ship.Context) error {
 	goos, arch, version := ident.Goos, ident.Arch, ident.Edition
 
 	ctx := c.Request().Context()
-	db := query.MinionBin.WithContext(ctx).UnderlyingDB()
+	db := hub.qry.MinionBin.WithContext(ctx).UnderlyingDB()
 
 	stmt := db.Where("goos = ? AND arch = ?", goos, arch)
 	if req.Edition == "" {
@@ -423,7 +425,7 @@ func (hub *minionHub) Upgrade(c *ship.Context) error {
 
 	bid := hub.broker.Ident().ID
 	// 查询 broker 信息
-	brkTbl := query.Broker
+	brkTbl := hub.qry.Broker
 	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(bid)).First()
 	if err != nil {
 		c.Warnf("更新版本查询 broker 信息错误：%s", err)

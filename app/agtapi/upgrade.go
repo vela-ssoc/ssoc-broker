@@ -20,8 +20,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func Upgrade(bid int64, gfs gridfs.FS) route.Router {
+func Upgrade(qry *query.Query, bid int64, gfs gridfs.FS) route.Router {
 	return &upgradeREST{
+		qry:     qry,
 		bid:     bid,
 		gfs:     gfs,
 		maxsize: 200,
@@ -29,6 +30,7 @@ func Upgrade(bid int64, gfs gridfs.FS) route.Router {
 }
 
 type upgradeREST struct {
+	qry     *query.Query
 	bid     int64
 	gfs     gridfs.FS
 	mutex   sync.Mutex
@@ -72,7 +74,7 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	}
 
 	// 查询 broker 信息
-	brkTbl := query.Broker
+	brkTbl := rest.qry.Broker
 	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(rest.bid)).First()
 	if err != nil {
 		c.Warnf("更新版本查询 broker 信息错误：%s", err)
@@ -157,7 +159,7 @@ func (rest *upgradeREST) unlock() {
 }
 
 func (rest *upgradeREST) matchBinary(ctx context.Context, inf mlink.Infer, req *param.UpgradeDownload) (*model.MinionBin, error) {
-	tbl := query.MinionBin
+	tbl := rest.qry.MinionBin
 	ident := inf.Ident()
 	goos, arch := ident.Goos, ident.Arch
 	conds := []gen.Condition{

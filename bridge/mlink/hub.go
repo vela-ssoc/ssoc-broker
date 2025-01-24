@@ -56,11 +56,12 @@ type Huber interface {
 	Knockout(mid int64)
 }
 
-func LinkHub(link telecom.Linker, handler http.Handler, phase NodePhaser, slog logback.Logger) Linker {
+func LinkHub(qry *query.Query, link telecom.Linker, handler http.Handler, phase NodePhaser, slog logback.Logger) Linker {
 	seed := time.Now().UnixNano()
 	random := rand.New(rand.NewSource(seed))
 
 	hub := &minionHub{
+		qry:     qry,
 		link:    link,
 		handler: handler,
 		bid:     link.Ident().ID,
@@ -80,6 +81,7 @@ func LinkHub(link telecom.Linker, handler http.Handler, phase NodePhaser, slog l
 }
 
 type minionHub struct {
+	qry     *query.Query
 	link    telecom.Linker
 	handler http.Handler
 	slog    logback.Logger
@@ -107,7 +109,7 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 	// 根据 inet 查询节点信息
 	now := time.Now()
 	inet := ip.String()
-	monTbl := query.Minion
+	monTbl := hub.qry.Minion
 	mon, err := monTbl.WithContext(ctx).Where(monTbl.Inet.Eq(inet)).First()
 	if err != nil {
 		if err != gorm.ErrRecordNotFound {
@@ -138,14 +140,15 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 			UpdatedAt:  now,
 		}
 
-		if err = query.Q.Transaction(func(tx *query.Query) error {
+		if err = hub.qry.Transaction(func(tx *query.Query) error {
 			if exx := tx.WithContext(ctx).Minion.Create(join); exx != nil {
 				return exx
 			}
-			mid := join.ID
+			mid, goos, arch := join.ID, ident.Goos, ident.Arch
 			tags := model.MinionTags{
-				{Tag: ident.Goos, MinionID: mid, Kind: model.TkLifelong},
-				{Tag: ident.Arch, MinionID: mid, Kind: model.TkLifelong},
+				{Tag: goos + "-" + arch, MinionID: mid, Kind: model.TkLifelong},
+				{Tag: goos, MinionID: mid, Kind: model.TkLifelong},
+				{Tag: arch, MinionID: mid, Kind: model.TkLifelong},
 				{Tag: inet, MinionID: mid, Kind: model.TkLifelong},
 			}
 			return tx.WithContext(ctx).MinionTag.
@@ -209,17 +212,18 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 
 	nullableAt := sql.NullTime{Valid: true, Time: now}
 
+	// 存在这样的情况，例如节点 192.168.18.18 变更系统后，与之对应的永久标签也要切换。
+
 	brokerID, brokerName := hub.link.Ident().ID, hub.link.Issue().Name
 	online, offline := uint8(model.MSOnline), uint8(model.MSOffline)
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
-	monTbl := query.Minion
+	monTbl := hub.qry.Minion
 	info, err := monTbl.WithContext(ctx).
 		Where(monTbl.ID.Eq(id), monTbl.Status.Eq(uint8(model.MSOffline))).
 		UpdateSimple(
 			monTbl.Status.Value(online),
 			monTbl.MAC.Value(ident.MAC),
 			monTbl.Goos.Value(ident.Goos),
-			monTbl.Arch.Value(ident.Arch),
 			monTbl.Arch.Value(ident.Arch),
 			monTbl.Edition.Value(ident.Semver),
 			monTbl.Unstable.Value(ident.Unstable),
@@ -273,7 +277,7 @@ func (hub *minionHub) Name() string {
 func (hub *minionHub) ResetDB() error {
 	online := uint8(model.MSOnline)
 	offline := uint8(model.MSOffline)
-	tbl := query.Minion
+	tbl := hub.qry.Minion
 	_, err := tbl.WithContext(context.Background()).
 		Where(tbl.BrokerID.Eq(hub.bid), tbl.Status.Eq(online)).
 		UpdateColumnSimple(tbl.Status.Value(offline))

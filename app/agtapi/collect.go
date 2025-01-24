@@ -19,13 +19,15 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func Collect(svc agtsvc.CollectService) route.Router {
+func Collect(qry *query.Query, svc agtsvc.CollectService) route.Router {
 	return &collectREST{
+		qry: qry,
 		svc: svc,
 	}
 }
 
 type collectREST struct {
+	qry *query.Query
 	svc agtsvc.CollectService
 }
 
@@ -68,7 +70,7 @@ func (rest *collectREST) ProcessDiff(c *ship.Context) error {
 		return err
 	}
 
-	tbl := query.MinionProcess
+	tbl := rest.qry.MinionProcess
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
 	mid, inet := inf.Issue().ID, inf.Inet().String()
@@ -110,7 +112,7 @@ func (rest *collectREST) ProcessFull(c *ship.Context) error {
 		return err
 	}
 
-	tbl := query.MinionProcess
+	tbl := rest.qry.MinionProcess
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
 	mid, inet := inf.Issue().ID, inf.Inet().String()
@@ -147,7 +149,7 @@ func (rest *collectREST) Logon(c *ship.Context) error {
 	inf := mlink.Ctx(ctx)
 	mid, inet := inf.Issue().ID, inf.Inet().String()
 	dat := req.Model(mid, inet)
-	err := query.MinionLogon.WithContext(ctx).Create(dat)
+	err := rest.qry.MinionLogon.WithContext(ctx).Create(dat)
 
 	return err
 }
@@ -158,7 +160,7 @@ func (rest *collectREST) ListenDiff(c *ship.Context) error {
 		return err
 	}
 
-	tbl := query.MinionListen
+	tbl := rest.qry.MinionListen
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
 	mid, inet := inf.Issue().ID, inf.Inet().String()
@@ -206,7 +208,7 @@ func (rest *collectREST) ListenFull(c *ship.Context) error {
 
 	// 1. 删除所有的该节点数据
 	size := len(req)
-	tbl := query.MinionListen
+	tbl := rest.qry.MinionListen
 	_, err := tbl.WithContext(ctx).Where(tbl.MinionID.Eq(mid)).Delete()
 	if err != nil || size == 0 {
 		return err
@@ -233,7 +235,7 @@ func (rest *collectREST) AccountDiff(c *ship.Context) error {
 		return err
 	}
 
-	tbl := query.MinionAccount
+	tbl := rest.qry.MinionAccount
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
 	mid, inet := inf.Issue().ID, inf.Inet().String()
@@ -296,7 +298,7 @@ func (rest *collectREST) GroupDiff(c *ship.Context) error {
 		return err
 	}
 
-	tbl := query.MinionGroup
+	tbl := rest.qry.MinionGroup
 	ctx := c.Request().Context()
 	inf := mlink.Ctx(ctx)
 	mid, inet := inf.Issue().ID, inf.Inet().String()
@@ -344,7 +346,7 @@ func (rest *collectREST) GroupFull(c *ship.Context) error {
 
 	// 1. 删除所有的该节点数据
 	size := len(req)
-	tbl := query.MinionGroup
+	tbl := rest.qry.MinionGroup
 	_, err := tbl.WithContext(ctx).Where(tbl.MinionID.Eq(mid)).Delete()
 	if err != nil || size == 0 {
 		return err
@@ -382,7 +384,7 @@ func (rest *collectREST) Sbom(c *ship.Context) error {
 	req.Filename = filepath.Clean(req.Filename)
 
 	// 查询数据
-	ptjTbl := query.SBOMProject
+	ptjTbl := rest.qry.SBOMProject
 	old, err := ptjTbl.WithContext(ctx).
 		Where(ptjTbl.MinionID.Eq(mid), ptjTbl.Filepath.Eq(req.Filename)).
 		First()
@@ -400,7 +402,7 @@ func (rest *collectREST) Sbom(c *ship.Context) error {
 
 	// 有变化就删除后插入
 	_, _ = ptjTbl.WithContext(ctx).Where(ptjTbl.ID.Eq(old.ID)).Delete()
-	comTbl := query.SBOMComponent
+	comTbl := rest.qry.SBOMComponent
 	_, _ = comTbl.WithContext(ctx).Where(comTbl.ProjectID.Eq(old.ID)).Delete()
 
 	return rest.sbomInsert(ctx, mid, inet, &req)
@@ -434,7 +436,7 @@ func (rest *collectREST) sbomInsert(ctx context.Context, minionID int64, inet st
 		ModifyAt:     r.ModifyAt,
 	}
 
-	if err := query.SBOMProject.WithContext(ctx).
+	if err := rest.qry.SBOMProject.WithContext(ctx).
 		Create(pjt); err != nil {
 		return err
 	}
@@ -444,7 +446,7 @@ func (rest *collectREST) sbomInsert(ctx context.Context, minionID int64, inet st
 		return nil
 	}
 
-	return query.SBOMComponent.WithContext(ctx).
+	return rest.qry.SBOMComponent.WithContext(ctx).
 		CreateInBatches(components, 100)
 }
 
@@ -453,7 +455,7 @@ func (rest *collectREST) ProcessSync(c *ship.Context) error {
 	inf := mlink.Ctx(ctx)
 
 	var dats param.ProcSimples
-	tbl := query.MinionProcess
+	tbl := rest.qry.MinionProcess
 	_ = tbl.WithContext(ctx).
 		Select(tbl.Name, tbl.State, tbl.Pid, tbl.Pgid, tbl.Ppid, tbl.Cmdline,
 			tbl.Username, tbl.Cwd, tbl.Executable, tbl.Args).

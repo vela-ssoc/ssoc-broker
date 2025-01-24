@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mba/definition"
 	"gorm.io/gen/field"
 	"gorm.io/gorm"
@@ -18,7 +17,7 @@ func (biz *agentService) ReloadStartup(_ context.Context, mid int64) error {
 }
 
 func (biz *agentService) findStartup(ctx context.Context, mid int64) (*definition.Startup, error) {
-	tbl := query.Startup
+	tbl := biz.qry.Startup
 	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(mid)).First()
 	if err == gorm.ErrRecordNotFound {
 		dat, err = biz.store.Startup(ctx)
@@ -83,7 +82,7 @@ func (st *startupTask) Run() {
 	path := "/api/v1/agent/startup"
 	err = st.biz.lnk.Oneway(ctx, mid, path, startup)
 
-	tbl := query.Startup
+	tbl := st.biz.qry.Startup
 	var assigns []field.AssignExpr
 	if err != nil {
 		assigns = append(assigns, tbl.Failed.Value(true))

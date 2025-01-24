@@ -13,15 +13,15 @@ type MinionService interface {
 	Substances(ctx context.Context, light *param.MinionLight) ([]*model.Substance, error)
 }
 
-func Minion() MinionService {
-	return &minionService{}
+func Minion(qry *query.Query) MinionService {
+	return &minionService{qry: qry}
 }
 
-type minionService struct{}
+type minionService struct{ qry *query.Query }
 
 func (biz *minionService) LightID(ctx context.Context, mid int64) (*param.MinionLight, error) {
 	deleted := uint8(model.MSDelete)
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.BrokerID, tbl.Unload, tbl.Inet).
 		Where(tbl.ID.Eq(mid), tbl.Status.Neq(deleted)).
@@ -45,7 +45,7 @@ func (biz *minionService) Substances(ctx context.Context, light *param.MinionLig
 	// 查询该节点的所有标签
 	mid, inet := light.ID, light.Inet
 	tags := make([]string, 0, 10)
-	tagTbl := query.MinionTag
+	tagTbl := biz.qry.MinionTag
 	_ = tagTbl.WithContext(ctx).
 		Distinct(tagTbl.Tag).
 		Where(tagTbl.MinionID.Eq(mid)).
@@ -54,14 +54,14 @@ func (biz *minionService) Substances(ctx context.Context, light *param.MinionLig
 	// 查询节点的配置
 	var subIDs []int64
 	if len(tags) != 0 {
-		effTbl := query.Effect
+		effTbl := biz.qry.Effect
 		effects, _ := effTbl.WithContext(ctx).
 			Where(effTbl.Tag.In(tags...), effTbl.Enable.Is(true)).
 			Find()
 		subIDs = model.Effects(effects).Exclusion(inet)
 	}
 
-	subTbl := query.Substance
+	subTbl := biz.qry.Substance
 	dao := subTbl.WithContext(ctx).
 		Where(subTbl.MinionID.Eq(mid))
 	if len(subIDs) != 0 {
