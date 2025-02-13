@@ -2,8 +2,12 @@ package launch
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"runtime"
+
+	"github.com/vela-ssoc/vela-broker/appv2/manager/mrestapi"
+	"github.com/vela-ssoc/vela-broker/appv2/manager/mservice"
 
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
 	"github.com/vela-ssoc/vela-broker/app/agtsvc"
@@ -38,19 +42,19 @@ import (
 )
 
 // Run 运行服务
-func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
-	link, err := telecom.Dial(parent, hide, slog) // 与中心端建立连接
+func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error {
+	link, err := telecom.Dial(parent, hide, oldLog) // 与中心端建立连接
 	if err != nil {
 		return err
 	}
 
 	ident := link.Ident()
 	issue := link.Issue()
-	slog.Infof("broker 接入认证成功，上报认证信息如下：\n%s\n下发的配置如下：\n%s", ident, issue)
+	oldLog.Infof("broker 接入认证成功，上报认证信息如下：\n%s\n下发的配置如下：\n%s", ident, issue)
 
 	logCfg := issue.Logger
 	zlg := logCfg.Zap() // 根据配置文件初始化日志
-	slog.Replace(zlg)   // 替换日志输出内核
+	oldLog.Replace(zlg) // 替换日志输出内核
 	gormLog := logback.Gorm(zlg, logCfg.Level)
 
 	dbCfg := issue.Database
@@ -70,10 +74,10 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 			DialContext: link.DialContext,
 		},
 	}
-	dongCli := dong.NewTunnel(tunCli, slog)
+	dongCli := dong.NewTunnel(tunCli, oldLog)
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
-	alert := alarm.UnifyAlerter(store, match, slog, dongCli, devCli)
+	alert := alarm.UnifyAlerter(store, match, oldLog, dongCli, devCli)
 
 	// manager callback
 	name := link.Name()
@@ -82,11 +86,11 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	valid := validate.New()
 	agt := ship.Default()
 	mgt := ship.Default()
-	mgt.Logger = slog
+	mgt.Logger = oldLog
 	mgt.NotFound = pbh.NotFound
 	mgt.HandleError = pbh.HandleError
 	mgt.Validator = valid
-	agt.Logger = slog
+	agt.Logger = oldLog
 	agt.NotFound = pbh.NotFound
 	agt.HandleError = pbh.HandleError
 	agt.Validator = valid
@@ -97,22 +101,23 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	esCfg := elastic.NewConfigure(qry, name)
 	esc := elastic.NewSearch(esCfg, cli)
 	cmdbCfg := cmdb.NewConfigure(store)
-	cmdbCli := cmdb.NewClient(qry, cmdbCfg, cli, slog)
+	cmdbCli := cmdb.NewClient(qry, cmdbCfg, cli, oldLog)
 
 	sonaCfg := sonatype.HardConfig()
 	sonaCli := sonatype.NewClient(sonaCfg, cli)
 	vsync := vulnsync.New(db, sonaCli)
 	_ = vsync
 
-	nodeEventService := agtsvc.Phase(cmdbCli, alert, slog)
-	hub := mlink.LinkHub(qry, link, agt, nodeEventService, slog)
+	nodeEventService := agtsvc.Phase(cmdbCli, alert, oldLog)
+	hub := mlink.LinkHub(qry, link, agt, nodeEventService, oldLog)
 	_ = hub.ResetDB()
 
 	minionService := mgtsvc.Minion(qry)
-	agentService := mgtsvc.Agent(qry, hub, minionService, store, slog)
+	agentService := mgtsvc.Agent(qry, hub, minionService, store, oldLog)
 	nodeEventService.SetService(agentService)
 
 	// manager api
+	log := slog.New(slog.DiscardHandler) // 暂时这么弄
 	{
 		agentREST := mgtapi.Agent(agentService)
 		agentREST.Route(mv1)
@@ -126,6 +131,10 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 
 		pprofREST := mgtapi.Pprof(link)
 		pprofREST.Route(mv1)
+
+		taskSvc := mservice.NewTask(qry, hub, log)
+		taskAPI := mrestapi.NewTask(taskSvc)
+		taskAPI.Route(mv1)
 	}
 
 	{
@@ -177,8 +186,8 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 		sharedREST.Route(av1)
 	}
 
-	oldHandler := linkhub.New(db, qry, link, slog, gfs)
-	temp := temporary.REST(oldHandler, valid, slog)
+	oldHandler := linkhub.New(db, qry, link, oldLog, gfs)
+	temp := temporary.REST(oldHandler, valid, oldLog)
 	gw := gateway.New(hub)
 	deployService := agtsvc.Deploy(qry, store, gfs, ident.ID)
 	deployAPI := agtapi.Deploy(deployService)
@@ -194,7 +203,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	api.Route("/api/v1/deploy/minion").GET(deployAPI.Script)
 	api.Route("/api/v1/deploy/minion/download").GET(deployAPI.MinionDownload)
 	if runtime.GOOS != "windows" {
-		crontbl.Run(parent, qry, link.Ident().ID, link.Issue().Name, slog)
+		crontbl.Run(parent, qry, link.Ident().ID, link.Issue().Name, oldLog)
 	}
 
 	errCh := make(chan error, 1)
@@ -203,7 +212,7 @@ func Run(parent context.Context, hide telecom.Hide, slog logback.Logger) error {
 	go ds.Run()
 
 	// 连接 manager 的客户端，保持在线与接受指令
-	dc := &daemonClient{link: link, handler: mgt, errCh: errCh, slog: slog, parent: parent}
+	dc := &daemonClient{link: link, handler: mgt, errCh: errCh, slog: oldLog, parent: parent}
 	go dc.Run()
 
 	select {

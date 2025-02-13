@@ -278,7 +278,11 @@ func (hub *minionHub) ResetDB() error {
 	online := uint8(model.MSOnline)
 	offline := uint8(model.MSOffline)
 	tbl := hub.qry.Minion
-	_, err := tbl.WithContext(context.Background()).
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	_, err := tbl.WithContext(ctx).
 		Where(tbl.BrokerID.Eq(hub.bid), tbl.Status.Eq(online)).
 		UpdateColumnSimple(tbl.Status.Value(offline))
 	return err
