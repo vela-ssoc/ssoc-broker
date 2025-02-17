@@ -6,6 +6,8 @@ import (
 	"io"
 	"time"
 
+	"gorm.io/gen/field"
+
 	"github.com/vela-ssoc/vela-broker/app/internal/modview"
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/gridfs"
@@ -130,9 +132,14 @@ func (biz *deployService) matchBinary(ctx context.Context, req *param.DeployMini
 		tbl.Deprecated.Is(false), // 标记为过期不能下载
 		tbl.Goos.Eq(req.Goos),
 		tbl.Arch.Eq(req.Arch),
-		tbl.Customized.Eq(req.Customized), // 定制版匹配
-		tbl.Unstable.Is(req.Unstable),     // 是否测试版
+		tbl.Unstable.Is(req.Unstable), // 是否测试版
 	}
+	if customized := req.Customized; customized == "" {
+		conds = append(conds, field.Or(tbl.Customized.Eq(customized), tbl.Customized.IsNull()))
+	} else {
+		conds = append(conds, tbl.Customized.Eq(customized))
+	}
+
 	if semver := string(req.Version); semver != "" {
 		conds = append(conds, tbl.Semver.Eq(semver))
 	}
