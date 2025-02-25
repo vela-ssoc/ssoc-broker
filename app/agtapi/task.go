@@ -1,11 +1,17 @@
 package agtapi
 
 import (
+	"encoding/json"
+	"time"
+
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-broker/app/route"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
+	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/xgfone/ship/v5"
+	"gorm.io/gen"
+	"gorm.io/gen/field"
 	"gorm.io/gorm/clause"
 )
 
@@ -20,6 +26,8 @@ type taskREST struct {
 func (rest *taskREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/broker/task/status").
 		Data(route.Named("上报任务运行状态")).POST(rest.Status)
+	r.Route("/broker/task/report").
+		Data(route.Named("上报任务运行状态")).POST(rest.Report)
 }
 
 func (rest *taskREST) Status(c *ship.Context) error {
@@ -43,4 +51,47 @@ func (rest *taskREST) Status(c *ship.Context) error {
 	}
 
 	return nil
+}
+
+func (rest *taskREST) Report(c *ship.Context) error {
+	req := new(ReportData)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	inf := mlink.Ctx(ctx)
+	mid := inf.Issue().ID
+
+	tbl := rest.qry.TaskExecuteItem
+
+	wheres := []gen.Condition{
+		tbl.ExecID.Eq(req.ExecID),
+		tbl.TaskID.Eq(req.ID),
+		tbl.MinionID.Eq(mid),
+	}
+	status := &model.TaskStepStatus{
+		Succeed:    req.Succeed,
+		Reason:     req.Reason,
+		ExecutedAt: time.Now(),
+	}
+	updates := []field.AssignExpr{
+		tbl.Finished.Value(true),
+		tbl.Succeed.Value(req.Succeed),
+		tbl.Result.Value(req.Result),
+		tbl.MinionStatus.Value(status),
+	}
+	_, err := tbl.WithContext(ctx).
+		Where(wheres...).
+		UpdateSimple(updates...)
+
+	return err
+}
+
+type ReportData struct {
+	ID      int64           `json:"id"`
+	ExecID  int64           `json:"exec_id"`
+	Succeed bool            `json:"succeed"`
+	Reason  string          `json:"reason"`
+	Result  json.RawMessage `json:"result"`
 }

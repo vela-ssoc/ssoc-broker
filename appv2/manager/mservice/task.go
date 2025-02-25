@@ -12,6 +12,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"gorm.io/gen"
+	"gorm.io/gen/field"
 )
 
 func NewTask(qry *query.Query, lnk mlink.Linker, log *slog.Logger) *Task {
@@ -80,13 +81,17 @@ func (tsk *Task) execute(data *model.TaskExecute) error {
 	err := taskExecuteItemDo.Where(wheres...).FindInBatches(&buf, 100, func(tx gen.Dao, batch int) error {
 		for _, item := range buf {
 			now := time.Now()
-			err := tsk.sendTask(item.MinionID, execID, data)
+			err := tsk.pushTask(item.MinionID, execID, data)
+
+			var updates []field.AssignExpr
 			status := &model.TaskStepStatus{Succeed: err == nil, ExecutedAt: now}
 			if err != nil {
 				status.Reason = err.Error()
+				updates = append(updates, taskExecuteItem.Finished.Value(true))
 			}
+			updates = append(updates, taskExecuteItem.BrokerStatus.Value(status))
 
-			_, _ = tx.Where(taskExecuteItem.ID.Eq(item.ID)).UpdateSimple(taskExecuteItem.BrokerStatus.Value(status))
+			_, _ = tx.Where(taskExecuteItem.ID.Eq(item.ID)).UpdateSimple(updates...)
 		}
 		return nil
 	})
@@ -94,7 +99,7 @@ func (tsk *Task) execute(data *model.TaskExecute) error {
 	return err
 }
 
-func (tsk *Task) sendTask(minionID, execID int64, data *model.TaskExecute) error {
+func (tsk *Task) pushTask(minionID, execID int64, data *model.TaskExecute) error {
 	req := &mrequest.TaskPushData{
 		ID:       data.TaskID,
 		ExecID:   execID,

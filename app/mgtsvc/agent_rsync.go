@@ -71,7 +71,7 @@ func (biz *agentService) spinRsync(ctx context.Context, light *param.MinionLight
 }
 
 func (biz *agentService) fetchRsync(ctx context.Context, mid int64, diff *param.TaskDiff) (*param.TaskReport, error) {
-	path := "/api/v1/agent/task/diff"
+	path := "/api/v1/agent/service/diff"
 	ret := new(param.TaskReport)
 	if err := biz.lnk.Unicast(ctx, mid, path, diff, ret); err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func (biz *agentService) fetchRsync(ctx context.Context, mid int64, diff *param.
 }
 
 func (biz *agentService) fetchTaskStatus(ctx context.Context, mid int64) (*param.TaskReport, error) {
-	path := "/api/v1/agent/task/status"
+	path := "/api/v1/agent/service/status"
 	ret := new(param.TaskReport)
 	if err := biz.lnk.Unicast(ctx, mid, path, nil, ret); err != nil {
 		return nil, err

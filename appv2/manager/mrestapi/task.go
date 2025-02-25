@@ -14,6 +14,11 @@ type Task struct {
 	svc *mservice.Task
 }
 
+func (tsk *Task) BindRoute(r *ship.RouteGroupBuilder) error {
+	r.Route("/task/push").POST(tsk.Push)
+	return nil
+}
+
 func (tsk *Task) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/task/push").POST(tsk.Push)
 }

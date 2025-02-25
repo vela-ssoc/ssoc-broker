@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"runtime"
 
+	"github.com/vela-ssoc/vela-common-mb/shipx"
+
 	"github.com/vela-ssoc/vela-broker/appv2/manager/mrestapi"
 	"github.com/vela-ssoc/vela-broker/appv2/manager/mservice"
 
@@ -77,7 +79,7 @@ func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error
 	dongCli := dong.NewTunnel(tunCli, oldLog)
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
-	alert := alarm.UnifyAlerter(store, match, oldLog, dongCli, devCli)
+	alert := alarm.UnifyAlerter(store, match, oldLog, dongCli, devCli, qry)
 
 	// manager callback
 	name := link.Name()
@@ -101,7 +103,7 @@ func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error
 	esCfg := elastic.NewConfigure(qry, name)
 	esc := elastic.NewSearch(esCfg, cli)
 	cmdbCfg := cmdb.NewConfigure(store)
-	cmdbCli := cmdb.NewClient(qry, cmdbCfg, cli, oldLog)
+	cmdbCli := cmdb.NewClient(qry, cmdbCfg, cli)
 
 	sonaCfg := sonatype.HardConfig()
 	sonaCli := sonatype.NewClient(sonaCfg, cli)
@@ -132,9 +134,15 @@ func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error
 		pprofREST := mgtapi.Pprof(link)
 		pprofREST.Route(mv1)
 
+		systemSvc := mservice.NewSystem()
 		taskSvc := mservice.NewTask(qry, hub, log)
-		taskAPI := mrestapi.NewTask(taskSvc)
-		taskAPI.Route(mv1)
+		routers := []shipx.RouteBinder{
+			mrestapi.NewSystem(systemSvc),
+			mrestapi.NewTask(taskSvc),
+		}
+		if err = shipx.BindRouters(mv1, routers); err != nil {
+			return err
+		}
 	}
 
 	{
