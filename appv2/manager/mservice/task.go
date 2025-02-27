@@ -87,7 +87,10 @@ func (tsk *Task) execute(data *model.TaskExecute) error {
 			status := &model.TaskStepStatus{Succeed: err == nil, ExecutedAt: now}
 			if err != nil {
 				status.Reason = err.Error()
-				updates = append(updates, taskExecuteItem.Finished.Value(true))
+				updates = append(updates,
+					taskExecuteItem.Finished.Value(true),
+					taskExecuteItem.ErrorCode.Value(model.TaskExecuteErrorCodeAgent),
+				)
 			}
 			updates = append(updates, taskExecuteItem.BrokerStatus.Value(status))
 

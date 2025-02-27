@@ -15,8 +15,8 @@
 # vendor/
 
 .idea
-!broker-example.json
-*.json
+!broker-example.jsonc
+*.jsonc
 
 ssoc-broker*
 

@@ -3,15 +3,14 @@ package crontbl
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
-
-	"github.com/vela-ssoc/vela-common-mb/logback"
 )
 
 type cronTask struct {
 	ctx  context.Context
 	idle time.Duration
-	log  logback.Logger
+	log  *slog.Logger
 	fn   func(ctx context.Context, at time.Time) error
 }
 
@@ -26,7 +25,7 @@ func (ct *cronTask) Run() {
 			over = true
 		case at := <-ticker.C:
 			if err := ct.exec(at); err != nil {
-				ct.log.Warnf("cron 任务执行错误: %s", err)
+				ct.log.Warn("cron 任务执行错误", slog.Any("error", err))
 			}
 		}
 	}

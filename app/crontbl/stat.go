@@ -2,15 +2,15 @@ package crontbl
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/sigar"
 )
 
-func Run(ctx context.Context, qry *query.Query, id int64, name string, log logback.Logger) {
+func Run(ctx context.Context, qry *query.Query, id int64, name string, log *slog.Logger) {
 	bs := &brokerStat{
 		qry:  qry,
 		id:   id,

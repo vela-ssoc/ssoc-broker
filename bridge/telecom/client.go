@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -16,18 +16,18 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
 )
 
 type brokerClient struct {
-	hide   Hide
-	ident  Ident
-	issue  Issue
-	slog   logback.Logger
+	hide   negotiate.Hide
+	ident  negotiate.Ident
+	issue  negotiate.Issue
 	client netutil.HTTPClient
+	log    *slog.Logger
 	dialer *iterDial
 	mux    *smux.Session
 	joinAt time.Time
@@ -39,10 +39,10 @@ type brokerClient struct {
 func (bc *brokerClient) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	return bc.dialContext(ctx, network, addr)
 }
-func (bc *brokerClient) Hide() Hide           { return bc.hide }
-func (bc *brokerClient) Ident() Ident         { return bc.ident }
-func (bc *brokerClient) Issue() Issue         { return bc.issue }
-func (bc *brokerClient) Listen() net.Listener { return bc.mux }
+func (bc *brokerClient) Hide() negotiate.Hide   { return bc.hide }
+func (bc *brokerClient) Ident() negotiate.Ident { return bc.ident }
+func (bc *brokerClient) Issue() negotiate.Issue { return bc.issue }
+func (bc *brokerClient) Listen() net.Listener   { return bc.mux }
 
 func (bc *brokerClient) JoinAt() time.Time {
 	return bc.joinAt
@@ -73,12 +73,12 @@ func (bc *brokerClient) dial(parent context.Context) error {
 			if ce := bc.ctx.Err(); ce != nil {
 				return ce
 			}
-			bc.slog.Warnf("dial %s 失败：%s", addr, err)
+			// bc.log.Warn("连接失败", slog.Any("addr", addr), slog.Any("error", err))
 			bc.dialSleep(bc.ctx, start)
 			continue
 		}
 
-		bc.slog.Infof("dial %s 成功，准备握手协商。", addr)
+		// bc.log.Info("连接成功，准备握手协商...", slog.Any("addr", addr))
 		ident, issue, err := bc.consult(bc.ctx, conn, addr)
 		if err == nil {
 			cfg := smux.DefaultConfig()
@@ -102,17 +102,17 @@ func (bc *brokerClient) dial(parent context.Context) error {
 			return pe
 		}
 
-		bc.slog.Warnf("与 %s 协商失败：%s", addr, err)
+		// bc.log.Warn("握手数据协商失败", slog.Any("addr", addr), slog.Any("error", err))
 		bc.dialSleep(parent, start)
 	}
 }
 
 // consult 当建立好 TCP 连接后进行应用层协商
-func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *netutil.Address) (Ident, Issue, error) {
+func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *netutil.Address) (negotiate.Ident, negotiate.Issue, error) {
 	ip := conn.LocalAddr().(*net.TCPAddr).IP
 	mac := bc.dialer.lookupMAC(ip)
 
-	ident := Ident{
+	ident := negotiate.Ident{
 		ID:     bc.hide.ID,
 		Secret: bc.hide.Secret,
 		Semver: bc.hide.Semver,
@@ -132,8 +132,8 @@ func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *net
 		ident.Username = cu.Username
 	}
 
-	var issue Issue
-	enc, err := ident.encrypt()
+	var issue negotiate.Issue
+	enc, err := ident.Encrypt()
 	if err != nil {
 		return ident, issue, err
 	}
@@ -174,7 +174,7 @@ func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *net
 	resp := make([]byte, 100*1024) // 100KiB 缓冲区
 	n, err := io.ReadFull(res.Body, resp)
 	if err == nil || err == io.EOF || errors.Is(err, io.ErrUnexpectedEOF) {
-		err = issue.decrypt(resp[:n])
+		err = issue.Decrypt(resp[:n])
 	}
 
 	return ident, issue, err
@@ -197,7 +197,6 @@ func (bc *brokerClient) dialSleep(ctx context.Context, start time.Time) {
 		du = 3 * time.Second
 	}
 
-	log.Printf("%s 后进行重试", du)
 	// 非阻塞休眠
 	select {
 	case <-ctx.Done():

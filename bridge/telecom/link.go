@@ -3,20 +3,21 @@ package telecom
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 )
 
 var ErrEmptyAddress = errors.New("服务端地址不能为空")
 
 type Linker interface {
-	Hide() Hide
-	Ident() Ident
-	Issue() Issue
+	Hide() negotiate.Hide
+	Ident() negotiate.Ident
+	Issue() negotiate.Issue
 	Name() string
 	JoinAt() time.Time
 	Listen() net.Listener
@@ -28,7 +29,7 @@ type Linker interface {
 	// OnewayJSON(context.Context, opcode.URLer, any) error
 }
 
-func Dial(parent context.Context, hide Hide, slog logback.Logger) (Linker, error) {
+func Dial(parent context.Context, hide *negotiate.Hide, log *slog.Logger) (Linker, error) {
 	addrs := hide.Servers.Preformat()
 	if len(addrs) == 0 {
 		return nil, ErrEmptyAddress
@@ -36,8 +37,8 @@ func Dial(parent context.Context, hide Hide, slog logback.Logger) (Linker, error
 
 	dialer := newIterDial(addrs)
 	bc := &brokerClient{
-		hide:   hide,
-		slog:   slog,
+		hide:   *hide,
+		log:    log,
 		dialer: dialer,
 	}
 	trip := &http.Transport{DialContext: bc.dialContext}

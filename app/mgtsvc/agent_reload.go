@@ -2,6 +2,7 @@ package mgtsvc
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/internal/param"
@@ -20,7 +21,7 @@ func (biz *agentService) reloadTask(ctx context.Context, mid, sid int64) error {
 		return err
 	}
 	if light.Unload { // 如果是静默模式就只同步
-		biz.slog.Warnf("节点 %s 处于静默模式。", light)
+		biz.log.Warn("节点处于静默模式", slog.Any("minion", light))
 		return biz.rsync(ctx, light)
 	}
 

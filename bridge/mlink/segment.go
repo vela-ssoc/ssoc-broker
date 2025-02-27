@@ -2,21 +2,6 @@ package mlink
 
 import "sync"
 
-// container 初始化连接存放容器
-func container_() subsection {
-	// 128 * 32 = 4096
-	const size = 128
-	buckets := make([]*bucket, size)
-	for i := 0; i < size; i++ {
-		buckets[i] = &bucket{elems: make(map[string]*connect, 32)}
-	}
-
-	return subsection{
-		size:    size,
-		buckets: buckets,
-	}
-}
-
 // subsection 读写安全的分段 map
 type subsection struct {
 	size    int       // 容量

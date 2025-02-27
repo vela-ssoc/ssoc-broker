@@ -1,11 +1,14 @@
 {
+  // Broker 节点ID，需要在中心端新建时生成。
   "id": 193814535599439872,
+  // Broker 认证密钥，需要在中心端新建时生成。
   "secret": "2bbeea7729c629ddf5ff45412bff8b1603d5994c",
+  // 版本号，符合 SemVer 规范即可：https://semver.org/lang/zh-CN/
   "semver": "0.0.1",
-  "cert": "",
-  "pkey": "",
+  // 中心端地址
   "servers": [
     {
+      "tls": false,
       "addr": "10.1.1.1:8081"
     },
     {

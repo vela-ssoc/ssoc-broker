@@ -4,12 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"os"
 	"runtime"
-
-	"github.com/vela-ssoc/vela-common-mb/shipx"
-
-	"github.com/vela-ssoc/vela-broker/appv2/manager/mrestapi"
-	"github.com/vela-ssoc/vela-broker/appv2/manager/mservice"
 
 	"github.com/vela-ssoc/vela-broker/app/agtapi"
 	"github.com/vela-ssoc/vela-broker/app/agtsvc"
@@ -19,6 +15,8 @@ import (
 	"github.com/vela-ssoc/vela-broker/app/middle"
 	"github.com/vela-ssoc/vela-broker/app/temporary"
 	"github.com/vela-ssoc/vela-broker/app/temporary/linkhub"
+	"github.com/vela-ssoc/vela-broker/appv2/manager/mrestapi"
+	"github.com/vela-ssoc/vela-broker/appv2/manager/mservice"
 	"github.com/vela-ssoc/vela-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
@@ -26,7 +24,6 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/accord"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/dbms"
 	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/integration/devops"
@@ -35,37 +32,77 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/integration/ntfmatch"
 	"github.com/vela-ssoc/vela-common-mb/integration/sonatype"
 	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
 	"github.com/vela-ssoc/vela-common-mb/problem"
+	"github.com/vela-ssoc/vela-common-mb/profile"
+	"github.com/vela-ssoc/vela-common-mb/shipx"
+	"github.com/vela-ssoc/vela-common-mb/sqldb"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mb/validate"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Run 运行服务
-func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error {
-	link, err := telecom.Dial(parent, hide, oldLog) // 与中心端建立连接
+func Run(parent context.Context, hide *negotiate.Hide) error {
+	tempLogCfg := profile.Logger{Console: true}
+	logWriter := tempLogCfg.LogWriter()
+	logOption := &slog.HandlerOptions{AddSource: true, Level: logWriter.Level()}
+	logHandler := slog.NewJSONHandler(logWriter, logOption)
+	log := slog.New(logHandler)
+
+	link, err := telecom.Dial(parent, hide, log) // 与中心端建立连接
 	if err != nil {
 		return err
 	}
 
 	ident := link.Ident()
 	issue := link.Issue()
-	oldLog.Infof("broker 接入认证成功，上报认证信息如下：\n%s\n下发的配置如下：\n%s", ident, issue)
+	log.Info("broker接入认证成功", slog.Any("ident", ident), slog.Any("issue", issue))
 
 	logCfg := issue.Logger
-	zlg := logCfg.Zap() // 根据配置文件初始化日志
-	oldLog.Replace(zlg) // 替换日志输出内核
-	gormLog := logback.Gorm(zlg, logCfg.Level)
+	//goland:noinspection GoUnhandledErrorResult
+	defer logCfg.Close()
+
+	logWriter.Discard()
+	if logCfg.Console {
+		logWriter.Attach(os.Stdout)
+	}
+	if lumber := logCfg.Logger; lumber != nil && lumber.Filename != "" {
+		logWriter.Attach(lumber)
+	}
+	_ = logWriter.Level().UnmarshalText([]byte(logCfg.Level))
+	log.Info("日志组件初始化完毕")
 
 	dbCfg := issue.Database
-	db, sdb, err := dbms.Open(dbCfg, gormLog)
+	gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
+	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: gormLogLevel})
+	gormCfg := &gorm.Config{Logger: gormLog}
+	db, gauss, err := sqldb.Open(dbCfg.DSN, log, gormCfg)
 	if err != nil {
 		return err
 	}
+	sdb, err := db.DB()
+	if err != nil {
+		return err
+	}
+	//goland:noinspection GoUnhandledErrorResult
+	defer sdb.Close() // 程序结束时断开数据库连接。
+
+	sdb.SetMaxOpenConns(dbCfg.MaxOpenConn)
+	sdb.SetMaxIdleConns(dbCfg.MaxIdleConn)
+	sdb.SetConnMaxLifetime(dbCfg.MaxLifeTime.Duration())
+	sdb.SetConnMaxIdleTime(dbCfg.MaxIdleTime.Duration())
+
+	if gauss {
+		log.Warn("当前连接的是 OpenGauss 信创数据库")
+	} else {
+		log.Warn("当前连接的是 MySQL 数据库")
+	}
 	qry := query.Use(db)
-	gfs := gridfs.NewCache(sdb, issue.Section.CDN)
+	gfs := gridfs.NewCache(qry, issue.Server.CDN)
 
 	cli := netutil.NewClient()
 	match := ntfmatch.NewMatch(qry)
@@ -76,10 +113,10 @@ func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error
 			DialContext: link.DialContext,
 		},
 	}
-	dongCli := dong.NewTunnel(tunCli, oldLog)
+	dongCli := dong.NewTunnel(tunCli, log)
 	devopsCfg := devops.NewConfig(store)
 	devCli := devops.NewClient(devopsCfg, cli)
-	alert := alarm.UnifyAlerter(store, match, oldLog, dongCli, devCli, qry)
+	alert := alarm.UnifyAlerter(store, match, log, dongCli, devCli, qry)
 
 	// manager callback
 	name := link.Name()
@@ -88,11 +125,11 @@ func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error
 	valid := validate.New()
 	agt := ship.Default()
 	mgt := ship.Default()
-	mgt.Logger = oldLog
+	mgt.Logger = shipx.NewLog(log)
 	mgt.NotFound = pbh.NotFound
 	mgt.HandleError = pbh.HandleError
 	mgt.Validator = valid
-	agt.Logger = oldLog
+	agt.Logger = shipx.NewLog(log)
 	agt.NotFound = pbh.NotFound
 	agt.HandleError = pbh.HandleError
 	agt.Validator = valid
@@ -110,19 +147,19 @@ func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error
 	vsync := vulnsync.New(db, sonaCli)
 	_ = vsync
 
-	nodeEventService := agtsvc.Phase(cmdbCli, alert, oldLog)
-	hub := mlink.LinkHub(qry, link, agt, nodeEventService, oldLog)
+	nodeEventService := agtsvc.Phase(cmdbCli, alert, log)
+	hub := mlink.LinkHub(qry, link, agt, nodeEventService, log)
 	_ = hub.ResetDB()
 
 	minionService := mgtsvc.Minion(qry)
-	agentService := mgtsvc.Agent(qry, hub, minionService, store, oldLog)
+	agentService := mgtsvc.Agent(qry, hub, minionService, store, log)
 	nodeEventService.SetService(agentService)
 
-	// manager api
-	log := slog.New(slog.DiscardHandler) // 暂时这么弄
 	{
 		agentREST := mgtapi.Agent(agentService)
 		agentREST.Route(mv1)
+
+		mgtapi.NewSystem().Route(mv1)
 
 		intoService := mgtsvc.Into(hub)
 		intoREST := mgtapi.Into(intoService)
@@ -194,8 +231,8 @@ func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error
 		sharedREST.Route(av1)
 	}
 
-	oldHandler := linkhub.New(db, qry, link, oldLog, gfs)
-	temp := temporary.REST(oldHandler, valid, oldLog)
+	oldHandler := linkhub.New(db, qry, link, log, gfs)
+	temp := temporary.REST(oldHandler, valid, log)
 	gw := gateway.New(hub)
 	deployService := agtsvc.Deploy(qry, store, gfs, ident.ID)
 	deployAPI := agtapi.Deploy(deployService)
@@ -211,16 +248,16 @@ func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error
 	api.Route("/api/v1/deploy/minion").GET(deployAPI.Script)
 	api.Route("/api/v1/deploy/minion/download").GET(deployAPI.MinionDownload)
 	if runtime.GOOS != "windows" {
-		crontbl.Run(parent, qry, link.Ident().ID, link.Issue().Name, oldLog)
+		crontbl.Run(parent, qry, link.Ident().ID, link.Issue().Name, log)
 	}
 
 	errCh := make(chan error, 1)
 	// 监听本地端口用于 minion 节点连接
-	ds := &daemonServer{listen: issue.Listen, hide: hide, handler: mux, errCh: errCh}
+	ds := &daemonServer{issue: issue, hide: hide, handler: mux, errCh: errCh}
 	go ds.Run()
 
 	// 连接 manager 的客户端，保持在线与接受指令
-	dc := &daemonClient{link: link, handler: mgt, errCh: errCh, slog: oldLog, parent: parent}
+	dc := &daemonClient{link: link, handler: mgt, errCh: errCh, log: log, parent: parent}
 	go dc.Run()
 
 	select {
@@ -231,7 +268,6 @@ func Run(parent context.Context, hide telecom.Hide, oldLog logback.Logger) error
 	_ = ds.Close()
 	_ = dc.Close()
 	_ = hub.ResetDB()
-	_ = zlg.Sync()
 
 	return err
 }

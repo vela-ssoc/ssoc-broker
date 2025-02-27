@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -18,7 +19,6 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-common-mba/definition"
 	"github.com/xgfone/ship/v5"
@@ -30,7 +30,7 @@ type minionHub struct {
 	db        *gorm.DB
 	qry       *query.Query
 	broker    telecom.Linker
-	sugar     logback.Logger
+	log       *slog.Logger
 	outbox    chan *outboxMsg
 	tokenSep  string
 	random    *rand.Rand
@@ -40,7 +40,7 @@ type minionHub struct {
 }
 
 // New 新建 minion 消息处理器
-func New(db *gorm.DB, qry *query.Query, brk telecom.Linker, sugar logback.Logger, gfs gridfs.FS) *minionHub {
+func New(db *gorm.DB, qry *query.Query, brk telecom.Linker, log *slog.Logger, gfs gridfs.FS) *minionHub {
 	minions := concurrent.NewBucketMap[int64, *temporary.Conn](128, 32) // 128*32=4096
 	processes := concurrent.NewMap[temporary.Opcode, process](16)
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -51,7 +51,7 @@ func New(db *gorm.DB, qry *query.Query, brk telecom.Linker, sugar logback.Logger
 		db:        db,
 		qry:       qry,
 		broker:    brk,
-		sugar:     sugar,
+		log:       log,
 		outbox:    outbox,
 		tokenSep:  ".",
 		random:    random,
@@ -102,7 +102,7 @@ func (hub *minionHub) Authorize(ident temporary.Ident) (claim temporary.Claim, e
 	var mn model.Minion
 	if err = hub.db.Take(&mn, "inet = ?", inet).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			hub.sugar.Warnf("minion 节点新增错误：%v", err)
+			hub.log.Warn("minion 节点新增错误", slog.Any("error", err))
 			err = ship.ErrBadRequest
 			return
 		}
@@ -155,7 +155,7 @@ func (hub *minionHub) Connect(conn *temporary.Conn) {
 	goos, arch, edition := ident.Goos, ident.Arch, ident.Edition
 
 	brokerID, brokerName := hub.broker.Ident().ID, hub.broker.Issue().Name
-	hub.sugar.Infof("minion 节点 %s (%d) 在 v2.0 接口上线", inet, minionID)
+	hub.log.Info("minion 节点在 v2.0 接口上线", slog.Any("inet", inet), slog.Int64("minion_id", minionID))
 
 	hub.minions.Store(minionID, conn)
 	columns := map[string]any{
@@ -186,19 +186,19 @@ func (hub *minionHub) Receive(conn *temporary.Conn, rec *temporary.Receive) {
 	opcode := rec.Opcode()
 	claim := conn.Claim()
 	id, inet := claim.ID, conn.Inet() // 获取 minion ID
-	hub.sugar.Debugf("收到 minion 节点 %s (%d) 的消息: %s", inet, id, opcode)
+	hub.log.Info(fmt.Sprintf("收到 minion 节点 %s (%d) 的消息: %s", inet, id, opcode))
 
 	proc, exist := hub.processes.Load(opcode)
 	if !exist {
-		hub.sugar.Warnf("minion 节点 %s (%d) [%s] 处理失败, 没有 process", inet, id, opcode)
+		hub.log.Warn(fmt.Sprintf("minion 节点 %s (%d) [%s] 处理失败, 没有 process", inet, id, opcode))
 		return
 	}
 
 	// 调用处理程序
 	if err := proc.Invoke(conn, rec); err != nil {
-		hub.sugar.Warnf("minion 节点 %s (%d) [%s] 处理失败: %v", inet, id, opcode, err)
+		hub.log.Warn(fmt.Sprintf("minion 节点 %s (%d) [%s] 处理失败: %v", inet, id, opcode, err))
 	} else {
-		hub.sugar.Infof("minion 节点 %s (%d) [%s] 处理成功", inet, id, opcode)
+		hub.log.Info(fmt.Sprintf("minion 节点 %s (%d) [%s] 处理成功", inet, id, opcode))
 	}
 }
 
@@ -206,7 +206,7 @@ func (hub *minionHub) Disconnect(conn *temporary.Conn) {
 	claim := conn.Claim()
 	inet := conn.Inet()
 	minionID, brokerID := claim.ID, hub.broker.Ident().ID
-	hub.sugar.Warnf("minion 节点 %s (%d) 下线了", inet, minionID)
+	hub.log.Warn(fmt.Sprintf("minion 节点 %s (%d) 下线了", inet, minionID))
 
 	hub.minions.Delete(minionID)
 	hub.db.Model(&model.Minion{}).
@@ -357,16 +357,16 @@ func (hub *minionHub) send(msg *outboxMsg) {
 	data := msg.Data
 	if msg.IsBroadcast() {
 		if err := hub.broadcast(opcode, data); err != nil {
-			hub.sugar.Warnf("minion 广播消息 [%s] 发送失败: %v", opcode, err)
+			hub.log.Warn(fmt.Sprintf("minion 广播消息 [%s] 发送失败: %v", opcode, err))
 		} else {
-			hub.sugar.Infof("minion 广播消息 [%s] 发送成功", opcode)
+			hub.log.Info(fmt.Sprintf("minion 广播消息 [%s] 发送成功", opcode))
 		}
 	} else {
 		minionID := msg.MinionID
 		if err := hub.unicast(minionID, opcode, data); err != nil {
-			hub.sugar.Warnf("向 minion: %d 发送 %s 消息失败: %v", minionID, opcode, err)
+			hub.log.Warn(fmt.Sprintf("向 minion: %d 发送 %s 消息失败: %v", minionID, opcode, err))
 		} else {
-			hub.sugar.Infof("向 minion: %d 发送 %s 消息成功", minionID, opcode)
+			hub.log.Info(fmt.Sprintf("向 minion: %d 发送 %s 消息成功", minionID, opcode))
 		}
 	}
 }

@@ -2,23 +2,23 @@ package temporary
 
 import (
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/xgfone/ship/v5"
 )
 
 type httpREST struct {
 	upgrade *websocket.Upgrader
-	sugar   logback.Logger
+	log     *slog.Logger
 	valid   ship.Validator
 	handler Handler
 }
 
-func REST(handler Handler, valid ship.Validator, slog logback.Logger) *httpREST {
+func REST(handler Handler, valid ship.Validator, log *slog.Logger) *httpREST {
 	upgrade := &websocket.Upgrader{
 		HandshakeTimeout:  10 * time.Second,
 		ReadBufferSize:    4096,
@@ -28,7 +28,7 @@ func REST(handler Handler, valid ship.Validator, slog logback.Logger) *httpREST 
 
 	return &httpREST{
 		upgrade: upgrade,
-		sugar:   slog,
+		log:     log,
 		valid:   valid,
 		handler: handler,
 	}
@@ -48,12 +48,12 @@ func (rest *httpREST) Endpoint(c *ship.Context) error {
 	// 解密参数
 	var ident Ident
 	if err := ident.decrypt(c.GetReqHeader(ship.HeaderAuthorization)); err != nil {
-		rest.sugar.Infof("minion 认证信息解密失败: %v", err)
+		rest.log.Warn("minion 认证信息解密失败", slog.Any("error", err))
 		return c.NoContent(http.StatusBadRequest)
 	}
 	// 校验参数
 	if err := rest.valid.Validate(ident); err != nil {
-		rest.sugar.Infof("minion 认证信息校验失败: %v", err)
+		rest.log.Info("minion 认证信息校验失败", slog.Any("error", err))
 		return c.NoContent(http.StatusBadRequest)
 	}
 
@@ -61,24 +61,24 @@ func (rest *httpREST) Endpoint(c *ship.Context) error {
 	// 认证授权
 	claim, err := rest.handler.Authorize(ident)
 	if err != nil {
-		rest.sugar.Infof("minion %s 授权认证失败: %v", inet, err)
+		rest.log.Info("minion 授权认证失败", slog.Any("error", err), slog.String("inet", inet))
 		return rest.authErr(err)
 	}
 	// 校验授权信息
 	if err = rest.valid.Validate(claim); err != nil {
-		rest.sugar.Infof("minion %s 授权信息校验失败: %v", inet, err)
+		rest.log.Info("minion 授权信息校验失败", slog.Any("error", err), slog.String("inet", inet))
 		return c.NoContent(http.StatusBadRequest)
 	}
 	// 加密认证信息并设置到响应 header
 	enc, err := claim.encrypt()
 	if err != nil {
-		rest.sugar.Warnf("minion %s 授权信息加密错误: %v", inet, err)
+		rest.log.Warn("minion 授权信息加密错误", slog.Any("error", err), slog.String("inet", inet))
 		return c.NoContent(http.StatusBadRequest)
 	}
 	header := http.Header{ship.HeaderAuthorization: []string{enc}}
 	ws, err := rest.upgrade.Upgrade(c.ResponseWriter(), c.Request(), header)
 	if err != nil {
-		rest.sugar.Warnf("minion %s websocket upgrade 错误: %v", inet, err)
+		rest.log.Warn("minion websocket upgrade 错误", slog.Any("error", err), slog.String("inet", inet))
 		return rest.authErr(err)
 	}
 
@@ -89,7 +89,7 @@ func (rest *httpREST) Endpoint(c *ship.Context) error {
 	}()
 	rest.handler.Connect(conn)
 	id := claim.ID
-	rest.sugar.Infof("minion %s(%d) 建立连接", inet, id)
+	rest.log.Info("minion 建立连接", slog.Int64("minion_id", id), slog.String("inet", inet))
 
 	// 读取 broker 发来的消息
 	timeout := rest.handler.Timeout()
@@ -97,10 +97,10 @@ func (rest *httpREST) Endpoint(c *ship.Context) error {
 		rec, ex := conn.receive(timeout)
 		if ex != nil {
 			if rest.closedErr(ex) {
-				rest.sugar.Warnf("minion %s(%d) 断开连接: %v", inet, id, ex)
+				rest.log.Warn("minion 断开连接", slog.Any("error", ex), slog.String("inet", inet), slog.Int64("minion_id", id))
 				break
 			}
-			rest.sugar.Warnf("minion %s(%d) 消息读取发生临时错误: %v", inet, id, ex)
+			rest.log.Warn("minion 消息读取发生临时错误", slog.Any("error", ex), slog.String("inet", inet), slog.Int64("minion_id", id))
 			continue
 		}
 		rest.handler.Receive(conn, rec)

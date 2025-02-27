@@ -1,9 +1,9 @@
 package param
 
-import "github.com/vela-ssoc/vela-broker/bridge/telecom"
+import "github.com/vela-ssoc/vela-common-mb/param/negotiate"
 
 type PprofConfig struct {
-	Hide  telecom.Hide  `json:"hide"`
-	Ident telecom.Ident `json:"ident"`
-	Issue telecom.Issue `json:"issue"`
+	Hide  negotiate.Hide  `json:"hide"`
+	Ident negotiate.Ident `json:"ident"`
+	Issue negotiate.Issue `json:"issue"`
 }

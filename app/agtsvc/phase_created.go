@@ -2,10 +2,10 @@ package agtsvc
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
-	"github.com/vela-ssoc/vela-common-mb/logback"
 )
 
 func (biz *nodeEventService) Created(id int64, inet string, at time.Time) {
@@ -14,7 +14,7 @@ func (biz *nodeEventService) Created(id int64, inet string, at time.Time) {
 		cli:  biz.cmdbc,
 		id:   id,
 		inet: inet,
-		slog: biz.slog,
+		log:  biz.log,
 	}
 	biz.pool.Go(ct.Run)
 }
@@ -23,7 +23,7 @@ type cmdbTask struct {
 	cli  cmdb.Client
 	id   int64
 	inet string
-	slog logback.Logger
+	log  *slog.Logger
 }
 
 func (ct *cmdbTask) Run() {
@@ -31,6 +31,6 @@ func (ct *cmdbTask) Run() {
 	defer cancel()
 
 	if err := ct.cli.FetchAndSave(ctx, ct.id, ct.inet); err != nil {
-		ct.slog.Infof("同步 %s 的 cmdb 发生错误：%s", ct.inet, err)
+		ct.log.Info("拉取 cmdb 信息错误", slog.String("inet", ct.inet), slog.Any("error", err))
 	}
 }

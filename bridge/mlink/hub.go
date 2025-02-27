@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"math/rand"
 	"net"
 	"net/http"
@@ -18,7 +20,6 @@ import (
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
@@ -56,7 +57,7 @@ type Huber interface {
 	Knockout(mid int64)
 }
 
-func LinkHub(qry *query.Query, link telecom.Linker, handler http.Handler, phase NodePhaser, slog logback.Logger) Linker {
+func LinkHub(qry *query.Query, link telecom.Linker, handler http.Handler, phase NodePhaser, log *slog.Logger) Linker {
 	seed := time.Now().UnixNano()
 	random := rand.New(rand.NewSource(seed))
 
@@ -66,7 +67,7 @@ func LinkHub(qry *query.Query, link telecom.Linker, handler http.Handler, phase 
 		handler: handler,
 		bid:     link.Ident().ID,
 		name:    link.Name(),
-		slog:    slog,
+		log:     log,
 		section: newSegmentMap(128, 64), // 预分配 8192 个连接空间，已经足够使用了。
 		phase:   phase,
 		random:  random,
@@ -84,7 +85,7 @@ type minionHub struct {
 	qry     *query.Query
 	link    telecom.Linker
 	handler http.Handler
-	slog    logback.Logger
+	log     *slog.Logger
 	client  netutil.HTTPClient
 	proxy   netutil.Forwarder
 	stream  netutil.Streamer
@@ -235,7 +236,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 		)
 	cancel()
 	if err != nil || info.RowsAffected == 0 {
-		hub.slog.Warnf("节点 %s(%d) 修改上线状态失败：%v", inet, id, err)
+		hub.log.Warn(fmt.Sprintf("节点 %s(%d) 修改上线状态失败：%v", inet, id, err))
 		return err
 	}
 
@@ -248,9 +249,9 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 			UpdateSimple(monTbl.Status.Value(offline))
 		dcancel()
 		if exx != nil || ret.RowsAffected == 0 {
-			hub.slog.Warnf("节点 %s(%d) 修改下线状态错误: %v", inet, id, exx)
+			hub.log.Warn(fmt.Sprintf("节点 %s(%d) 修改下线状态错误: %v", inet, id, exx))
 		} else {
-			hub.slog.Infof("节点 %s(%d) 修改下线状态成功", inet, id)
+			hub.log.Info(fmt.Sprintf("节点 %s(%d) 修改下线状态成功", inet, id))
 		}
 	}()
 

@@ -27,7 +27,7 @@ func (rest *taskREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/broker/task/status").
 		Data(route.Named("上报任务运行状态")).POST(rest.Status)
 	r.Route("/broker/task/report").
-		Data(route.Named("上报任务运行状态")).POST(rest.Report)
+		Data(route.Named("上报任务运行状态(new)")).POST(rest.Report)
 }
 
 func (rest *taskREST) Status(c *ship.Context) error {
@@ -70,16 +70,23 @@ func (rest *taskREST) Report(c *ship.Context) error {
 		tbl.TaskID.Eq(req.ID),
 		tbl.MinionID.Eq(mid),
 	}
+
+	succeed := req.Succeed
 	status := &model.TaskStepStatus{
-		Succeed:    req.Succeed,
+		Succeed:    succeed,
 		Reason:     req.Reason,
 		ExecutedAt: time.Now(),
 	}
 	updates := []field.AssignExpr{
 		tbl.Finished.Value(true),
-		tbl.Succeed.Value(req.Succeed),
+		tbl.Succeed.Value(succeed),
 		tbl.Result.Value(req.Result),
 		tbl.MinionStatus.Value(status),
+	}
+	if succeed {
+		updates = append(updates, tbl.ErrorCode.Value(model.TaskExecuteErrorCodeSucceed))
+	} else {
+		updates = append(updates, tbl.ErrorCode.Value(model.TaskExecuteErrorCodeExec))
 	}
 	_, err := tbl.WithContext(ctx).
 		Where(wheres...).

@@ -2,12 +2,12 @@ package mgtsvc
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/vela-ssoc/vela-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/accord"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
-	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 )
 
@@ -34,13 +34,13 @@ type AgentService interface {
 	Upgrade(ctx context.Context, req *accord.Upgrade) error
 }
 
-func Agent(qry *query.Query, lnk mlink.Linker, mon MinionService, store storage.Storer, slog logback.Logger) AgentService {
+func Agent(qry *query.Query, lnk mlink.Linker, mon MinionService, store storage.Storer, log *slog.Logger) AgentService {
 	return &agentService{
 		qry:   qry,
 		lnk:   lnk,
 		mon:   mon,
 		store: store,
-		slog:  slog,
+		log:   log,
 		pool:  gopool.NewV2(512),
 		cycle: 5,
 	}
@@ -51,7 +51,7 @@ type agentService struct {
 	lnk   mlink.Linker
 	mon   MinionService
 	store storage.Storer
-	slog  logback.Logger
+	log   *slog.Logger
 	pool  gopool.Pool
 	cycle int
 }

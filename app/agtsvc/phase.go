@@ -3,6 +3,7 @@ package agtsvc
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
@@ -12,7 +13,6 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
-	"github.com/vela-ssoc/vela-common-mb/logback"
 )
 
 type PhaseService interface {
@@ -20,12 +20,12 @@ type PhaseService interface {
 	SetService(svc mgtsvc.AgentService)
 }
 
-func Phase(cmdbc cmdb.Client, alert alarm.Alerter, slog logback.Logger) PhaseService {
+func Phase(cmdbc cmdb.Client, alert alarm.Alerter, log *slog.Logger) PhaseService {
 	return &nodeEventService{
 		cmdbc: cmdbc,
 		alert: alert,
 		pool:  gopool.NewV2(1024),
-		slog:  slog,
+		log:   log,
 	}
 }
 
@@ -34,7 +34,7 @@ type nodeEventService struct {
 	cmdbc cmdb.Client
 	alert alarm.Alerter
 	pool  gopool.Pool
-	slog  logback.Logger
+	log   *slog.Logger
 }
 
 func (biz *nodeEventService) SetService(svc mgtsvc.AgentService) {
@@ -46,7 +46,7 @@ func (biz *nodeEventService) Repeated(id int64, ident gateway.Ident, at time.Tim
 
 func (biz *nodeEventService) Connected(lnk mlink.Linker, ident gateway.Ident, issue gateway.Issue, at time.Time) {
 	mid, inet := issue.ID, ident.Inet.String()
-	biz.slog.Infof("agent %s(%d) 上线了", inet, mid)
+	biz.log.Info("Agent 上线", slog.Int64("minion_id", mid), slog.String("inet", inet))
 
 	// 推送 startup 与配置脚本
 	ctx := context.Background()
@@ -71,7 +71,7 @@ func (biz *nodeEventService) Connected(lnk mlink.Linker, ident gateway.Ident, is
 
 func (biz *nodeEventService) Disconnected(lnk mlink.Linker, ident gateway.Ident, issue gateway.Issue, at time.Time, du time.Duration) {
 	mid, inet := issue.ID, ident.Inet.String()
-	biz.slog.Warnf("agent %s(%d) 下线了", inet, mid)
+	biz.log.Warn("Agent 下线", slog.Int64("minion_id", mid), slog.String("inet", inet))
 
 	msg := fmt.Sprintf("当前 agent 版本：%s", ident.Semver)
 	now := time.Now()
