@@ -73,12 +73,12 @@ func (bc *brokerClient) dial(parent context.Context) error {
 			if ce := bc.ctx.Err(); ce != nil {
 				return ce
 			}
-			// bc.log.Warn("连接失败", slog.Any("addr", addr), slog.Any("error", err))
+			bc.log.Warn("连接失败", slog.Any("addr", addr), slog.Any("error", err))
 			bc.dialSleep(bc.ctx, start)
 			continue
 		}
 
-		// bc.log.Info("连接成功，准备握手协商...", slog.Any("addr", addr))
+		bc.log.Info("连接成功，准备握手协商...", slog.Any("addr", addr))
 		ident, issue, err := bc.consult(bc.ctx, conn, addr)
 		if err == nil {
 			cfg := smux.DefaultConfig()
