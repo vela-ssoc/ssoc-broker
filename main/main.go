@@ -22,7 +22,7 @@ func main() {
 	}
 	flag.Parse()
 
-	if banner.WriteTo(os.Stdout); version {
+	if banner.ANSI(os.Stdout); version {
 		return
 	}
 

@@ -5,105 +5,76 @@ import (
 	"io"
 	"os"
 	"os/user"
+	"path"
 	"runtime"
 	"runtime/debug"
-	"sync/atomic"
+	"sync"
 	"time"
 )
 
-const logo = "\u001B[1;33m" +
+// ANSI 打印 banner 到指定输出流。
+//
+// 何为 ANSI 转义序列：https://en.wikipedia.org/wiki/ANSI_escape_code.
+func ANSI(w io.Writer) {
+	parseOnce()
+	_, _ = fmt.Fprintf(w, ansiLogo, version, pid, goos, arch,
+		hostname, username, workdir, compileAt, commitAt, buildPath, revision)
+}
+
+const ansiLogo = "\033[1;33m" +
 	"   ______________  _____  \n" +
 	"  / ___/ ___/ __ \\/ ___/ \n" +
 	" (__  |__  ) /_/ / /__    \n" +
-	"/____/____/\\____/\\___/  \u001B[0m  \u001B[1;32mBROKER\u001B[0m\n" +
-	"Powered By: 东方财富安全团队\n\n" +
-	"    操作系统: \u001B[1;1m%s\u001B[0m\n" +
-	"    系统架构: \u001B[1;1m%s\u001B[0m\n" +
-	"    主机名称: \u001B[1;1m%s\u001B[0m\n" +
-	"    当前用户: \u001B[1;1m%s\u001B[0m\n" +
-	"    进程 PID: \u001B[1;1m%d\u001B[0m\n" +
-	"    软件版本: \u001B[1;1m%s\u001B[0m\n" +
-	"    编译时间: \u001B[1;1m%s\u001B[0m\n" +
-	"    提交时间: \u001B[1;1m%s\u001B[0m\n" +
-	"    修订版本: \u001B[1;1m%s\u001B[0m\n\n\n"
+	"/____/____/\\____/\\___/  \033[0mBROKER\n" +
+	"\033[0;35m:: 东方财富安全管理部 ::\033[0m  \033[3;95m%s\033[0m\n\n" +
+	"    \033[1;36m进程 PID:\033[0m %d\n" +
+	"    \033[1;36m操作系统:\033[0m %s\n" +
+	"    \033[1;36m系统架构:\033[0m %s\n" +
+	"    \033[1;36m主机名称:\033[0m %s\n" +
+	"    \033[1;36m当前用户:\033[0m %s\n" +
+	"    \033[1;36m工作目录:\033[0m %s\n" +
+	"    \033[1;36m编译时间:\033[0m %s\n" +
+	"    \033[1;36m提交时间:\033[0m %s\n" +
+	"    \033[1;36m修订版本:\033[0m https://%s/tree/%s\n\n"
 
 var (
-	// version 项目发布版本号
-	// 项目每次发布版本后会打一个 tag, 这个版本号就来自 git 最新的 tag
-	version string
-
-	// revision 修订版本, 代码最近一次的提交 ID
-	revision string
-
-	// compileAt 编译时间, 由编译脚本在编译时注入
-	// 无论 macOS 还是 Linux 下, date 命令的默认格式都遵循 time.UnixDate
-	compileTime string
-
-	compileAt time.Time
-
-	// commitAt 代码最近一次提交时间
-	commitAt time.Time
-
-	// pid 进程 ID
-	pid int
-
-	// username 当前系统用户名
-	username string
-
-	// hostname 主机名
-	hostname string
-
-	parsed atomic.Bool
+	version     string // 允许 -X 编译时注入
+	compileTime string // 允许 -X 编译时注入
+	pid         int
+	goos        string
+	arch        string
+	hostname    string
+	username    string
+	workdir     string
+	revision    string
+	buildPath   string
+	compileAt   time.Time // 处理后的编译时间
+	commitAt    time.Time
+	parseOnce   = sync.OnceFunc(parse)
 )
 
-// WriteTo 打印 banner 到指定输出流
-func WriteTo(w io.Writer) {
-	parse()
-
-	compile := compileTime
-	if !compileAt.IsZero() {
-		compile = compileAt.In(time.Local).String()
-	}
-
-	var commit string
-	if !commitAt.IsZero() {
-		commit = commitAt.In(time.Local).String()
-	}
-
-	_, _ = fmt.Fprintf(w, logo, runtime.GOOS, runtime.GOARCH, hostname,
-		username, pid, version, compile, commit, revision)
-}
-
 func parse() {
-	if !parsed.CompareAndSwap(false, true) {
-		return
-	}
-
-	pid = os.Getpid() // 获取 PID
+	pid = os.Getpid()
+	goos = runtime.GOOS
+	arch = runtime.GOARCH
+	hostname, _ = os.Hostname()
 	if cu, _ := user.Current(); cu != nil {
 		username = cu.Username
 	}
-	hostname, _ = os.Hostname()
-
-	// time.RFC1123Z Linux `date -R` 输出的时间格式
-	// time.UnixDate macOS `date` 输出的时间格式
-	layouts := []string{time.RFC1123Z, time.UnixDate}
-	for _, layout := range layouts {
-		if at, err := time.Parse(layout, compileTime); err == nil {
-			compileAt = at
-			break
-		}
+	workdir, _ = os.Getwd()
+	compileAt = parseTime(compileTime)
+	if version == "" && !compileAt.IsZero() {
+		version = compileAt.Format("v06.1.2-150405")
 	}
 
 	info, _ := debug.ReadBuildInfo()
 	if info == nil {
 		return
 	}
-
+	buildPath = path.Dir(info.Path)
 	if version == "" {
 		version = info.Main.Version
 	}
-
 	settings := info.Settings
 	for _, set := range settings {
 		key, val := set.Key, set.Value
@@ -111,9 +82,26 @@ func parse() {
 		case "vcs.revision":
 			revision = val
 		case "vcs.time":
-			if t, err := time.Parse(time.RFC3339, val); err == nil {
-				commitAt = t
-			}
+			commitAt = parseTime(val)
 		}
 	}
+}
+
+func parseTime(str string) time.Time {
+	for _, layout := range []string{
+		time.RFC1123Z, time.UnixDate, time.Layout, time.ANSIC,
+		time.RubyDate, time.RFC822, time.RFC822Z, time.RFC850,
+		time.RFC1123, time.RFC3339, time.RFC3339Nano, time.Kitchen,
+		time.Stamp, time.StampMilli, time.StampMicro, time.StampNano,
+		time.DateTime, time.DateOnly,
+	} {
+		dt, err := time.Parse(layout, str)
+		if err != nil || dt.IsZero() {
+			continue
+		}
+
+		return dt.Local()
+	}
+
+	return time.Time{}
 }

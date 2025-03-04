@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20250227033336-6ad1fd41b428
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20250304085500-af04a8316416
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20250219065254-10cf1234dc53
 	github.com/xgfone/ship/v5 v5.3.1
 	golang.org/x/net v0.35.0
