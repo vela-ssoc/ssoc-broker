@@ -20,7 +20,7 @@ if [ $OSNAME == Darwin ]; then
     NOW=$(date)
 fi
 
-LDFLAGS="-s -w -extldflags -static -X 'github.com/vela-ssoc/vela-broker/banner.compileTime=$NOW'"
+LDFLAGS="-s -w -X 'github.com/vela-ssoc/vela-broker/banner.compileTime=$NOW'"
 go build -o ${BIN_NAME} -trimpath -v -ldflags "$LDFLAGS" ./main
 
 # 检查上一步是否执行成功
