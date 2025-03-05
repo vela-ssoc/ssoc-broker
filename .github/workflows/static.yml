@@ -22,6 +22,7 @@ jobs:
           # 编译静态 libpcap.a
           git clone https://github.com/the-tcpdump-group/libpcap.git
           cd libpcap
+          ./autogen.sh
           ./configure --disable-shared --enable-static
           make
           sudo make install
