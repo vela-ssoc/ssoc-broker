@@ -30,7 +30,7 @@ jobs:
       uses: actions/upload-artifact@v4.6.1
       with:
         name: vela-broker-ubuntu-20.04
-        path: resources vela-broker-*
+        path: vela-broker-*
 
   build-ubuntu-latest:
     runs-on: ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
       uses: actions/upload-artifact@v4.6.1
       with:
         name: vela-broker-linux
-        path: resources vela-broker-*
+        path: vela-broker-*
 
   build-windows-latest:
     runs-on: windows-latest
@@ -71,4 +71,4 @@ jobs:
       uses: actions/upload-artifact@v4.6.1
       with:
         name: vela-broker-windows
-        path: resources vela-broker-*
+        path: vela-broker-*
