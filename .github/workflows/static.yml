@@ -1,0 +1,52 @@
+name: Build Static Go Binary
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib g++-multilib musl-tools
+          sudo apt-get install -y libpcap-dev
+          # 编译静态 libpcap.a
+          git clone https://github.com/the-tcpdump-group/libpcap.git
+          cd libpcap
+          ./configure --disable-shared --enable-static
+          make
+          sudo make install
+          cd ..
+          rm -rf libpcap
+
+      - name: 设置 Go 环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'  # 适当修改 Go 版本
+          check-latest: true
+
+      - name: 静态编译 Go 项目
+        run: |
+          export CGO_ENABLED=1
+          export CC="musl-gcc"
+          go build -ldflags '-extldflags "-static"' -tags netgo -a -o myapp ./main
+
+      - name: 验证是否静态编译
+        run: |
+          file myapp
+          ldd myapp || echo "Binary is statically linked"
+
+      - name: 上传编译产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-binary
+          path: myapp
