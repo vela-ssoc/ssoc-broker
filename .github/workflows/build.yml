@@ -10,14 +10,10 @@ on:
     branches: [ "main" ]
 
 jobs:
-
-  build-linux-new-kernel:
-    runs-on: ubuntu-latest
+  build-ubuntu-20_04:
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v4
-
-    - name: 安装 PCAP
-      run: sudo apt install -y libpcap-dev
 
     - name: 安装 Go 环境
       uses: actions/setup-go@v4
@@ -30,10 +26,29 @@ jobs:
     - name: 上传打包结果
       uses: actions/upload-artifact@v4.6.1
       with:
-        name: vela-broker-new-kernel
+        name: vela-broker-ubuntu-20.04
         path: vela-broker-*
 
-  build-windows:
+  build-ubuntu-latest:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: 安装 Go 环境
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: 编译
+      run: sh build.sh
+
+    - name: 上传打包结果
+      uses: actions/upload-artifact@v4.6.1
+      with:
+        name: vela-broker-latest
+        path: vela-broker-*
+
+  build-windows-latest:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
