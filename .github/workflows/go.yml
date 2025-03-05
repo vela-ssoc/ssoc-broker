@@ -26,3 +26,8 @@ jobs:
 
     - name: 编译
       run: sh build.sh
+
+    - name: 上传打包结果
+      uses: actions/upload-artifact@v4.6.1
+      with:
+        path: vela-broker-*
