@@ -16,7 +16,6 @@ jobs:
 
       - name: 安装依赖 libpcap-dev
         run: |
-          sudo apt-get update
           sudo apt-get install -y gcc-multilib g++-multilib musl-tools musl musl-dev libpcap-dev
           # 编译静态 libpcap.a
           git clone https://github.com/the-tcpdump-group/libpcap.git
@@ -38,8 +37,6 @@ jobs:
         run: |
           export CGO_ENABLED=1
           export CC="musl-gcc"
-          export CFLAGS="-D__USE_TIME_BITS64"
-          export CGO_CFLAGS="-I/usr/include"
           go build -ldflags '-extldflags "-static"' -tags netgo -a -o myapp ./main
 
       - name: 验证是否静态编译
