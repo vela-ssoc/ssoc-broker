@@ -51,7 +51,7 @@ jobs:
     - name: 下载文件
       uses: actions/upload-artifact@v4.6.1
       with:
-        name: vela-broker-latest
+        name: vela-broker-linux
         path: vela-broker-*
 
   build-windows-latest:
