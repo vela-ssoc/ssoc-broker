@@ -16,7 +16,7 @@ jobs:
 
       - name: 安装依赖 libpcap-dev
         run: |
-          sudo apt-get install -y linux-headers gcc-multilib g++-multilib musl-tools musl musl-dev libpcap-dev
+          sudo apt-get install -y gcc-multilib g++-multilib musl-tools musl musl-dev libpcap-dev
       - name: 设置 Go 环境
         uses: actions/setup-go@v5
         with:
