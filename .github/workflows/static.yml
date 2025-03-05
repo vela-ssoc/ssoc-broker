@@ -1,4 +1,4 @@
-name: Build Static Go Binary
+name: 静态编译
 
 on:
   push:
@@ -39,6 +39,7 @@ jobs:
         run: |
           export CGO_ENABLED=1
           export CC="musl-gcc"
+          export CGO_CFLAGS="-I/usr/include"
           go build -ldflags '-extldflags "-static"' -tags netgo -a -o myapp ./main
 
       - name: 验证是否静态编译
