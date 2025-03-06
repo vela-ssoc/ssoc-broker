@@ -24,7 +24,7 @@ jobs:
           check-latest: true
 
       - name: 静态编译 Go 项目
-        run: go build --ldflags '-linkmode external -extldflags "-static -s -w"' -v -o myapp ./main
+        run: CGO_LDFLAGS="-L. -lpcap" go build --ldflags '-linkmode external -extldflags "-static -s -w"' -v -o myapp ./main
 
       - name: 验证是否静态编译
         run: |
