@@ -62,9 +62,7 @@ func parse() {
 		username = cu.Username
 	}
 	workdir, _ = os.Getwd()
-	fmt.Println(compileTime)
 	compileAt = parseTime(compileTime)
-	fmt.Println(compileAt)
 	if version == "" && !compileAt.IsZero() {
 		version = compileAt.Format("v06.1.2-150405")
 	}

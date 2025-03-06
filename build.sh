@@ -13,13 +13,7 @@ if [ "$1" = "clean" ]; then
     exit 0
 fi
 
-# macOS 下未测试
-NOW=$(date --iso-8601=seconds)
-OSNAME=$(uname -s)
-if [ $OSNAME == Darwin ]; then
-    NOW=$(date)
-fi
-
+NOW=$(date)
 LDFLAGS="-s -w -X 'github.com/vela-ssoc/vela-broker/banner.compileTime=$NOW'"
 go build -o ${BIN_NAME} -trimpath -v -ldflags "$LDFLAGS" ./main
 
