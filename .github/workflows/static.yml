@@ -15,9 +15,6 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装依赖 libpcap-dev
-        run: |
-          sudo apt-get install -y gcc-multilib g++-multilib musl-tools musl musl-dev libpcap-dev
       - name: 设置 Go 环境
         uses: actions/setup-go@v5
         with:
@@ -25,8 +22,7 @@ jobs:
           check-latest: true
 
       - name: 静态编译 Go 项目
-        run: |
-          go build --ldflags '-linkmode external -extldflags “-static -s -w”' -v -o myapp ./main
+        run: go build -ldflags '-linkmode external -extldflags "-static -s -w"' -v -o myapp ./main
 
       - name: 验证是否静态编译
         run: |
