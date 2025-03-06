@@ -1,11 +1,11 @@
 name: 静态编译
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
   # pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -15,16 +15,32 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装依赖 libpcap-dev
-        run: sudo apt-get install -y linux-headers-$(uname -r) musl-dev gcc gcc-multilib g++-multilib musl-tools musl libpcap-dev
-      - name: 设置 Go 环境
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'  # 适当修改 Go 版本
-          check-latest: true
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-multilib make wget autoconf
+          
+          # 下载并编译静态 libpcap
+          wget http://www.tcpdump.org/release/libpcap-1.10.5.tar.gz
+          tar -xzf libpcap-1.10.5.tar.gz
+          cd libpcap-1.10.5
+          ./autogen.sh
+          ./configure --enable-static --disable-shared
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          
+          # 确保 libpcap.a 存在
+          ls -l /usr/local/lib/libpcap.a
 
-      - name: 静态编译 Go 项目
-        run: CGO_LDFLAGS="-L. -lpcap" go build -ldflags '-linkmode external -extldflags "-static -s -w"' -v -o myapp ./main
+      - name: Build static binary
+        run: |
+          export CGO_ENABLED=1
+          export CC=gcc
+          export CGO_CFLAGS="-I/usr/local/include"
+          export CGO_LDFLAGS="-L/usr/local/lib -lpcap -static"
+          
+          go build -ldflags '-linkmode external -extldflags "-static -s -w"' -v -o myapp ./main
 
       - name: 验证是否静态编译
         run: |
