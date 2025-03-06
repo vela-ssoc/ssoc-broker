@@ -1,9 +1,9 @@
 name: 静态编译
 
 on:
-  push:
-    branches:
-      - main
+#  push:
+#    branches:
+#      - main
   # pull_request:
   workflow_dispatch:
 
@@ -15,7 +15,7 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: |
           sudo apt update
           sudo apt install -y gcc-multilib make wget autoconf
@@ -33,22 +33,17 @@ jobs:
           # 确保 libpcap.a 存在
           ls -l /usr/local/lib/libpcap.a
 
-      - name: Build static binary
+      - name: 编译程序
         run: |
           export CGO_ENABLED=1
           export CC=gcc
           export CGO_CFLAGS="-I/usr/local/include"
           export CGO_LDFLAGS="-L/usr/local/lib -lpcap -static"
           
-          go build -ldflags '-linkmode external -extldflags "-static -s -w"' -v -o myapp ./main
+          sh build.sh
 
-      - name: 验证是否静态编译
-        run: |
-          file myapp
-          ldd myapp || echo "Binary is statically linked"
-
-      - name: 上传编译产物
+      - name: 打包文件
         uses: actions/upload-artifact@v4
         with:
-          name: static-binary
-          path: myapp
+          name: vela-broker-static
+          path: vela-broker-*
