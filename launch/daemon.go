@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"log/slog"
+	"net"
 	"net/http"
 
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
+	"github.com/vela-ssoc/vela-common-mb/prereadtls"
 )
 
 type daemonServer struct {
@@ -20,26 +22,43 @@ type daemonServer struct {
 
 func (ds *daemonServer) Run() {
 	srvCfg := ds.issue.Server
-	srv := &http.Server{
-		Addr:    srvCfg.Addr,
-		Handler: ds.handler,
+	addr := srvCfg.Addr
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		ds.errCh <- err
+		return
 	}
-	var enabledSSL bool
-	if srvCfg.Cert != "" && srvCfg.Pkey == "" {
-		cert, err := tls.X509KeyPair([]byte(srvCfg.Cert), []byte(srvCfg.Pkey))
+	//goland:noinspection GoUnhandledErrorResult
+	defer lis.Close()
+
+	tcpSrv := &http.Server{Handler: ds.handler}
+
+	var tlsFunc func(net.Conn)
+	cert, pkey := srvCfg.Cert, srvCfg.Pkey
+	if cert != "" && pkey == "" {
+		pair, err := tls.X509KeyPair([]byte(cert), []byte(pkey))
 		if err != nil {
 			ds.errCh <- err
 			return
 		}
-		enabledSSL = true
-		srv.TLSConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
+
+		tcpSrv.Handler = &onlyDeploy{h: tcpSrv.Handler}
+		tlsSrv := &http.Server{
+			Handler:   ds.handler,
+			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
+		}
+
+		tlsFunc = func(conn net.Conn) {
+			ln := prereadtls.NewOnceAccept(conn)
+			_ = tlsSrv.ServeTLS(ln, "", "")
+		}
+	}
+	tcpFunc := func(conn net.Conn) {
+		ln := prereadtls.NewOnceAccept(conn)
+		_ = tcpSrv.Serve(ln)
 	}
 
-	if enabledSSL {
-		ds.errCh <- srv.ListenAndServeTLS("", "")
-	} else {
-		ds.errCh <- srv.ListenAndServe()
-	}
+	ds.errCh <- prereadtls.Serve(lis, tcpFunc, tlsFunc)
 }
 
 func (ds *daemonServer) Close() error {
@@ -82,4 +101,23 @@ func (dc *daemonClient) Close() error {
 		return srv.Close()
 	}
 	return nil
+}
+
+type onlyDeploy struct {
+	h http.Handler
+}
+
+func (od *onlyDeploy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	allows := map[string]struct{}{
+		"/api/v1/deploy/minion":           {},
+		"/api/v1/deploy/minion/":          {},
+		"/api/v1/deploy/minion/download":  {},
+		"/api/v1/deploy/minion/download/": {},
+	}
+	path := r.URL.Path
+	if _, allow := allows[path]; allow {
+		od.h.ServeHTTP(w, r)
+	} else {
+		w.WriteHeader(http.StatusUpgradeRequired)
+	}
 }

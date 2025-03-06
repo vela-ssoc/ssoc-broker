@@ -80,7 +80,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
 	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: gormLogLevel})
 	gormCfg := &gorm.Config{Logger: gormLog}
-	db, gauss, err := sqldb.Open(dbCfg.DSN, log, gormCfg)
+	db, err := sqldb.Open(dbCfg.DSN, log, gormCfg)
 	if err != nil {
 		return err
 	}
@@ -95,12 +95,8 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	sdb.SetMaxIdleConns(dbCfg.MaxIdleConn)
 	sdb.SetConnMaxLifetime(dbCfg.MaxLifeTime.Duration())
 	sdb.SetConnMaxIdleTime(dbCfg.MaxIdleTime.Duration())
+	log.Warn("当前数据库类型", slog.String("dialect", db.Dialector.Name()))
 
-	if gauss {
-		log.Warn("当前连接的是 OpenGauss 信创数据库")
-	} else {
-		log.Warn("当前连接的是 MySQL 数据库")
-	}
 	qry := query.Use(db)
 	gfs := gridfs.NewCache(qry, issue.Server.CDN)
 

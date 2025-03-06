@@ -147,7 +147,6 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 			}
 			mid, goos, arch := join.ID, ident.Goos, ident.Arch
 			tags := model.MinionTags{
-				{Tag: goos + "-" + arch, MinionID: mid, Kind: model.TkLifelong},
 				{Tag: goos, MinionID: mid, Kind: model.TkLifelong},
 				{Tag: arch, MinionID: mid, Kind: model.TkLifelong},
 				{Tag: inet, MinionID: mid, Kind: model.TkLifelong},
