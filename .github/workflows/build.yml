@@ -11,65 +11,46 @@ on:
   #   branches: [ "main" ]
 
 jobs:
-  build-ubuntu-20_04:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v4
 
-    - name: 安装 libpcap-dev
-      run: sudo apt install -y libpcap-dev
-
-    - name: 安装 Go 环境
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24'
-
-    - name: 编译程序
-      run: sh build.sh
-
-    - name: 下载文件
-      uses: actions/upload-artifact@v4.6.1
-      with:
-        name: vela-broker-ubuntu-20.04
-        path: vela-broker-*
-
-  build-ubuntu-latest:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: 安装 libpcap-dev
-      run: sudo apt install -y libpcap-dev
-
-    - name: 安装 Go 环境
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24'
-
-    - name: 编译程序
-      run: sh build.sh
-
-    - name: 下载文件
-      uses: actions/upload-artifact@v4.6.1
-      with:
-        name: vela-broker-linux
-        path: vela-broker-*
-
-  build-windows-latest:
+  build-windows:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
 
     - name: 安装 Go 环境
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.24'
+        go-version: 1.24
+        check-latest: true
 
     - name: 编译程序
       run: sh build.sh
 
     - name: 下载文件
-      uses: actions/upload-artifact@v4.6.1
+      uses: actions/upload-artifact@v4
       with:
         name: vela-broker-windows
         path: vela-broker-*
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 libpcap-dev
+        run: sudo apt install -y libpcap-dev
+
+      - name: 安装 Go 环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+          check-latest: true
+
+      - name: 编译程序
+        run: sh build.sh
+
+      - name: 下载文件
+        uses: actions/upload-artifact@v4
+        with:
+          name: vela-broker-linux
+          path: vela-broker-*
