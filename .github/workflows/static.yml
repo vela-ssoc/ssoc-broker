@@ -9,11 +9,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: 编译 libpcap
-        run: |
+        run: |          
           # 下载并编译静态 libpcap
           wget http://www.tcpdump.org/release/libpcap-1.10.5.tar.gz
           tar -xzf libpcap-1.10.5.tar.gz
