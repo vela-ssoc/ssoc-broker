@@ -30,6 +30,7 @@ jobs:
       - name: 安装 Go 环境
         uses: actions/setup-go@v5
         with:
+          go-version: 1.24
           check-latest: true
 
       - name: 拉取代码
