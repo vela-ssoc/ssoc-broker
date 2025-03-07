@@ -96,7 +96,6 @@ func (biz *sharedStringsService) Set(ctx context.Context, inf mlink.Infer, req *
 			UpdateSimple(
 				tbl.Value.Value(req.Value),
 				tbl.ExpiredAt.Value(now.Add(lifetime)),
-				tbl.UpdatedAt.Value(now),
 				tbl.Version.Value(old.Version+1),
 			); err != nil {
 			return nil, err
@@ -159,7 +158,6 @@ func (biz *sharedStringsService) Store(ctx context.Context, inf mlink.Infer, req
 			Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key), tbl.Version.Eq(old.Version)).
 			UpdateSimple(
 				tbl.Value.Value(req.Value),
-				tbl.UpdatedAt.Value(now),
 				tbl.Version.Value(old.Version+1),
 			); err != nil {
 			return nil, err
@@ -232,7 +230,6 @@ func (biz *sharedStringsService) Incr(ctx context.Context, inf mlink.Infer, req 
 				tbl.Count.Value(old.Count+n),
 				tbl.Lifetime.Value(int64(lifetime)),
 				tbl.ExpiredAt.Value(expiredAt),
-				tbl.UpdatedAt.Value(now),
 				tbl.Version.Value(old.Version+1),
 			); err != nil {
 			return nil, err
