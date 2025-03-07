@@ -27,6 +27,11 @@ jobs:
           # 确保 libpcap.a 存在
           ls -l /usr/local/lib/libpcap.a
 
+      - name: 安装 Go 环境
+        uses: actions/setup-go@v5
+        with:
+          check-latest: true
+
       - name: 拉取代码
         uses: actions/checkout@v4
 
