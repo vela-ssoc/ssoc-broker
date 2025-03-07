@@ -86,8 +86,8 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/tjfoc/gmsm v1.4.1 h1:aMe1GlZb+0bLjn+cKTPEvvn9oUEBlJitaZiiBwsbgho=
 github.com/tjfoc/gmsm v1.4.1/go.mod h1:j4INPkHWMrhJb38G+J6W4Tw0AbuN8Thu3PbdVYhVcTE=
-github.com/vela-ssoc/opengauss v0.0.0-20250225051534-394ae9b84dcc h1:cCFCy7H18xj6d8hStE6Ro1gJiRlHpp20shoVPkfaX1I=
-github.com/vela-ssoc/opengauss v0.0.0-20250225051534-394ae9b84dcc/go.mod h1:fSy/9GvS+tBxtkP6fXXGiFfJQT4MbpVAkfCqjDFrjuA=
+github.com/vela-ssoc/opengauss v0.0.0-20250306075012-bb6849e21b4a h1:vMKJQEL7IYcFzGtIZGhoWkofNzs+jpO0wdFFgZsLet4=
+github.com/vela-ssoc/opengauss v0.0.0-20250306075012-bb6849e21b4a/go.mod h1:fSy/9GvS+tBxtkP6fXXGiFfJQT4MbpVAkfCqjDFrjuA=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20250306071916-0af3db1c3250 h1:mTSl0Dj2dK/z2PdWpI4wGbAToAPV3KX4w/P96dCwV9k=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20250306071916-0af3db1c3250/go.mod h1:7VDHCeAM91LeJ6NXrlGbqTaOKIxa/BiFpP/x2hVpLcM=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20250219065254-10cf1234dc53 h1:hlXc54ybaMutWC4cn7y6qz6Tv5dxt5jRyn96gBlXjBs=
