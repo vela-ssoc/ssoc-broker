@@ -1,9 +1,9 @@
 name: 静态编译
 
 on:
-#  push:
-#    branches:
-#      - main
+  #  push:
+  #    branches:
+  #      - main
   # pull_request:
   workflow_dispatch:
 
@@ -12,13 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 拉取代码
-        uses: actions/checkout@v4
-
-      - name: 安装依赖
+      - name: 编译 libpcap
         run: |
-          sudo apt-get update
-          
           # 下载并编译静态 libpcap
           wget http://www.tcpdump.org/release/libpcap-1.10.5.tar.gz
           tar -xzf libpcap-1.10.5.tar.gz
@@ -32,16 +27,18 @@ jobs:
           # 确保 libpcap.a 存在
           ls -l /usr/local/lib/libpcap.a
 
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
       - name: 编译程序
         run: |
           export CGO_ENABLED=1
           export CC=gcc
           export CGO_CFLAGS="-I/usr/local/include"
           export CGO_LDFLAGS="-L/usr/local/lib -lpcap -static"
-          
           sh build.sh
 
-      - name: 打包文件
+      - name: 上传文件
         uses: actions/upload-artifact@v4
         with:
           name: vela-broker-static
