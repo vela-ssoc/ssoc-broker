@@ -2,12 +2,15 @@ package mservice
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"gorm.io/gorm"
 
 	"github.com/vela-ssoc/vela-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
@@ -49,7 +52,10 @@ func (sys *System) Exit() {
 }
 
 func (sys *System) Update(semver model.Semver) error {
-	var attrs []any
+	ident := sys.link.Ident()
+	goos, arch := ident.Goos, ident.Arch
+	attrs := []any{slog.Any("goos", goos), slog.Any("arch", arch)}
+
 	if !sys.update.CompareAndSwap(false, true) {
 		sys.log.Warn("收到重复的升级命令", attrs...)
 	}
@@ -57,7 +63,6 @@ func (sys *System) Update(semver model.Semver) error {
 
 	sys.log.Info("开始检查更新", attrs...)
 
-	ident := sys.link.Ident()
 	currentVersion := model.Semver(ident.Semver)
 	currentVersionNum := currentVersion.Uint64()
 	if semver != "" {
@@ -78,7 +83,6 @@ func (sys *System) Update(semver model.Semver) error {
 	defer cancel()
 
 	// 获取版本
-	goos, arch := ident.Goos, ident.Arch
 	tbl := sys.qry.BrokerBin
 	wheres := []gen.Condition{tbl.Goos.Eq(goos), tbl.Arch.Eq(arch)}
 	if semver != "" {
@@ -91,8 +95,12 @@ func (sys *System) Update(semver model.Semver) error {
 		Order(tbl.SemverWeight.Desc()).
 		First()
 	if err != nil {
-		attrs = append(attrs, slog.Any("error", err))
-		sys.log.Error("查询升级包错误", attrs...)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sys.log.Warn("没有合适的更新包", attrs...)
+		} else {
+			attrs = append(attrs, slog.Any("error", err))
+			sys.log.Error("查询升级包错误", attrs...)
+		}
 		return err
 	}
 	attrs = append(attrs, slog.Any("target_semver", brokerBin.Semver))
@@ -112,6 +120,7 @@ func (sys *System) Update(semver model.Semver) error {
 		sys.log.Error("打开 gridfs 文件出错", attrs...)
 		return err
 	}
+	//goland:noinspection GoUnhandledErrorResult
 	defer gf.Close()
 
 	file := gridfs.Merge(gf, enc)
