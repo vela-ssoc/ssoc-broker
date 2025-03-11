@@ -125,7 +125,7 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	}
 
 	enc, exx := ciphertext.EncryptPayload(hide)
-	if err != nil {
+	if exx != nil {
 		return exx
 	}
 	stm := gridfs.Merge(file, enc)
@@ -174,7 +174,7 @@ func (rest *upgradeREST) matchBinary(ctx context.Context, inf mlink.Infer, req *
 			return nil, gorm.ErrRecordNotFound
 		}
 		// 按照节点当前的运行版本查找最新版本。
-		weight := model.Semver(ident.Semver).Int64() // 当前节点运行的版本。
+		weight := model.Semver(ident.Semver).Uint64() // 当前节点运行的版本。
 		conds = append(conds, tbl.Weight.Gt(weight))
 		conds = append(conds, tbl.Customized.Value(ident.Customized))
 		conds = append(conds, tbl.Unstable.Is(false))

@@ -408,7 +408,7 @@ func (hub *minionHub) Upgrade(c *ship.Context) error {
 
 	stmt := db.Where("goos = ? AND arch = ?", goos, arch)
 	if req.Edition == "" {
-		current := model.Semver(version).Int64()
+		current := model.Semver(version).Uint64()
 		stmt.Where("weight > ?", current).Order("weight DESC") // 查询最新版
 	} else {
 		if string(req.Edition) == version { // 无需更新

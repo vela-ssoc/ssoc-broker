@@ -155,8 +155,6 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 		agentREST := mgtapi.Agent(agentService)
 		agentREST.Route(mv1)
 
-		mgtapi.NewSystem().Route(mv1)
-
 		intoService := mgtsvc.Into(hub)
 		intoREST := mgtapi.Into(intoService)
 		intoREST.Route(mv1)
@@ -167,7 +165,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 		pprofREST := mgtapi.Pprof(link)
 		pprofREST.Route(mv1)
 
-		systemSvc := mservice.NewSystem()
+		systemSvc := mservice.NewSystem(link, qry, gfs, log)
 		taskSvc := mservice.NewTask(qry, hub, log)
 		routers := []shipx.RouteBinder{
 			mrestapi.NewSystem(systemSvc),
