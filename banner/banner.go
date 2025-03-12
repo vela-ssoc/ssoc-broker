@@ -63,18 +63,12 @@ func parse() {
 	}
 	workdir, _ = os.Getwd()
 	compileAt = parseTime(compileTime)
-	if version == "" && !compileAt.IsZero() {
-		version = compileAt.Format("v06.1.2-150405")
-	}
 
 	info, _ := debug.ReadBuildInfo()
 	if info == nil {
 		return
 	}
 	buildPath = path.Dir(info.Path)
-	if version == "" {
-		version = info.Main.Version
-	}
 	settings := info.Settings
 	for _, set := range settings {
 		key, val := set.Key, set.Value
@@ -83,6 +77,9 @@ func parse() {
 			revision = val
 		case "vcs.time":
 			commitAt = parseTime(val)
+			if version == "" {
+				version = commitAt.UTC().Format("v06.1.2-150405")
+			}
 		}
 	}
 }
