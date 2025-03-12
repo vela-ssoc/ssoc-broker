@@ -239,9 +239,6 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	api.Route("/v1/edition/upgrade").GET(oldHandler.Upgrade)
 	api.Route("/api/v1/deploy/minion").GET(deployAPI.Script)
 	api.Route("/api/v1/deploy/minion/download").GET(deployAPI.MinionDownload)
-	//if runtime.GOOS != "windows" {
-	//	crontbl.Run(parent, qry, link.Ident().ID, link.Issue().Name, log)
-	//}
 
 	errCh := make(chan error, 1)
 	// 监听本地端口用于 minion 节点连接
