@@ -17,7 +17,7 @@ func main() {
 	var version bool
 	var config string
 	flag.BoolVar(&version, "v", false, "打印版本号")
-	if hideconf.DevMode { // 开发模式请配置 -tags=dev
+	if hideconf.DevMode { // 开发模式：go build -tags=dev
 		flag.StringVar(&config, "c", "broker.jsonc", "配置文件")
 	}
 	flag.Parse()
