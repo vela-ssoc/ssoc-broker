@@ -13,7 +13,7 @@ type Ident struct {
 	Inet6   net.IP           `json:"inet6"`
 	MAC     net.HardwareAddr `json:"mac"`
 	Goos    string           `json:"goos"    validate:"oneof=linux windows darwin"`
-	Arch    string           `json:"arch"    validate:"oneof=amd64 386 arm64 arm"`
+	Arch    string           `json:"arch"    validate:"oneof=amd64 386 arm64 arm loong64 riscv64"`
 	Edition string           `json:"edition" validate:"semver"`
 }
 
