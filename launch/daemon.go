@@ -7,7 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/vela-ssoc/vela-broker/bridge/telecom"
+	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
 	"github.com/vela-ssoc/vela-common-mb/prereadtls"
 )

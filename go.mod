@@ -1,4 +1,4 @@
-module github.com/vela-ssoc/vela-broker
+module github.com/vela-ssoc/ssoc-broker
 
 go 1.24.0
 

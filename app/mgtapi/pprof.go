@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"net/http/pprof"
 
-	"github.com/vela-ssoc/vela-broker/app/internal/param"
-	"github.com/vela-ssoc/vela-broker/app/route"
-	"github.com/vela-ssoc/vela-broker/bridge/telecom"
+	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
+	"github.com/vela-ssoc/ssoc-broker/app/route"
+	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
 	"github.com/xgfone/ship/v5"
 )
 

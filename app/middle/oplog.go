@@ -3,7 +3,7 @@ package middle
 import (
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/app/route"
+	"github.com/vela-ssoc/ssoc-broker/app/route"
 	"github.com/xgfone/ship/v5"
 )
 

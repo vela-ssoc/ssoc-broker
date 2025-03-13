@@ -1,8 +1,8 @@
 package mrestapi
 
 import (
-	"github.com/vela-ssoc/vela-broker/appv2/manager/mrequest"
-	"github.com/vela-ssoc/vela-broker/appv2/manager/mservice"
+	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mrequest"
+	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mservice"
 	"github.com/xgfone/ship/v5"
 )
 

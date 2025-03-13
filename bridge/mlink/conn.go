@@ -4,7 +4,7 @@ import (
 	"context"
 	"net"
 
-	"github.com/vela-ssoc/vela-broker/bridge/gateway"
+	"github.com/vela-ssoc/ssoc-broker/bridge/gateway"
 	"github.com/vela-ssoc/vela-common-mba/smux"
 )
 

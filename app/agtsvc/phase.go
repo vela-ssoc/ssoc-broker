@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
-	"github.com/vela-ssoc/vela-broker/bridge/gateway"
-	"github.com/vela-ssoc/vela-broker/bridge/mlink"
+	"github.com/vela-ssoc/ssoc-broker/app/mgtsvc"
+	"github.com/vela-ssoc/ssoc-broker/bridge/gateway"
+	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/alarm"

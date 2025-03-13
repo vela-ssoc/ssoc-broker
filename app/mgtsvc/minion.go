@@ -3,7 +3,7 @@ package mgtsvc
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-broker/app/internal/param"
+	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 )

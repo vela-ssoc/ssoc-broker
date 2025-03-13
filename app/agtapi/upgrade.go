@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/app/internal/param"
-	"github.com/vela-ssoc/vela-broker/app/route"
-	"github.com/vela-ssoc/vela-broker/bridge/mlink"
+	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
+	"github.com/vela-ssoc/ssoc-broker/app/route"
+	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"

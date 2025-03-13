@@ -3,7 +3,7 @@ package linkhub
 import (
 	"reflect"
 
-	"github.com/vela-ssoc/vela-broker/app/temporary"
+	"github.com/vela-ssoc/ssoc-broker/app/temporary"
 )
 
 // process 处理器

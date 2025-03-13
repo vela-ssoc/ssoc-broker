@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/vela-ssoc/vela-broker/banner"
-	"github.com/vela-ssoc/vela-broker/hideconf"
-	"github.com/vela-ssoc/vela-broker/launch"
+	"github.com/vela-ssoc/ssoc-broker/banner"
+	"github.com/vela-ssoc/ssoc-broker/hideconf"
+	"github.com/vela-ssoc/ssoc-broker/launch"
 )
 
 func main() {

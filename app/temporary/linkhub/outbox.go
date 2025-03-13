@@ -1,6 +1,6 @@
 package linkhub
 
-import "github.com/vela-ssoc/vela-broker/app/temporary"
+import "github.com/vela-ssoc/ssoc-broker/app/temporary"
 
 // outboxMsg 发件箱消息
 type outboxMsg struct {

@@ -3,7 +3,7 @@ package mlink
 import (
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/bridge/gateway"
+	"github.com/vela-ssoc/ssoc-broker/bridge/gateway"
 )
 
 type NodePhaser interface {

@@ -6,8 +6,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/app/internal/modview"
-	"github.com/vela-ssoc/vela-broker/app/internal/param"
+	"github.com/vela-ssoc/ssoc-broker/app/internal/modview"
+	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"

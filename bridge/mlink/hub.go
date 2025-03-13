@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/vela-ssoc/vela-broker/bridge/gateway"
-	"github.com/vela-ssoc/vela-broker/bridge/telecom"
+	"github.com/vela-ssoc/ssoc-broker/bridge/gateway"
+	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/problem"

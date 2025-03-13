@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/vela-ssoc/vela-broker/app/mgtsvc"
-	"github.com/vela-ssoc/vela-broker/app/route"
+	"github.com/vela-ssoc/ssoc-broker/app/mgtsvc"
+	"github.com/vela-ssoc/ssoc-broker/app/route"
 	"github.com/xgfone/ship/v5"
 )
 

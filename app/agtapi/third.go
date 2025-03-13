@@ -4,9 +4,9 @@ import (
 	"mime"
 	"net/http"
 
-	"github.com/vela-ssoc/vela-broker/app/agtsvc"
-	"github.com/vela-ssoc/vela-broker/app/internal/param"
-	"github.com/vela-ssoc/vela-broker/app/route"
+	"github.com/vela-ssoc/ssoc-broker/app/agtsvc"
+	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
+	"github.com/vela-ssoc/ssoc-broker/app/route"
 	"github.com/xgfone/ship/v5"
 )
 

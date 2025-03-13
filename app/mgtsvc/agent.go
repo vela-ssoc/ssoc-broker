@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/vela-ssoc/vela-broker/bridge/mlink"
+	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/accord"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/gopool"

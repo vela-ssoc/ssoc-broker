@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/app/internal/param"
+	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
 )
 
 func (biz *agentService) ReloadTask(_ context.Context, mid, sid int64) error {

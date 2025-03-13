@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/appv2/manager/mrequest"
-	"github.com/vela-ssoc/vela-broker/bridge/mlink"
+	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mrequest"
+	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"gorm.io/gen"

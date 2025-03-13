@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/vela-broker/app/temporary"
-	"github.com/vela-ssoc/vela-broker/app/temporary/linkhub/concurrent"
-	"github.com/vela-ssoc/vela-broker/bridge/telecom"
+	"github.com/vela-ssoc/ssoc-broker/app/temporary"
+	"github.com/vela-ssoc/ssoc-broker/app/temporary/linkhub/concurrent"
+	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"

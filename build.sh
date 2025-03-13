@@ -15,7 +15,7 @@ if [ "$1" = "clean" ]; then
 fi
 
 NOW=$(date)
-LDFLAGS="-s -w -X 'github.com/vela-ssoc/vela-broker/banner.compileTime=$NOW'"
+LDFLAGS="-s -w -X 'github.com/vela-ssoc/ssoc-broker/banner.compileTime=$NOW'"
 go build -o ${BIN_NAME} -trimpath -v -ldflags "$LDFLAGS" ./main
 
 echo "编译结束"

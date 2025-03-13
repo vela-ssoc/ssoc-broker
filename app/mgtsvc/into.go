@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/vela-ssoc/vela-broker/bridge/mlink"
+	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 )

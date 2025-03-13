@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
-	"github.com/vela-ssoc/vela-broker/app/internal/param"
-	"github.com/vela-ssoc/vela-broker/app/route"
+	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
+	"github.com/vela-ssoc/ssoc-broker/app/route"
 	"github.com/xgfone/ship/v5"
 	"golang.org/x/net/bpf"
 )

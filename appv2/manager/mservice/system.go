@@ -12,7 +12,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/vela-ssoc/vela-broker/bridge/telecom"
+	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
