@@ -21,8 +21,8 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
-	"github.com/vela-ssoc/ssoc-common-mba/netutil"
-	"github.com/vela-ssoc/ssoc-common-mba/smux"
+	"github.com/vela-ssoc/vela-common-mba/netutil"
+	"github.com/vela-ssoc/vela-common-mba/smux"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-common-mba/ciphertext"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 )
 
 // Ident minion 节点握手认证时需要携带的信息，

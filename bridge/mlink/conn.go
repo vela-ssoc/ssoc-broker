@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/vela-ssoc/ssoc-broker/bridge/gateway"
-	"github.com/vela-ssoc/ssoc-common-mba/smux"
+	"github.com/vela-ssoc/vela-common-mba/smux"
 )
 
 type Infer interface {

@@ -37,7 +37,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/validate"
-	"github.com/vela-ssoc/ssoc-common-mba/netutil"
+	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

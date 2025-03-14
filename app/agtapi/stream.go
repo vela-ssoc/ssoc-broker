@@ -13,7 +13,7 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/elastic"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
-	"github.com/vela-ssoc/ssoc-common-mba/netutil"
+	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
 )
 

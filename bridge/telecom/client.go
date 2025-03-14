@@ -18,8 +18,8 @@ import (
 
 	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
-	"github.com/vela-ssoc/ssoc-common-mba/netutil"
-	"github.com/vela-ssoc/ssoc-common-mba/smux"
+	"github.com/vela-ssoc/vela-common-mba/netutil"
+	"github.com/vela-ssoc/vela-common-mba/smux"
 )
 
 type brokerClient struct {

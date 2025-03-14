@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
-	"github.com/vela-ssoc/ssoc-common-mba/netutil"
+	"github.com/vela-ssoc/vela-common-mba/netutil"
 )
 
 var ErrEmptyAddress = errors.New("服务端地址不能为空")

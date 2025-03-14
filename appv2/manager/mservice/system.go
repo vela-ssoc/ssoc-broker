@@ -16,7 +16,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
-	"github.com/vela-ssoc/ssoc-common-mba/ciphertext"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"gorm.io/gen"
 )
 
