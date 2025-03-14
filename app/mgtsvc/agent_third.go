@@ -3,7 +3,7 @@ package mgtsvc
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-common-mb/accord"
+	"github.com/vela-ssoc/ssoc-common-mb/accord"
 )
 
 func (biz *agentService) ThirdDiff(_ context.Context, name, event string) error {

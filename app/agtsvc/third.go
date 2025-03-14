@@ -3,9 +3,9 @@ package agtsvc
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 )
 
 type ThirdService interface {

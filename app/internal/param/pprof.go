@@ -1,6 +1,6 @@
 package param
 
-import "github.com/vela-ssoc/vela-common-mb/param/negotiate"
+import "github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
 
 type PprofConfig struct {
 	Hide  negotiate.Hide  `json:"hide"`

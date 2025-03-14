@@ -1,6 +1,6 @@
 package gateway
 
-import "github.com/vela-ssoc/vela-common-mba/ciphertext"
+import "github.com/vela-ssoc/ssoc-common-mba/ciphertext"
 
 // Issue 信息
 type Issue struct {

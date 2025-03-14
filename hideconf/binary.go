@@ -5,8 +5,8 @@ package hideconf
 import (
 	"os"
 
-	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
-	"github.com/vela-ssoc/vela-common-mba/ciphertext"
+	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
+	"github.com/vela-ssoc/ssoc-common-mba/ciphertext"
 )
 
 const DevMode = false

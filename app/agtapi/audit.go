@@ -4,8 +4,8 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
 	"github.com/vela-ssoc/ssoc-broker/app/route"
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/integration/alarm"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/integration/alarm"
 	"github.com/xgfone/ship/v5"
 )
 

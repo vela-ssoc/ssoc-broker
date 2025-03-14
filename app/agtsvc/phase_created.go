@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
+	"github.com/vela-ssoc/ssoc-common-mb/integration/cmdb"
 )
 
 func (biz *nodeEventService) Created(id int64, inet string, at time.Time) {

@@ -1,6 +1,6 @@
 package brequest
 
-import "github.com/vela-ssoc/vela-common-mb/dal/model"
+import "github.com/vela-ssoc/ssoc-common-mb/dal/model"
 
 type DeployArguments struct {
 	ID         int64        `json:"id"         query:"id"`                            // 客户端安装包 ID

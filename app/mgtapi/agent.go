@@ -3,7 +3,7 @@ package mgtapi
 import (
 	"github.com/vela-ssoc/ssoc-broker/app/mgtsvc"
 	"github.com/vela-ssoc/ssoc-broker/app/route"
-	"github.com/vela-ssoc/vela-common-mb/accord"
+	"github.com/vela-ssoc/ssoc-common-mb/accord"
 	"github.com/xgfone/ship/v5"
 )
 

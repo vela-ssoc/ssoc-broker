@@ -13,10 +13,10 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
-	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mba/ciphertext"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-common-mba/ciphertext"
 	"gorm.io/gen"
 )
 

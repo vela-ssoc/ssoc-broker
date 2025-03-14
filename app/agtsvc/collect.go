@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/gopool"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-common-mb/gopool"
 	"gorm.io/gorm/clause"
 )
 

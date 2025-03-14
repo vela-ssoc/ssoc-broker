@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 )
 
 func (biz *agentService) RsyncTask(_ context.Context, mids []int64) error {

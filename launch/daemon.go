@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
-	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
-	"github.com/vela-ssoc/vela-common-mb/prereadtls"
+	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
+	"github.com/vela-ssoc/ssoc-common-mb/prereadtls"
 )
 
 type daemonServer struct {

@@ -3,7 +3,7 @@ package param
 import (
 	"fmt"
 
-	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/ssoc-common-mb/dynsql"
 )
 
 type MinionBatchRequest struct {
