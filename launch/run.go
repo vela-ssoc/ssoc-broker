@@ -78,7 +78,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
 	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: gormLogLevel})
 	gormCfg := &gorm.Config{Logger: gormLog}
-	db, err := sqldb.Open(dbCfg.DSN, log, gormCfg)
+	db, err := sqldb.Open(dbCfg.DSN, gormCfg)
 	if err != nil {
 		return err
 	}
@@ -175,6 +175,10 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	}
 
 	{
+		agentEmergencySnapshotSvc := agtsvc.NewAgentEmergencySnapshot(qry, log)
+		agentEmergencySnapshotAPI := agtapi.NewAgentEmergencySnapshot(agentEmergencySnapshotSvc)
+		agentEmergencySnapshotAPI.Route(av1)
+
 		auditorREST := agtapi.Audit(alert)
 		auditorREST.Route(av1)
 

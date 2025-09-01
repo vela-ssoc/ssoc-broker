@@ -57,7 +57,8 @@ type TaskStatus struct {
 	Status  string            `json:"status"`  // 运行状态
 	Hash    string            `json:"hash"`    // 配置哈希（目前是 MD5）
 	Uptime  time.Time         `json:"uptime"`  // 配置启动时间
-	From    string            `json:"from"`    // 配置来源
+	From    string            `json:"from"`    // 配置来源，ssoc 平台下发的叫 tunnel（重要）
+	Link    string            `json:"link"`    // 外链，agent 根据代码分析而得。
 	Cause   string            `json:"cause"`   // 错误原因
 	Runners model.TaskRunners `json:"runners"` // 任务内部模块运行状态
 }
@@ -100,6 +101,7 @@ func (tr TaskReport) ToModels(mid int64, inet string) []*model.MinionTask {
 			Status:      task.Status,
 			Hash:        task.Hash,
 			From:        task.From,
+			Link:        task.Link,
 			Uptime:      uptime,
 			Failed:      task.Cause != "",
 			Cause:       task.Cause,
