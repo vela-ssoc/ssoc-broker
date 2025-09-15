@@ -53,9 +53,10 @@ func (biz *agentService) rsync(ctx context.Context, light *param.MinionLight) er
 	return err
 }
 
-func (biz *agentService) spinRsync(ctx context.Context, light *param.MinionLight, report *param.TaskReport, subs []*model.Substance) (*param.TaskReport, error) {
+func (biz *agentService) spinRsync(ctx context.Context, light *param.MinionLight, report *param.TaskReport, subs model.Substances) (*param.TaskReport, error) {
 	var cycle int
 	mid := light.ID
+	subs.Sort()
 	diff := report.Diff(mid, subs)
 	for !diff.NotModified() && cycle < biz.cycle {
 		cycle++

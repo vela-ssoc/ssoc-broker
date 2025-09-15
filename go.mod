@@ -5,13 +5,13 @@ go 1.24.0
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250901054702-7cd8dc73cfbd
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250915060454-d33a67efc036
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20250623053940-85c8bd78c6bc
 	github.com/xgfone/ship/v5 v5.3.2
-	golang.org/x/net v0.43.0
-	golang.org/x/time v0.12.0
+	golang.org/x/net v0.44.0
+	golang.org/x/time v0.13.0
 	gorm.io/gen v0.3.27
-	gorm.io/gorm v1.30.2
+	gorm.io/gorm v1.31.0
 )
 
 require (
@@ -31,12 +31,12 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
-	golang.org/x/tools v0.36.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/tools v0.37.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gorm.io/datatypes v1.2.6 // indirect
 	gorm.io/driver/gaussdb v0.1.0 // indirect

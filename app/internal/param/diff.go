@@ -9,11 +9,12 @@ import (
 )
 
 type TaskChunk struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Dialect bool   `json:"dialect"`
-	Hash    string `json:"hash"`
-	Chunk   []byte `json:"chunk"`
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Dialect  bool   `json:"dialect"`
+	Hash     string `json:"hash"`
+	Chunk    []byte `json:"chunk"`
+	Priority int64  `json:"priority"`
 }
 
 type TaskDiff struct {
@@ -114,7 +115,7 @@ func (tr TaskReport) ToModels(mid int64, inet string) []*model.MinionTask {
 	return ret
 }
 
-func (tr TaskReport) Diff(mid int64, subs []*model.Substance) *TaskDiff {
+func (tr TaskReport) Diff(mid int64, subs model.Substances) *TaskDiff {
 	hm := tr.IDMap()
 	removes := make([]int64, 0, 10)
 	updates := make([]*TaskChunk, 0, 10)
@@ -128,11 +129,12 @@ func (tr TaskReport) Diff(mid int64, subs []*model.Substance) *TaskDiff {
 		}
 
 		chk := &TaskChunk{
-			ID:      id,
-			Name:    sub.Name,
-			Dialect: sub.MinionID == mid,
-			Hash:    sub.Hash,
-			Chunk:   sub.Chunk,
+			ID:       id,
+			Name:     sub.Name,
+			Dialect:  sub.MinionID == mid,
+			Hash:     sub.Hash,
+			Chunk:    sub.Chunk,
+			Priority: sub.Priority,
 		}
 		updates = append(updates, chk)
 	}

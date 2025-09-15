@@ -36,11 +36,12 @@ func (biz *agentService) reloadTask(ctx context.Context, mid, sid int64) error {
 	diff := &param.TaskDiff{
 		Updates: []*param.TaskChunk{
 			{
-				ID:      sub.ID,
-				Name:    sub.Name,
-				Dialect: sub.MinionID == mid,
-				Hash:    sub.Hash,
-				Chunk:   sub.Chunk,
+				ID:       sub.ID,
+				Name:     sub.Name,
+				Dialect:  sub.MinionID == mid,
+				Hash:     sub.Hash,
+				Chunk:    sub.Chunk,
+				Priority: sub.Priority,
 			},
 		},
 	}
