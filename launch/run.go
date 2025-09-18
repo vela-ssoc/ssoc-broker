@@ -36,7 +36,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/shipx"
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
-	"github.com/vela-ssoc/ssoc-common-mb/validate"
+	"github.com/vela-ssoc/ssoc-common-mb/validation"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
@@ -116,7 +116,11 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	name := link.Name()
 	pbh := problem.NewHandle(name)
 
-	valid := validate.New()
+	valid := validation.New()
+	if err = valid.RegisterCustomValidations(validation.Extensions()); err != nil {
+		return err
+	}
+
 	agt := ship.Default()
 	mgt := ship.Default()
 	mgt.Logger = shipx.NewLog(log)

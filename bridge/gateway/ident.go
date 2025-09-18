@@ -9,6 +9,7 @@ import (
 
 // Ident minion 节点握手认证时需要携带的信息，
 type Ident struct {
+	MachineID  string        `json:"machine_id"` // 机器 ID
 	Inet       net.IP        `json:"inet"`       // 内网出口 IP
 	MAC        string        `json:"mac"`        // 出口 IP 所在网卡的 MAC 地址
 	CPU        int           `json:"cpu"`        // CPU 核心数
