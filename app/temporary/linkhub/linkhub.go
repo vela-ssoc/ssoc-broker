@@ -1,12 +1,13 @@
 package linkhub
 
 import (
+	crnd "crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -33,7 +34,6 @@ type minionHub struct {
 	log       *slog.Logger
 	outbox    chan *outboxMsg
 	tokenSep  string
-	random    *rand.Rand
 	processes *concurrent.Map[temporary.Opcode, process]
 	minions   concurrent.BucketMap[int64, *temporary.Conn]
 	gfs       gridfs.FS
@@ -43,7 +43,6 @@ type minionHub struct {
 func New(db *gorm.DB, qry *query.Query, brk telecom.Linker, log *slog.Logger, gfs gridfs.FS) *minionHub {
 	minions := concurrent.NewBucketMap[int64, *temporary.Conn](128, 32) // 128*32=4096
 	processes := concurrent.NewMap[temporary.Opcode, process](16)
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	outbox := make(chan *outboxMsg, 128)
 
 	// stm := stream.New(hcli, sugar)
@@ -54,7 +53,6 @@ func New(db *gorm.DB, qry *query.Query, brk telecom.Linker, log *slog.Logger, gf
 		log:       log,
 		outbox:    outbox,
 		tokenSep:  ".",
-		random:    random,
 		processes: processes,
 		minions:   minions,
 		gfs:       gfs,
@@ -322,7 +320,7 @@ func (hub *minionHub) AddProc(opcode temporary.Opcode, fn any) error {
 // signToken 根据 minionID 生成 token
 func (hub *minionHub) signToken(minionID int64) string {
 	buf := make([]byte, 30)
-	hub.random.Read(buf)
+	_, _ = crnd.Read(buf)
 	mid := strconv.FormatInt(minionID, 10)
 	return mid + hub.tokenSep + hex.EncodeToString(buf)
 }
@@ -337,7 +335,7 @@ func (hub *minionHub) parseID(token string) (minionID string) {
 
 // randMask 生成 mask (1-255)
 func (hub *minionHub) randMask() byte {
-	return byte(hub.random.Intn(0xff)) + 1
+	return byte(rand.IntN(0xff)) + 1
 }
 
 func (hub *minionHub) worker(n int) {

@@ -2,12 +2,13 @@ package mlink
 
 import (
 	"context"
+	crnd "crypto/rand"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -58,9 +59,6 @@ type Huber interface {
 }
 
 func LinkHub(qry *query.Query, link telecom.Linker, handler http.Handler, phase NodePhaser, log *slog.Logger) Linker {
-	seed := time.Now().UnixNano()
-	random := rand.New(rand.NewSource(seed))
-
 	hub := &minionHub{
 		qry:     qry,
 		link:    link,
@@ -70,7 +68,6 @@ func LinkHub(qry *query.Query, link telecom.Linker, handler http.Handler, phase 
 		log:     log,
 		section: newSegmentMap(128, 64), // 预分配 8192 个连接空间，已经足够使用了。
 		phase:   phase,
-		random:  random,
 	}
 
 	trip := &http.Transport{DialContext: hub.dialContext}
@@ -93,7 +90,6 @@ type minionHub struct {
 	section container
 	bid     int64  // 当前 broker ID
 	name    string // 当前 broker 名字
-	random  *rand.Rand
 }
 
 func (hub *minionHub) Link() telecom.Linker {
@@ -175,9 +171,10 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 
 	issue.ID = mon.ID
 	// 随机生成一个 32-64 位长度的加密密钥
-	psz := hub.random.Intn(33) + 32
+	psz := rand.IntN(33) + 32
 	passwd := make([]byte, psz)
-	hub.random.Read(passwd)
+	_, _ = crnd.Read(passwd)
+
 	issue.Passwd = passwd
 
 	return issue, nil, false, nil
