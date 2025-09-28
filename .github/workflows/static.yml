@@ -51,5 +51,5 @@ jobs:
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
-          name: vela-broker-static
-          path: vela-broker-*
+          name: ssoc-broker-static
+          path: ssoc-broker-*
