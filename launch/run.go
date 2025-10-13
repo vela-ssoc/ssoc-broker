@@ -218,7 +218,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 		taskREST := agtapi.Task(qry)
 		taskREST.Route(av1)
 
-		thirdService := agtsvc.Third(qry, gfs)
+		thirdService := agtsvc.NewThird(qry, gfs)
 		thirdREST := agtapi.Third(thirdService)
 		thirdREST.Route(av1)
 
@@ -233,7 +233,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 
 	oldHandler := linkhub.New(db, qry, link, log, gfs)
 	temp := temporary.REST(oldHandler, valid, log)
-	gw := gateway.New(hub)
+	gw := gateway.New(hub, valid)
 	deployService := agtsvc.Deploy(qry, store, gfs, ident.ID)
 	deployAPI := agtapi.Deploy(deployService)
 

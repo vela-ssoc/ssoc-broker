@@ -9,28 +9,31 @@ import (
 	"net/http"
 
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
+	"github.com/vela-ssoc/ssoc-common-mb/validation"
 	"golang.org/x/time/rate"
 )
 
 type Joiner interface {
 	Name() string
-	Auth(context.Context, Ident) (Issue, http.Header, bool, error)
+	Auth(context.Context, Ident) (Issue, http.Header, int, error)
 	Join(context.Context, net.Conn, Ident, Issue) error
 }
 
-func New(joiner Joiner) http.Handler {
+func New(joiner Joiner, valid *validation.Validate) http.Handler {
 	maxsize := 150
 	throughput := rate.NewLimiter(rate.Limit(maxsize), maxsize)
 
 	return &minionGateway{
 		name:       joiner.Name(),
 		joiner:     joiner,
+		valid:      valid,
 		throughput: throughput,
 	}
 }
 
 type minionGateway struct {
 	name   string
+	valid  *validation.Validate
 	joiner Joiner
 	// throughput 限流器，防止 broker 上下线引起的
 	// agent 节点蜂涌重连，拖慢数据库。
@@ -38,12 +41,6 @@ type minionGateway struct {
 }
 
 func (gate *minionGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// 验证 HTTP 方法
-	if method := r.Method; method != http.MethodConnect {
-		gate.writeError(w, r, http.StatusBadRequest, "不支持的请求方法：%s", method)
-		return
-	}
-
 	if !gate.throughput.Allow() {
 		gate.writeError(w, r, http.StatusTooManyRequests, "请求过多稍候再试。")
 		return
@@ -56,15 +53,19 @@ func (gate *minionGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		gate.writeError(w, r, http.StatusBadRequest, "认证信息错误")
 		return
 	}
+	if err := gate.valid.Validate(ident); err != nil {
+		gate.writeError(w, r, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	// 鉴权
 	ctx := r.Context()
-	issue, header, forbid, exx := gate.joiner.Auth(ctx, ident)
+	issue, header, code, exx := gate.joiner.Auth(ctx, ident)
 	if exx != nil {
-		code := http.StatusBadRequest
-		if forbid {
-			code = http.StatusNotAcceptable
-		}
+		//code := http.StatusBadRequest
+		//if forbid {
+		//	code = http.StatusNotAcceptable
+		//}
 		gate.writeError(w, r, code, "认证失败：%s", exx.Error())
 		return
 	}
@@ -89,7 +90,6 @@ func (gate *minionGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// -----[ Hijack Successful ]-----
 
 	// 默认规定 http.StatusAccepted 为成功状态码
-	code := http.StatusAccepted
 	res := &http.Response{
 		Status:     http.StatusText(code),
 		StatusCode: code,

@@ -101,16 +101,16 @@ func (hub *minionHub) Link() telecom.Linker {
 	return hub.link
 }
 
-func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Issue, http.Header, bool, error) {
+func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Issue, http.Header, int, error) {
 	var issue gateway.Issue
 	machineID := ident.MachineID
 	if machineID == "" {
-		return issue, nil, false, ErrMinionMachineID
+		return issue, nil, http.StatusBadRequest, ErrMinionMachineID
 	}
 
 	ip := ident.Inet.To4()
 	if ip == nil || ip.IsLoopback() || ip.IsUnspecified() {
-		return issue, nil, false, ErrMinionBadInet
+		return issue, nil, http.StatusBadRequest, ErrMinionBadInet
 	}
 
 	// 根据 inet 查询节点信息
@@ -123,66 +123,32 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 	mon, err := monDao.Where(monTbl.MachineID.Eq(machineID)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) { // 通过机器
 		mon, err = monDao.Where(monTbl.Inet.Eq(inet), monTbl.MachineID.Eq("")).First()
+		if err == nil { // 通过 Inet 找到了，兼容老的 agent 绑定机器码
+			if _, err = monDao.Where(monTbl.ID.Eq(mon.ID)).
+				UpdateColumnSimple(monTbl.MachineID.Value(machineID)); err != nil {
+				return issue, nil, http.StatusInternalServerError, err
+			}
+			mon.MachineID = machineID
+		}
 	}
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return issue, nil, false, err
+			return issue, nil, http.StatusBadRequest, err
 		}
 
 		newData, err := hub.createNew(ctx, ident)
 		if err != nil {
-			return issue, nil, false, err
+			return issue, nil, http.StatusInternalServerError, err
 		}
 		mon = newData
 	}
 
-	//if err != nil {
-	//	join := &model.Minion{
-	//		MachineID:  machineID,
-	//		Inet:       inet,
-	//		MAC:        ident.MAC,
-	//		Goos:       ident.Goos,
-	//		Arch:       ident.Arch,
-	//		Status:     model.MSOffline,
-	//		Unstable:   ident.Unstable,
-	//		Customized: ident.Customized,
-	//		Unload:     ident.Unload,
-	//		BrokerID:   hub.link.Ident().ID,
-	//		BrokerName: hub.link.Issue().Name,
-	//		CreatedAt:  now,
-	//		UpdatedAt:  now,
-	//	}
-	//
-	//	if err = hub.qry.Transaction(func(tx *query.Query) error {
-	//		if exx := tx.WithContext(ctx).Minion.Create(join); exx != nil {
-	//			return exx
-	//		}
-	//		mid, goos, arch := join.ID, ident.Goos, ident.Arch
-	//		tags := model.MinionTags{
-	//			{Tag: goos, MinionID: mid, Kind: model.TkLifelong},
-	//			{Tag: arch, MinionID: mid, Kind: model.TkLifelong},
-	//			{Tag: inet, MinionID: mid, Kind: model.TkLifelong},
-	//		}
-	//		return tx.WithContext(ctx).MinionTag.
-	//			Clauses(clause.OnConflict{DoNothing: true}).
-	//			Create(tags...)
-	//	}); err != nil {
-	//		return issue, nil, false, err
-	//	}
-	//
-	//	mon = join
-	//	hub.phase.Created(join.ID, inet, now)
-	//}
-
 	status := mon.Status
-	if status == model.MSInactive { // 2.0 遗留的状态
-		return issue, nil, false, ErrMinionInactive
-	}
 	if status == model.MSDelete {
-		return issue, nil, true, ErrMinionRemove
+		return issue, nil, http.StatusForbidden, ErrMinionRemove
 	}
 	if status == model.MSOnline {
-		return issue, nil, false, ErrMinionOnline
+		return issue, nil, http.StatusConflict, ErrMinionOnline
 	}
 
 	issue.ID = mon.ID
@@ -192,7 +158,7 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 	hub.random.Read(passwd)
 	issue.Passwd = passwd
 
-	return issue, nil, false, nil
+	return issue, nil, http.StatusAccepted, nil
 }
 
 func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.Ident, issue gateway.Issue) error {
@@ -225,35 +191,37 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	nullableAt := sql.NullTime{Valid: true, Time: now}
 	brokerID, brokerName := hub.link.Ident().ID, hub.link.Issue().Name
 	online, offline := uint8(model.MSOnline), uint8(model.MSOffline)
-	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
-	monTbl := hub.qry.Minion
-	info, err := monTbl.WithContext(ctx).
-		Where(monTbl.MachineID.Eq(machineID), monTbl.Status.Eq(uint8(model.MSOffline))).
-		UpdateSimple(
-			monTbl.Status.Value(online),
-			monTbl.MAC.Value(ident.MAC),
-			monTbl.Goos.Value(ident.Goos),
-			monTbl.Arch.Value(ident.Arch),
-			monTbl.Edition.Value(ident.Semver),
-			monTbl.Unstable.Value(ident.Unstable),
-			monTbl.Customized.Value(ident.Customized),
-			monTbl.Uptime.Value(nullableAt),
-			monTbl.BrokerID.Value(brokerID),
-			monTbl.BrokerName.Value(brokerName),
-		)
-	cancel()
-	if err != nil || info.RowsAffected == 0 {
-		hub.log.Warn(fmt.Sprintf("节点 %s(%d) 修改上线状态失败：%v", inet, id, err))
-		return err
-	}
 
+	minionTbl := hub.qry.Minion
+	{
+		ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+		info, err := minionTbl.WithContext(ctx).
+			Where(minionTbl.ID.Eq(id), minionTbl.Status.Eq(offline)).
+			UpdateSimple(
+				minionTbl.Status.Value(online),
+				minionTbl.MAC.Value(ident.MAC),
+				minionTbl.Goos.Value(ident.Goos),
+				minionTbl.Arch.Value(ident.Arch),
+				minionTbl.Edition.Value(ident.Semver),
+				minionTbl.Unstable.Value(ident.Unstable),
+				minionTbl.Customized.Value(ident.Customized),
+				minionTbl.Uptime.Value(nullableAt),
+				minionTbl.BrokerID.Value(brokerID),
+				minionTbl.BrokerName.Value(brokerName),
+			)
+		cancel()
+		if err != nil || info.RowsAffected == 0 {
+			hub.log.Warn(fmt.Sprintf("节点 %s(%d) 修改上线状态失败：%v", inet, id, err))
+			return err
+		}
+	}
 	defer func() {
-		dctx, dcancel := context.WithTimeout(context.Background(), 3*time.Minute)
-		ret, exx := monTbl.WithContext(dctx).
-			Where(monTbl.MachineID.Eq(machineID)).
-			Where(monTbl.BrokerID.Eq(hub.bid)).
-			Where(monTbl.Status.Eq(online)).
-			UpdateSimple(monTbl.Status.Value(offline))
+		dctx, dcancel := context.WithTimeout(context.Background(), time.Minute)
+		ret, exx := minionTbl.WithContext(dctx).
+			Where(minionTbl.MachineID.Eq(machineID)).
+			Where(minionTbl.BrokerID.Eq(hub.bid)).
+			Where(minionTbl.Status.Eq(online)).
+			UpdateSimple(minionTbl.Status.Value(offline))
 		dcancel()
 		if exx != nil || ret.RowsAffected == 0 {
 			hub.log.Warn(fmt.Sprintf("节点 %s(%d) 修改下线状态错误: %v", inet, id, exx))
@@ -262,29 +230,33 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 		}
 	}()
 
-	// 每次上线都要重新初始化内置标签，长时间运行后，服务器可能重装系统。
-	_ = hub.qry.Transaction(func(tx *query.Query) error {
-		const kind = model.TkLifelong
-		tags := model.MinionTags{
-			&model.MinionTag{MinionID: id, Tag: inet, Kind: kind},
-		}
-		if goos := ident.Goos; goos != "" {
-			tags = append(tags, &model.MinionTag{MinionID: id, Tag: goos, Kind: kind})
-		}
-		if arch := ident.Arch; arch != "" {
-			tags = append(tags, &model.MinionTag{MinionID: id, Tag: arch, Kind: kind})
-		}
+	{
+		ctx, cancel := context.WithTimeout(parent, 20*time.Second)
+		// 每次上线都要重新初始化内置标签，长时间运行后，服务器可能重装系统。
+		_ = hub.qry.Transaction(func(tx *query.Query) error {
+			const kind = model.TkLifelong
+			tags := model.MinionTags{
+				&model.MinionTag{MinionID: id, Tag: inet, Kind: kind},
+			}
+			if goos := ident.Goos; goos != "" {
+				tags = append(tags, &model.MinionTag{MinionID: id, Tag: goos, Kind: kind})
+			}
+			if arch := ident.Arch; arch != "" {
+				tags = append(tags, &model.MinionTag{MinionID: id, Tag: arch, Kind: kind})
+			}
 
-		tbl := tx.MinionTag
-		dao := tbl.WithContext(ctx)
-		// 1. 删除所有的内置标签
-		_, _ = dao.Where(tbl.MinionID.Eq(id), tbl.Kind.Eq(int8(kind))).Delete()
-		// 2. 插入新的内置标签
-		_ = dao.Clauses(clause.OnConflict{DoNothing: true}).Create(tags...)
+			minionTagTbl := tx.MinionTag
+			dao := minionTagTbl.WithContext(ctx)
+			// 1. 删除所有的内置标签
+			_, _ = dao.Where(minionTagTbl.MinionID.Eq(id), minionTagTbl.Kind.Eq(int8(kind))).Delete()
+			// 2. 插入新的内置标签
+			_ = dao.Clauses(clause.OnConflict{DoNothing: true}).Create(tags...)
 
-		return nil
-	})
+			return nil
+		})
 
+		cancel()
+	}
 	srv := &http.Server{
 		Handler: hub.handler,
 		BaseContext: func(net.Listener) context.Context {
