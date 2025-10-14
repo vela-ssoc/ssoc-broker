@@ -24,7 +24,7 @@ func Phase(cmdbc cmdb.Client, alert alarm.Alerter, log *slog.Logger) PhaseServic
 	return &nodeEventService{
 		cmdbc: cmdbc,
 		alert: alert,
-		pool:  gopool.NewV2(1024),
+		pool:  gopool.New(1024),
 		log:   log,
 	}
 }

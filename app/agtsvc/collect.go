@@ -18,7 +18,7 @@ type CollectService interface {
 func Collect(qry *query.Query) CollectService {
 	return &collectService{
 		qry:  qry,
-		pool: gopool.NewV2(1024),
+		pool: gopool.New(1024),
 	}
 }
 

@@ -41,7 +41,7 @@ func Agent(qry *query.Query, lnk mlink.Linker, mon MinionService, store storage.
 		mon:   mon,
 		store: store,
 		log:   log,
-		pool:  gopool.NewV2(512),
+		pool:  gopool.New(512),
 		cycle: 5,
 	}
 }
