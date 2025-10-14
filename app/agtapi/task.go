@@ -77,11 +77,17 @@ func (rest *taskREST) Report(c *ship.Context) error {
 		Reason:     req.Reason,
 		ExecutedAt: time.Now(),
 	}
+	execution := &model.TaskExecution{
+		ExecutedAt: req.StartTime,
+		FinishedAt: req.EndTime,
+		Elapsed:    req.Duration,
+	}
 	updates := []field.AssignExpr{
 		tbl.Finished.Value(true),
 		tbl.Succeed.Value(succeed),
 		tbl.Result.Value(req.Result),
 		tbl.MinionStatus.Value(status),
+		tbl.Execution.Value(execution),
 	}
 	if succeed {
 		updates = append(updates, tbl.ErrorCode.Value(model.TaskExecuteErrorCodeSucceed))
@@ -96,9 +102,12 @@ func (rest *taskREST) Report(c *ship.Context) error {
 }
 
 type ReportData struct {
-	ID      int64           `json:"id"`
-	ExecID  int64           `json:"exec_id"`
-	Succeed bool            `json:"succeed"`
-	Reason  string          `json:"reason"`
-	Result  json.RawMessage `json:"result"`
+	ID        int64           `json:"id"`
+	ExecID    int64           `json:"exec_id"`
+	Succeed   bool            `json:"succeed"`
+	Reason    string          `json:"reason"`
+	StartTime time.Time       `json:"start_time"`
+	EndTime   time.Time       `json:"end_time"`
+	Duration  time.Duration   `json:"duration"`
+	Result    json.RawMessage `json:"result"`
 }
