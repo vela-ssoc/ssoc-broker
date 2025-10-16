@@ -23,7 +23,6 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
-	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -103,8 +102,16 @@ func (hub *minionHub) Link() telecom.Linker {
 
 func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Issue, http.Header, int, error) {
 	var issue gateway.Issue
-	machineID := ident.MachineID
-	if machineID == "" {
+
+	// FIXME 旧版本 agent 没有机器 ID 的概念，但是也要保证能够上线。
+	//machineID := ident.MachineID
+	//if machineID == "" {
+	//	return issue, nil, http.StatusBadRequest, ErrMinionMachineID
+	//}
+	// 4.0 版本的 agent 必须要有机器 ID。
+	if semver := ident.Semver; semver != "" &&
+		strings.HasPrefix(semver, "4.") &&
+		ident.MachineID == "" {
 		return issue, nil, http.StatusBadRequest, ErrMinionMachineID
 	}
 
@@ -113,34 +120,11 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 		return issue, nil, http.StatusBadRequest, ErrMinionBadInet
 	}
 
-	// 根据 inet 查询节点信息
-	inet := ip.String()
-	monTbl := hub.qry.Minion
-	monDao := monTbl.WithContext(ctx)
-
 	// 先通过机器码查询，如果查询不到再通过 inet 查询（兼容老的方式）。
 	// 如果通过 inet 查询出来并且 machine_id 为空，则进行合并
-	mon, err := monDao.Where(monTbl.MachineID.Eq(machineID)).First()
-	if errors.Is(err, gorm.ErrRecordNotFound) { // 通过机器
-		mon, err = monDao.Where(monTbl.Inet.Eq(inet), monTbl.MachineID.Eq("")).First()
-		if err == nil { // 通过 Inet 找到了，兼容老的 agent 绑定机器码
-			if _, err = monDao.Where(monTbl.ID.Eq(mon.ID)).
-				UpdateColumnSimple(monTbl.MachineID.Value(machineID)); err != nil {
-				return issue, nil, http.StatusInternalServerError, err
-			}
-			mon.MachineID = machineID
-		}
-	}
+	mon, err := hub.lookupOrCreate(ctx, ident)
 	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return issue, nil, http.StatusBadRequest, err
-		}
-
-		newData, err := hub.createNew(ctx, ident)
-		if err != nil {
-			return issue, nil, http.StatusInternalServerError, err
-		}
-		mon = newData
+		return issue, nil, http.StatusInternalServerError, err
 	}
 
 	status := mon.Status
@@ -171,7 +155,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	//goland:noinspection GoUnhandledErrorResult
 	defer mux.Close()
 
-	id, machineID := issue.ID, ident.MachineID
+	id := issue.ID
 	inet := ident.Inet.String()
 	now := time.Now()
 	sid := strconv.FormatInt(id, 10) // 方便 dialContext
@@ -218,13 +202,13 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	defer func() {
 		dctx, dcancel := context.WithTimeout(context.Background(), time.Minute)
 		ret, exx := minionTbl.WithContext(dctx).
-			Where(minionTbl.MachineID.Eq(machineID)).
+			// Where(minionTbl.MachineID.Eq(machineID)).
 			Where(minionTbl.BrokerID.Eq(hub.bid)).
 			Where(minionTbl.Status.Eq(online)).
 			UpdateSimple(minionTbl.Status.Value(offline))
 		dcancel()
 		if exx != nil || ret.RowsAffected == 0 {
-			hub.log.Warn(fmt.Sprintf("节点 %s(%d) 修改下线状态错误: %v", inet, id, exx))
+			hub.log.Error(fmt.Sprintf("节点 %s(%d) 修改下线状态错误: %v", inet, id, exx))
 		} else {
 			hub.log.Info(fmt.Sprintf("节点 %s(%d) 修改下线状态成功", inet, id))
 		}
@@ -392,6 +376,47 @@ func (hub *minionHub) forwardError(w http.ResponseWriter, r *http.Request, err e
 	}
 
 	_ = pd.JSON(w)
+}
+
+func (hub *minionHub) lookupOrCreate(ctx context.Context, ident gateway.Ident) (*model.Minion, error) {
+	if ident.MachineID != "" {
+		return hub.lookupByMachineID(ctx, ident)
+	}
+
+	tbl := hub.qry.Minion
+	dao := tbl.WithContext(ctx)
+
+	// FIXME 搜索条件暂时忽略机器 ID，因为 3.0 升级到 4.0 有可能某些原因回退到低版本，
+	// 	尽管此时已经绑定了机器 ID。
+	inet := ident.Inet.String()
+	mon1, err1 := dao.Where(tbl.Inet.Eq(inet) /*, tbl.MachineID.Eq("")*/).First()
+	if err1 == nil {
+		return mon1, nil
+	}
+
+	return hub.createNew(ctx, ident)
+}
+
+func (hub *minionHub) lookupByMachineID(ctx context.Context, ident gateway.Ident) (*model.Minion, error) {
+	machineID := ident.MachineID
+
+	tbl := hub.qry.Minion
+	dao := tbl.WithContext(ctx)
+	mon, err := dao.Where(tbl.MachineID.Eq(machineID)).First()
+	if err == nil {
+		return mon, nil
+	}
+
+	// 尝试通过 inet 查找（自动给老的 agent 绑定机器码）
+	inet := ident.Inet.String()
+	mon1, err1 := dao.Where(tbl.Inet.Eq(inet), tbl.MachineID.Eq("")).First()
+	if err1 == nil {
+		// 关联绑定机器 ID
+		_, _ = dao.Where(tbl.ID.Eq(mon1.ID)).UpdateSimple(tbl.MachineID.Value(machineID))
+		return mon1, nil
+	}
+
+	return hub.createNew(ctx, ident)
 }
 
 func (hub *minionHub) createNew(ctx context.Context, ident gateway.Ident) (*model.Minion, error) {
