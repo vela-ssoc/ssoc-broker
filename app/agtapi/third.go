@@ -23,7 +23,7 @@ type thirdREST struct {
 
 func (thr *thirdREST) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/broker/third").Data(route.Named("agent 下载三方文件")).GET(thr.download)
-	r.Route("/broker/thirds").Data(route.Named("三方文件列表")).GET(thr.list)
+	r.Route("/broker/thirds").Data(route.Named("三方文件列表")).POST(thr.list)
 }
 
 func (thr *thirdREST) download(c *ship.Context) error {

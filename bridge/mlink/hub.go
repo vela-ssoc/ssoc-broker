@@ -183,6 +183,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 			Where(minionTbl.ID.Eq(id), minionTbl.Status.Eq(offline)).
 			UpdateSimple(
 				minionTbl.Status.Value(online),
+				minionTbl.Inet.Value(inet),
 				minionTbl.MAC.Value(ident.MAC),
 				minionTbl.Goos.Value(ident.Goos),
 				minionTbl.Arch.Value(ident.Arch),
@@ -202,9 +203,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	defer func() {
 		dctx, dcancel := context.WithTimeout(context.Background(), time.Minute)
 		ret, exx := minionTbl.WithContext(dctx).
-			// Where(minionTbl.MachineID.Eq(machineID)).
-			Where(minionTbl.BrokerID.Eq(hub.bid)).
-			Where(minionTbl.Status.Eq(online)).
+			Where(minionTbl.BrokerID.Eq(hub.bid), minionTbl.Status.Eq(online), minionTbl.ID.Eq(id)).
 			UpdateSimple(minionTbl.Status.Value(offline))
 		dcancel()
 		if exx != nil || ret.RowsAffected == 0 {
@@ -429,8 +428,6 @@ func (hub *minionHub) createNew(ctx context.Context, ident gateway.Ident) (*mode
 		Edition:    ident.Semver,
 		Status:     model.MSOffline,
 		Uptime:     sql.NullTime{Time: time.Now(), Valid: true},
-		BrokerID:   hub.bid,
-		BrokerName: hub.name,
 		Unload:     ident.Unload,
 		Unstable:   ident.Unstable,
 		Customized: ident.Customized,
