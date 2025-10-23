@@ -12,6 +12,7 @@ require (
 	golang.org/x/time v0.14.0
 	gorm.io/gen v0.3.27
 	gorm.io/gorm v1.31.0
+	github.com/xtaci/smux v1.5.35
 )
 
 require (
@@ -31,6 +32,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
+	github.com/xtaci/smux v1.5.35 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect

@@ -13,11 +13,14 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/app/middle"
 	"github.com/vela-ssoc/ssoc-broker/app/temporary"
 	"github.com/vela-ssoc/ssoc-broker/app/temporary/linkhub"
+	"github.com/vela-ssoc/ssoc-broker/applet/expose/restapi"
 	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mrestapi"
 	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mservice"
 	"github.com/vela-ssoc/ssoc-broker/bridge/gateway"
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
+	linkhub2 "github.com/vela-ssoc/ssoc-broker/channel/linkhub"
+	"github.com/vela-ssoc/ssoc-broker/channel/serverd"
 	"github.com/vela-ssoc/ssoc-broker/foreign/bytedance"
 	"github.com/vela-ssoc/ssoc-common-mb/accord"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
@@ -247,6 +250,27 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	api.Route("/v1/edition/upgrade").GET(oldHandler.Upgrade)
 	api.Route("/api/v1/deploy/minion").GET(deployAPI.Script)
 	api.Route("/api/v1/deploy/minion/download").GET(deployAPI.MinionDownload)
+
+	{
+		secret := ident.Secret
+		tbl := qry.Broker
+		dao := tbl.WithContext(parent)
+		cur, err := dao.Where(tbl.Secret.Eq(secret)).First()
+		if err != nil {
+			return err
+		}
+
+		huber := linkhub2.NewSafeMap(4)
+		serverdOpt := serverd.NewOption().
+			Logger(log).
+			Valid(valid.Validate).
+			Huber(huber)
+		srvd := serverd.New(qry, cur, serverdOpt)
+		tunnelAPI := restapi.NewTunnel(srvd)
+
+		baseAPI := api.Group("/api")
+		tunnelAPI.BindRoute(baseAPI)
+	}
 
 	errCh := make(chan error, 1)
 	// 监听本地端口用于 minion 节点连接
