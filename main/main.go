@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/vela-ssoc/ssoc-broker/banner"
 	"github.com/vela-ssoc/ssoc-broker/hideconf"
 	"github.com/vela-ssoc/ssoc-broker/launch"
+	"github.com/vela-ssoc/ssoc-common/banner"
 )
 
 func main() {
@@ -22,28 +22,24 @@ func main() {
 	}
 	flag.Parse()
 
-	if banner.ANSI(os.Stdout); version {
+	if _, _ = banner.ANSI(os.Stdout); version {
 		return
 	}
 
-	logOpt := &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}
-	jsonHandler := slog.NewJSONHandler(os.Stdout, logOpt)
-	log := slog.New(jsonHandler)
-
 	hide, err := hideconf.Read(config)
 	if err != nil {
-		log.Error("读取 hide 配置错误", slog.Any("error", err), slog.String("config", config))
+		slog.Error("读取 hide 配置错误", slog.Any("error", err), slog.String("config", config))
 		return
 	}
 
 	cares := []os.Signal{syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL, syscall.SIGINT}
 	ctx, cancel := signal.NotifyContext(context.Background(), cares...)
 	defer cancel()
-	log.Info("按 Ctrl+C 结束运行")
+	slog.Info("按 Ctrl+C 结束运行")
 
 	if err = launch.Run(ctx, hide); err != nil {
-		log.Error("程序运行错误", slog.Any("error", err))
+		slog.Error("程序运行错误", slog.Any("error", err))
 	}
 
-	log.Info("程序运行结束")
+	slog.Info("程序运行结束")
 }

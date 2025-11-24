@@ -12,10 +12,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-broker/channel/linkhub"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/options"
+	"github.com/vela-ssoc/ssoc-common/linkhub"
 	"github.com/xtaci/smux"
 	"gorm.io/gen/field"
 	"gorm.io/gorm"
@@ -25,15 +25,9 @@ type Handler interface {
 	Handle(sess *smux.Session)
 }
 
-func New(qry *query.Query, cur *model.Broker, opts ...Optioner) Handler {
-	ops := make([]func(option) option, 0, 10)
-	for _, op := range opts {
-		if op != nil {
-			ops = append(ops, op.options()...)
-		}
-	}
-	ops = append(ops, defaultOption)
-	opt := options.Eval(ops...)
+func New(qry *query.Query, cur *model.Broker, opts ...options.Lister[option]) Handler {
+	opts = append(opts, fallbackOption())
+	opt := options.Eval(opts...)
 
 	return &agentServer{
 		qry: qry,
@@ -59,12 +53,14 @@ func (as *agentServer) Handle(sess *smux.Session) {
 	}
 
 	timeout := as.opt.timeout
-	peer, err := as.authentication(sess, timeout)
+	peer, _, err := as.authentication(sess, timeout)
 	if err != nil {
 		as.log().Warn("节点上线认证失败", "error", err)
 		return
 	}
 	defer as.disconnect(peer, timeout)
+
+	as.opt.notifier.AgentConnected(peer)
 
 	srv := as.opt.server
 	base := srv.BaseContext
@@ -82,33 +78,33 @@ func (as *agentServer) Handle(sess *smux.Session) {
 	as.log().Warn("agent 节点下线了", "error", err)
 }
 
-func (as *agentServer) authentication(sess *smux.Session, timeout time.Duration) (linkhub.Peer, error) {
+func (as *agentServer) authentication(sess *smux.Session, timeout time.Duration) (linkhub.Peer, *model.Minion, error) {
 	timer := time.AfterFunc(timeout, func() { _ = sess.Close() })
 	sig, err := sess.AcceptStream()
 	timer.Stop()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer sig.Close()
 
 	_ = sig.SetDeadline(time.Now().Add(timeout))
 	req, err := as.readRequest(sig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err = as.opt.valid(req); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	_, peer, code, err1 := as.join(sess, req, timeout)
+	mon, peer, code, err1 := as.join(sess, req, timeout)
 	err2 := as.writeResponse(sig, code, err1)
 	if err1 != nil {
-		return nil, err1
+		return nil, mon, err1
 	} else if err2 != nil {
-		return nil, err2
+		return nil, mon, err2
 	}
 
-	return peer, nil
+	return peer, mon, nil
 }
 
 func (as *agentServer) join(sess *smux.Session, req *authRequest, timeout time.Duration) (*model.Minion, linkhub.Peer, int, error) {
@@ -137,7 +133,7 @@ func (as *agentServer) join(sess *smux.Session, req *authRequest, timeout time.D
 	}
 
 	minionID := mon.ID
-	peer := linkhub.NewPeer(minionID, sess)
+	peer := linkhub.NewPeer(minionID, req.Inet, sess)
 	if !as.opt.huber.Put(peer) {
 		as.log().Warn("agent 节点已经在线了（内存检查）", attrs...)
 		return mon, nil, http.StatusConflict, errors.New("节点重复上线")
@@ -275,7 +271,7 @@ func (as *agentServer) disconnect(peer linkhub.Peer, timeout time.Duration) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	id := peer.ID()
+	id := peer.Info().ID
 	tbl := as.qry.Minion
 	dao := tbl.WithContext(ctx)
 	online, offline := uint8(model.MSOnline), uint8(model.MSOffline)
@@ -284,6 +280,7 @@ func (as *agentServer) disconnect(peer linkhub.Peer, timeout time.Duration) {
 		as.log().Warn("修改节点下线状态失败", "error", err)
 	}
 	as.opt.huber.DelByID(id)
+	as.opt.notifier.AgentDisconnected(id)
 }
 
 func (as *agentServer) log() *slog.Logger {

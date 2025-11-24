@@ -8,7 +8,7 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-broker/channel/linkhub"
+	"github.com/vela-ssoc/ssoc-common/linkhub"
 )
 
 func defaultValid(v any) error {
@@ -26,10 +26,6 @@ func defaultValid(v any) error {
 	return nil
 }
 
-type Optioner interface {
-	options() []func(before option) (after option)
-}
-
 type Limiter interface {
 	Allowed() bool
 }
@@ -39,12 +35,13 @@ type unlimited struct{}
 func (*unlimited) Allowed() bool { return true }
 
 type option struct {
-	logger  *slog.Logger
-	valid   func(any) error
-	server  *http.Server
-	limit   Limiter
-	huber   linkhub.Huber
-	timeout time.Duration
+	logger   *slog.Logger
+	valid    func(any) error
+	server   *http.Server
+	limit    Limiter
+	huber    linkhub.Huber
+	timeout  time.Duration
+	notifier AgentNotifier
 }
 
 func NewOption() OptionBuilder {
@@ -55,7 +52,7 @@ type OptionBuilder struct {
 	opts []func(option) option
 }
 
-func (ob OptionBuilder) options() []func(option) option {
+func (ob OptionBuilder) List() []func(option) option {
 	return ob.opts
 }
 
@@ -119,25 +116,42 @@ func (ob OptionBuilder) Huber(v linkhub.Huber) OptionBuilder {
 	return ob
 }
 
-func defaultOption(o option) option {
-	if o.valid == nil {
-		o.valid = defaultValid
-	}
-	if o.server == nil {
-		o.server = new(http.Server)
-	}
-	if o.server.Handler == nil {
-		o.server.Handler = http.NotFoundHandler()
-	}
-	if o.limit == nil {
-		o.limit = new(unlimited)
-	}
-	if o.huber == nil {
-		o.huber = linkhub.NewSafeMap()
-	}
-	if o.timeout <= 0 {
-		o.timeout = 30 * time.Second
-	}
+func (ob OptionBuilder) AgentNotifier(v AgentNotifier) OptionBuilder {
+	ob.opts = append(ob.opts, func(o option) option {
+		o.notifier = v
+		return o
+	})
+	return ob
+}
 
-	return o
+func fallbackOption() OptionBuilder {
+	return OptionBuilder{
+		opts: []func(option) option{
+			func(o option) option {
+				if o.valid == nil {
+					o.valid = defaultValid
+				}
+				if o.server == nil {
+					o.server = new(http.Server)
+				}
+				if o.server.Handler == nil {
+					o.server.Handler = http.NotFoundHandler()
+				}
+				if o.limit == nil {
+					o.limit = new(unlimited)
+				}
+				if o.huber == nil {
+					o.huber = linkhub.NewSafeMap()
+				}
+				if o.timeout <= 0 {
+					o.timeout = 30 * time.Second
+				}
+				if o.notifier == nil {
+					o.notifier = new(agentNotifier)
+				}
+
+				return o
+			},
+		},
+	}
 }

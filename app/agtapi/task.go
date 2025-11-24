@@ -31,8 +31,8 @@ func (rest *taskREST) Route(r *ship.RouteGroupBuilder) {
 }
 
 func (rest *taskREST) Status(c *ship.Context) error {
-	var req param.TaskReport
-	if err := c.Bind(&req); err != nil {
+	req := new(param.TaskReport)
+	if err := c.Bind(req); err != nil {
 		return err
 	}
 
