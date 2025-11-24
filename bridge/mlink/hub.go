@@ -23,16 +23,16 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
-	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 var (
-	ErrMinionBadInet  = errors.New("minion IP 不合法")
-	ErrMinionInactive = errors.New("节点未激活")
-	ErrMinionRemove   = errors.New("节点已删除")
-	ErrMinionOnline   = errors.New("节点已经在线")
-	ErrMinionOffline  = errors.New("节点未在线")
+	ErrMinionBadInet   = errors.New("节点 IP 不合法")
+	ErrMinionMachineID = errors.New("无效的机器码")
+	ErrMinionInactive  = errors.New("节点未激活")
+	ErrMinionRemove    = errors.New("节点已删除")
+	ErrMinionOnline    = errors.New("节点已经在线")
+	ErrMinionOffline   = errors.New("节点未在线")
 )
 
 type Linker interface {
@@ -100,77 +100,39 @@ func (hub *minionHub) Link() telecom.Linker {
 	return hub.link
 }
 
-func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Issue, http.Header, bool, error) {
+func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Issue, http.Header, int, error) {
 	var issue gateway.Issue
-	ip := ident.Inet.To4()
-	if ip == nil || ip.IsLoopback() || ip.IsUnspecified() {
-		return issue, nil, false, ErrMinionBadInet
+
+	// FIXME 旧版本 agent 没有机器 ID 的概念，但是也要保证能够上线。
+	//machineID := ident.MachineID
+	//if machineID == "" {
+	//	return issue, nil, http.StatusBadRequest, ErrMinionMachineID
+	//}
+	// 4.0 版本的 agent 必须要有机器 ID。
+	if semver := ident.Semver; semver != "" &&
+		strings.HasPrefix(semver, "4.") &&
+		ident.MachineID == "" {
+		return issue, nil, http.StatusBadRequest, ErrMinionMachineID
 	}
 
-	// 根据 inet 查询节点信息
-	now := time.Now()
-	inet := ip.String()
-	monTbl := hub.qry.Minion
-	mon, err := monTbl.WithContext(ctx).Where(monTbl.Inet.Eq(inet)).First()
+	ip := ident.Inet.To4()
+	if ip == nil || ip.IsLoopback() || ip.IsUnspecified() {
+		return issue, nil, http.StatusBadRequest, ErrMinionBadInet
+	}
+
+	// 先通过机器码查询，如果查询不到再通过 inet 查询（兼容老的方式）。
+	// 如果通过 inet 查询出来并且 machine_id 为空，则进行合并
+	mon, err := hub.lookupOrCreate(ctx, ident)
 	if err != nil {
-		if err != gorm.ErrRecordNotFound {
-			return issue, nil, false, err
-		}
-
-		join := &model.Minion{
-			Inet: inet,
-			// Name:       inet,
-			MAC:    ident.MAC,
-			Goos:   ident.Goos,
-			Arch:   ident.Arch,
-			Status: model.MSOffline,
-			// Semver:     ident.Semver,
-			// CPU:        ident.CPU,
-			// PID:        ident.PID,
-			// Username:   ident.Username,
-			// Hostname:   ident.Hostname,
-			// Workdir:    ident.Workdir,
-			// Executable: ident.Executable,
-			// JoinedAt:   now,
-			Unstable:   ident.Unstable,
-			Customized: ident.Customized,
-			Unload:     ident.Unload,
-			BrokerID:   hub.link.Ident().ID,
-			BrokerName: hub.link.Issue().Name,
-			CreatedAt:  now,
-			UpdatedAt:  now,
-		}
-
-		if err = hub.qry.Transaction(func(tx *query.Query) error {
-			if exx := tx.WithContext(ctx).Minion.Create(join); exx != nil {
-				return exx
-			}
-			mid, goos, arch := join.ID, ident.Goos, ident.Arch
-			tags := model.MinionTags{
-				{Tag: goos, MinionID: mid, Kind: model.TkLifelong},
-				{Tag: arch, MinionID: mid, Kind: model.TkLifelong},
-				{Tag: inet, MinionID: mid, Kind: model.TkLifelong},
-			}
-			return tx.WithContext(ctx).MinionTag.
-				Clauses(clause.OnConflict{DoNothing: true}).
-				Create(tags...)
-		}); err != nil {
-			return issue, nil, false, err
-		}
-
-		mon = join
-		hub.phase.Created(join.ID, inet, now)
+		return issue, nil, http.StatusInternalServerError, err
 	}
 
 	status := mon.Status
-	if status == model.MSInactive { // 2.0 遗留的状态
-		return issue, nil, false, ErrMinionInactive
-	}
 	if status == model.MSDelete {
-		return issue, nil, true, ErrMinionRemove
+		return issue, nil, http.StatusForbidden, ErrMinionRemove
 	}
 	if status == model.MSOnline {
-		return issue, nil, false, ErrMinionOnline
+		return issue, nil, http.StatusConflict, ErrMinionOnline
 	}
 
 	issue.ID = mon.ID
@@ -180,7 +142,7 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 	hub.random.Read(passwd)
 	issue.Passwd = passwd
 
-	return issue, nil, false, nil
+	return issue, nil, http.StatusAccepted, nil
 }
 
 func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.Ident, issue gateway.Issue) error {
@@ -211,48 +173,73 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	defer hub.section.Del(sid)
 
 	nullableAt := sql.NullTime{Valid: true, Time: now}
-
-	// 存在这样的情况，例如节点 192.168.18.18 变更系统后，与之对应的永久标签也要切换。
-
 	brokerID, brokerName := hub.link.Ident().ID, hub.link.Issue().Name
 	online, offline := uint8(model.MSOnline), uint8(model.MSOffline)
-	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
-	monTbl := hub.qry.Minion
-	info, err := monTbl.WithContext(ctx).
-		Where(monTbl.ID.Eq(id), monTbl.Status.Eq(uint8(model.MSOffline))).
-		UpdateSimple(
-			monTbl.Status.Value(online),
-			monTbl.MAC.Value(ident.MAC),
-			monTbl.Goos.Value(ident.Goos),
-			monTbl.Arch.Value(ident.Arch),
-			monTbl.Edition.Value(ident.Semver),
-			monTbl.Unstable.Value(ident.Unstable),
-			monTbl.Customized.Value(ident.Customized),
-			monTbl.Uptime.Value(nullableAt),
-			monTbl.BrokerID.Value(brokerID),
-			monTbl.BrokerName.Value(brokerName),
-		)
-	cancel()
-	if err != nil || info.RowsAffected == 0 {
-		hub.log.Warn(fmt.Sprintf("节点 %s(%d) 修改上线状态失败：%v", inet, id, err))
-		return err
-	}
 
+	minionTbl := hub.qry.Minion
+	{
+		ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+		info, err := minionTbl.WithContext(ctx).
+			Where(minionTbl.ID.Eq(id), minionTbl.Status.Eq(offline)).
+			UpdateSimple(
+				minionTbl.Status.Value(online),
+				minionTbl.Inet.Value(inet),
+				minionTbl.MAC.Value(ident.MAC),
+				minionTbl.Goos.Value(ident.Goos),
+				minionTbl.Arch.Value(ident.Arch),
+				minionTbl.Edition.Value(ident.Semver),
+				minionTbl.Unstable.Value(ident.Unstable),
+				minionTbl.Customized.Value(ident.Customized),
+				minionTbl.Uptime.Value(nullableAt),
+				minionTbl.BrokerID.Value(brokerID),
+				minionTbl.BrokerName.Value(brokerName),
+			)
+		cancel()
+		if err != nil || info.RowsAffected == 0 {
+			hub.log.Warn(fmt.Sprintf("节点 %s(%d) 修改上线状态失败：%v", inet, id, err))
+			return err
+		}
+	}
 	defer func() {
-		dctx, dcancel := context.WithTimeout(context.Background(), 3*time.Minute)
-		ret, exx := monTbl.WithContext(dctx).
-			Where(monTbl.ID.Eq(id)).
-			Where(monTbl.BrokerID.Eq(hub.bid)).
-			Where(monTbl.Status.Eq(online)).
-			UpdateSimple(monTbl.Status.Value(offline))
+		dctx, dcancel := context.WithTimeout(context.Background(), time.Minute)
+		ret, exx := minionTbl.WithContext(dctx).
+			Where(minionTbl.BrokerID.Eq(hub.bid), minionTbl.Status.Eq(online), minionTbl.ID.Eq(id)).
+			UpdateSimple(minionTbl.Status.Value(offline))
 		dcancel()
 		if exx != nil || ret.RowsAffected == 0 {
-			hub.log.Warn(fmt.Sprintf("节点 %s(%d) 修改下线状态错误: %v", inet, id, exx))
+			hub.log.Error(fmt.Sprintf("节点 %s(%d) 修改下线状态错误: %v", inet, id, exx))
 		} else {
 			hub.log.Info(fmt.Sprintf("节点 %s(%d) 修改下线状态成功", inet, id))
 		}
 	}()
 
+	{
+		ctx, cancel := context.WithTimeout(parent, 20*time.Second)
+		// 每次上线都要重新初始化内置标签，长时间运行后，服务器可能重装系统。
+		_ = hub.qry.Transaction(func(tx *query.Query) error {
+			const kind = model.TkLifelong
+			tags := model.MinionTags{
+				&model.MinionTag{MinionID: id, Tag: inet, Kind: kind},
+			}
+			if goos := ident.Goos; goos != "" {
+				tags = append(tags, &model.MinionTag{MinionID: id, Tag: goos, Kind: kind})
+			}
+			if arch := ident.Arch; arch != "" {
+				tags = append(tags, &model.MinionTag{MinionID: id, Tag: arch, Kind: kind})
+			}
+
+			minionTagTbl := tx.MinionTag
+			dao := minionTagTbl.WithContext(ctx)
+			// 1. 删除所有的内置标签
+			_, _ = dao.Where(minionTagTbl.MinionID.Eq(id), minionTagTbl.Kind.Eq(int8(kind))).Delete()
+			// 2. 插入新的内置标签
+			_ = dao.Clauses(clause.OnConflict{DoNothing: true}).Create(tags...)
+
+			return nil
+		})
+
+		cancel()
+	}
 	srv := &http.Server{
 		Handler: hub.handler,
 		BaseContext: func(net.Listener) context.Context {
@@ -388,4 +375,69 @@ func (hub *minionHub) forwardError(w http.ResponseWriter, r *http.Request, err e
 	}
 
 	_ = pd.JSON(w)
+}
+
+func (hub *minionHub) lookupOrCreate(ctx context.Context, ident gateway.Ident) (*model.Minion, error) {
+	if ident.MachineID != "" {
+		return hub.lookupByMachineID(ctx, ident)
+	}
+
+	tbl := hub.qry.Minion
+	dao := tbl.WithContext(ctx)
+
+	// FIXME 搜索条件暂时忽略机器 ID，因为 3.0 升级到 4.0 有可能某些原因回退到低版本，
+	// 	尽管此时已经绑定了机器 ID。
+	inet := ident.Inet.String()
+	mon1, err1 := dao.Where(tbl.Inet.Eq(inet) /*, tbl.MachineID.Eq("")*/).First()
+	if err1 == nil {
+		return mon1, nil
+	}
+
+	return hub.createNew(ctx, ident)
+}
+
+func (hub *minionHub) lookupByMachineID(ctx context.Context, ident gateway.Ident) (*model.Minion, error) {
+	machineID := ident.MachineID
+
+	tbl := hub.qry.Minion
+	dao := tbl.WithContext(ctx)
+	mon, err := dao.Where(tbl.MachineID.Eq(machineID)).First()
+	if err == nil {
+		return mon, nil
+	}
+
+	// 尝试通过 inet 查找（自动给老的 agent 绑定机器码）
+	inet := ident.Inet.String()
+	mon1, err1 := dao.Where(tbl.Inet.Eq(inet), tbl.MachineID.Eq("")).First()
+	if err1 == nil {
+		// 关联绑定机器 ID
+		_, _ = dao.Where(tbl.ID.Eq(mon1.ID)).UpdateSimple(tbl.MachineID.Value(machineID))
+		return mon1, nil
+	}
+
+	return hub.createNew(ctx, ident)
+}
+
+func (hub *minionHub) createNew(ctx context.Context, ident gateway.Ident) (*model.Minion, error) {
+	data := &model.Minion{
+		MachineID:  ident.MachineID,
+		Inet:       ident.Inet.String(),
+		MAC:        ident.MAC,
+		Goos:       ident.Goos,
+		Arch:       ident.Arch,
+		Edition:    ident.Semver,
+		Status:     model.MSOffline,
+		Uptime:     sql.NullTime{Time: time.Now(), Valid: true},
+		Unload:     ident.Unload,
+		Unstable:   ident.Unstable,
+		Customized: ident.Customized,
+	}
+
+	tbl := hub.qry.Minion
+	dao := tbl.WithContext(ctx)
+	if err := dao.Create(data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

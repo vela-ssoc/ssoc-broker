@@ -19,7 +19,6 @@ type connect struct {
 	ident gateway.Ident
 	issue gateway.Issue
 	mux   *smux.Session
-	// mux   spdy.Muxer
 }
 
 func (c *connect) Ident() gateway.Ident { return c.ident }

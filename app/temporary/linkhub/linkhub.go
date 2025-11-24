@@ -471,7 +471,7 @@ func (hub *minionHub) Upgrade(c *ship.Context) error {
 	}
 
 	enc, exx := ciphertext.EncryptPayload(hide)
-	if err != nil {
+	if exx != nil {
 		return exx
 	}
 	stm := gridfs.Merge(file, enc)

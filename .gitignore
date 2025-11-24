@@ -21,7 +21,10 @@
 ssoc-broker*
 vela-broker*
 
+resources/agent/*
 !resources/log/.gitkeep
 resources/log/
 resources/elkeid/
 resources/cdn/
+.crash
+.crash.txt

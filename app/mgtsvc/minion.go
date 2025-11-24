@@ -10,7 +10,7 @@ import (
 
 type MinionService interface {
 	LightID(ctx context.Context, id int64) (*param.MinionLight, error)
-	Substances(ctx context.Context, light *param.MinionLight) ([]*model.Substance, error)
+	Substances(ctx context.Context, light *param.MinionLight) (model.Substances, error)
 }
 
 func Minion(qry *query.Query) MinionService {
@@ -37,7 +37,7 @@ func (biz *minionService) LightID(ctx context.Context, mid int64) (*param.Minion
 	return ret, nil
 }
 
-func (biz *minionService) Substances(ctx context.Context, light *param.MinionLight) ([]*model.Substance, error) {
+func (biz *minionService) Substances(ctx context.Context, light *param.MinionLight) (model.Substances, error) {
 	if light.Unload {
 		return nil, nil
 	}
@@ -67,6 +67,15 @@ func (biz *minionService) Substances(ctx context.Context, light *param.MinionLig
 	if len(subIDs) != 0 {
 		dao.Or(subTbl.ID.In(subIDs...))
 	}
+	subs, err := dao.Find()
+	if len(subs) == 0 {
+		return subs, err
+	}
+	// 剔除排除的配置
+	excTbl := biz.qry.MinionSubstanceExclude
+	excDao := excTbl.WithContext(ctx)
+	excludes, _ := excDao.Where(excTbl.MinionID.Eq(mid)).Find()
+	subs = model.MinionSubstanceExcludes(excludes).Filter(subs)
 
-	return dao.Find()
+	return subs, nil
 }

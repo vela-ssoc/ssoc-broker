@@ -5,63 +5,13 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mba/definition"
 	"gorm.io/gen/field"
-	"gorm.io/gorm"
 )
 
 func (biz *agentService) ReloadStartup(_ context.Context, mid int64) error {
 	task := &startupTask{biz: biz, mid: mid}
 	biz.pool.Go(task.Run)
 	return nil
-}
-
-func (biz *agentService) findStartup(ctx context.Context, mid int64) (*definition.Startup, error) {
-	tbl := biz.qry.Startup
-	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(mid)).First()
-	if err == gorm.ErrRecordNotFound {
-		dat, err = biz.store.Startup(ctx)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	ret := biz.convertStartup(dat)
-	return ret, nil
-}
-
-func (*agentService) convertStartup(dat *model.Startup) *definition.Startup {
-	node := dat.Node
-	cons := dat.Console
-	logg := dat.Logger
-
-	exts := make([]*definition.StartupExtend, 0, 8)
-	for _, e := range dat.Extends {
-		exts = append(exts, &definition.StartupExtend{
-			Name:  e.Name,
-			Type:  e.Type,
-			Value: e.Value,
-		})
-	}
-
-	return &definition.Startup{
-		Node: definition.StartupNode{DNS: node.DNS, Prefix: node.Prefix},
-		Logger: definition.StartupLogger{
-			Level:    logg.Level,
-			Filename: logg.Filename,
-			Console:  logg.Console,
-			Format:   logg.Format,
-			Caller:   logg.Caller,
-			Skip:     logg.Skip,
-		},
-		Console: definition.StartupConsole{
-			Enable:  cons.Enable,
-			Network: cons.Network,
-			Address: cons.Address,
-			Script:  cons.Script,
-		},
-		Extends: exts,
-	}
 }
 
 type startupTask struct {
@@ -74,7 +24,7 @@ func (st *startupTask) Run() {
 	defer cancel()
 
 	mid := st.mid
-	startup, err := st.biz.findStartup(ctx, mid)
+	startup, err := st.getStartup(ctx, mid)
 	if err != nil {
 		return
 	}
@@ -95,4 +45,31 @@ func (st *startupTask) Run() {
 	_, _ = tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(mid)).
 		UpdateSimple(assigns...)
+}
+
+func (st *startupTask) getStartup(ctx context.Context, mid int64) (*model.StartupFallback, error) {
+	{
+		tbl := st.biz.qry.Startup
+		dao := tbl.WithContext(ctx)
+		dat, err := dao.Where(tbl.ID.Eq(mid)).First()
+		if err == nil && dat.Logger != nil {
+			ret := &model.StartupFallback{
+				ID:        mid,
+				Logger:    *dat.Logger,
+				CreatedAt: dat.CreatedAt,
+				UpdatedAt: dat.UpdatedAt,
+			}
+			return ret, nil
+		}
+	}
+
+	tbl := st.biz.qry.StartupFallback
+	dao := tbl.WithContext(ctx)
+	ret, err := dao.Order(tbl.ID.Desc()).First()
+	if err != nil {
+		return nil, err
+	}
+	ret.ID = mid
+
+	return ret, nil
 }

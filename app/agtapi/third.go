@@ -3,6 +3,7 @@ package agtapi
 import (
 	"mime"
 	"net/http"
+	"strconv"
 
 	"github.com/vela-ssoc/ssoc-broker/app/agtsvc"
 	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
@@ -10,28 +11,29 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Third(svc agtsvc.ThirdService) route.Router {
+func Third(svc *agtsvc.Third) route.Router {
 	return &thirdREST{
 		svc: svc,
 	}
 }
 
 type thirdREST struct {
-	svc agtsvc.ThirdService
+	svc *agtsvc.Third
 }
 
-func (rest *thirdREST) Route(r *ship.RouteGroupBuilder) {
-	r.Route("/broker/third").Data(route.Named("agent 下载三方文件")).GET(rest.Download)
+func (thr *thirdREST) Route(r *ship.RouteGroupBuilder) {
+	r.Route("/broker/third").Data(route.Named("agent 下载三方文件")).GET(thr.download)
+	r.Route("/broker/thirds").Data(route.Named("三方文件列表")).GET(thr.list)
 }
 
-func (rest *thirdREST) Download(c *ship.Context) error {
+func (thr *thirdREST) download(c *ship.Context) error {
 	var req param.ThirdDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
 
 	ctx := c.Request().Context()
-	third, file, err := rest.svc.Open(ctx, req.Name)
+	third, file, err := thr.svc.Open(ctx, req.Name)
 	if err != nil {
 		c.Infof("查找 3rd %s 错误：%s", req.Name, err)
 		return ship.ErrNotFound
@@ -44,12 +46,28 @@ func (rest *thirdREST) Download(c *ship.Context) error {
 	}
 
 	params := map[string]string{
-		"filename": third.Name,
-		"hash":     third.Hash,
+		"filename":   third.Name,
+		"hash":       third.Hash,
+		"customized": third.Customized,
+		"extension":  third.Extension,
+		"desc":       third.Desc,
+		"id":         strconv.FormatInt(third.ID, 10),
 	}
 	disposition := mime.FormatMediaType("attachment", params)
 	c.Header().Set(ship.HeaderContentLength, file.ContentLength())
 	c.Header().Set(ship.HeaderContentDisposition, disposition)
 
 	return c.Stream(http.StatusOK, file.ContentType(), file)
+}
+
+func (thr *thirdREST) list(c *ship.Context) error {
+	ctx := c.Request().Context()
+	customized := c.Query("customized")
+	pattern := c.Query("pattern")
+	ret, err := thr.svc.List(ctx, customized, pattern)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, ret)
 }

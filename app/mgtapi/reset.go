@@ -13,13 +13,11 @@ func Reset(
 	store storage.Storer,
 	esCfg elastic.Configurer,
 	ntf ntfmatch.Matcher,
-	// emc dong.Configurer,
 ) route.Router {
 	return &resetREST{
 		store: store,
 		esCfg: esCfg,
 		ntf:   ntf,
-		// emc:   emc,
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/vela-ssoc/ssoc-broker/app/agtapi"
 	"github.com/vela-ssoc/ssoc-broker/app/agtsvc"
@@ -19,6 +20,7 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
 	"github.com/vela-ssoc/ssoc-broker/foreign/bytedance"
+	"github.com/vela-ssoc/ssoc-broker/library/pipelog"
 	"github.com/vela-ssoc/ssoc-common-mb/accord"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
@@ -32,24 +34,28 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
-	"github.com/vela-ssoc/ssoc-common-mb/profile"
+	//"github.com/vela-ssoc/ssoc-common-mb/profile"
 	"github.com/vela-ssoc/ssoc-common-mb/shipx"
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
-	"github.com/vela-ssoc/ssoc-common-mb/validate"
+	"github.com/vela-ssoc/ssoc-common-mb/validation"
+	"github.com/vela-ssoc/ssoc-common/logger"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 // Run 运行服务
 func Run(parent context.Context, hide *negotiate.Hide) error {
-	tempLogCfg := profile.Logger{Console: true}
-	logWriter := tempLogCfg.LogWriter()
-	logOption := &slog.HandlerOptions{AddSource: true, Level: logWriter.Level()}
-	logHandler := slog.NewJSONHandler(logWriter, logOption)
+	// 项目启动时默认初始化一个日志输出，方便启动前调试。
+	logLevel := new(slog.LevelVar)
+	logLevel.Set(slog.LevelDebug)
+	initLogOption := &slog.HandlerOptions{AddSource: true, Level: logLevel}
+	tint := logger.NewTint(os.Stdout, initLogOption) // 默认初始化日志输出。
+	logHandler := logger.Multi(tint)
 	log := slog.New(logHandler)
+	log.Info("日志组件初始化完毕")
 
 	link, err := telecom.Dial(parent, hide, log) // 与中心端建立连接
 	if err != nil {
@@ -64,19 +70,21 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	//goland:noinspection GoUnhandledErrorResult
 	defer logCfg.Close()
 
-	logWriter.Discard()
-	if logCfg.Console {
-		logWriter.Attach(os.Stdout)
-	}
-	if lumber := logCfg.Logger; lumber != nil && lumber.Filename != "" {
-		logWriter.Attach(lumber)
-	}
-	_ = logWriter.Level().UnmarshalText([]byte(logCfg.Level))
+	//logHandler.Replace()
+	//if logCfg.Console {
+	//	logWriter.Attach(os.Stdout)
+	//}
+	//if lumber := logCfg.Logger; lumber != nil && lumber.Filename != "" {
+	//	logWriter.Attach(lumber)
+	//}
+	//_ = logWriter.Level().UnmarshalText([]byte(logCfg.Level))
 	log.Info("日志组件初始化完毕")
 
 	dbCfg := issue.Database
-	gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
-	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: gormLogLevel})
+
+	gormLog := logger.NewGorm(logHandler, gormlogger.Config{LogLevel: gormlogger.Info})
+	// gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
+	// gormLog, _ := sqldb.NewLog(os.Stdout, gormlogger.Config{LogLevel: gormLogLevel})
 	gormCfg := &gorm.Config{Logger: gormLog}
 	db, err := sqldb.Open(dbCfg.DSN, gormCfg)
 	if err != nil {
@@ -116,7 +124,11 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	name := link.Name()
 	pbh := problem.NewHandle(name)
 
-	valid := validate.New()
+	valid := validation.New()
+	if err = valid.RegisterCustomValidations(validation.Extensions()); err != nil {
+		return err
+	}
+
 	agt := ship.Default()
 	mgt := ship.Default()
 	mgt.Logger = shipx.NewLog(log)
@@ -145,6 +157,12 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	hub := mlink.LinkHub(qry, link, agt, nodeEventService, log)
 	_ = hub.ResetDB()
 
+	const consoleDir = "resources/agent/console"
+	if err = os.MkdirAll(consoleDir, 0o777); err != nil {
+		return err
+	}
+	pipeFS := pipelog.NewFS(consoleDir, 10*1024*1024, time.Minute)
+
 	minionService := mgtsvc.Minion(qry)
 	agentService := mgtsvc.Agent(qry, hub, minionService, store, log)
 	nodeEventService.SetService(agentService)
@@ -152,6 +170,8 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	{
 		agentREST := mgtapi.Agent(agentService)
 		agentREST.Route(mv1)
+
+		mgtapi.NewAgentConsole(pipeFS).Route(mv1)
 
 		intoService := mgtsvc.Into(hub)
 		intoREST := mgtapi.Into(intoService)
@@ -175,6 +195,9 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	}
 
 	{
+		agentConsoleAPI := agtapi.NewAgentConsole(pipeFS)
+		agentConsoleAPI.Route(av1)
+
 		agentEmergencySnapshotSvc := agtsvc.NewAgentEmergencySnapshot(qry, log)
 		agentEmergencySnapshotAPI := agtapi.NewAgentEmergencySnapshot(agentEmergencySnapshotSvc)
 		agentEmergencySnapshotAPI.Route(av1)
@@ -185,7 +208,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 		bpfREST := agtapi.BPF()
 		bpfREST.Route(av1)
 
-		collectService := agtsvc.Collect(qry)
+		collectService := agtsvc.NewCollect(qry)
 		collectREST := agtapi.Collect(qry, collectService)
 		collectREST.Route(av1)
 
@@ -214,7 +237,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 		taskREST := agtapi.Task(qry)
 		taskREST.Route(av1)
 
-		thirdService := agtsvc.Third(qry, gfs)
+		thirdService := agtsvc.NewThird(qry, gfs)
 		thirdREST := agtapi.Third(thirdService)
 		thirdREST.Route(av1)
 
@@ -229,7 +252,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 
 	oldHandler := linkhub.New(db, qry, link, log, gfs)
 	temp := temporary.REST(oldHandler, valid, log)
-	gw := gateway.New(hub)
+	gw := gateway.New(hub, valid)
 	deployService := agtsvc.Deploy(qry, store, gfs, ident.ID)
 	deployAPI := agtapi.Deploy(deployService)
 
@@ -243,6 +266,13 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	api.Route("/v1/edition/upgrade").GET(oldHandler.Upgrade)
 	api.Route("/api/v1/deploy/minion").GET(deployAPI.Script)
 	api.Route("/api/v1/deploy/minion/download").GET(deployAPI.MinionDownload)
+	{
+		routes := []shipx.RouteBinder{}
+		baseAPI := mux.Group("/api/v1")
+		if err = shipx.BindRouters(baseAPI, routes); err != nil {
+			return err
+		}
+	}
 
 	errCh := make(chan error, 1)
 	// 监听本地端口用于 minion 节点连接
