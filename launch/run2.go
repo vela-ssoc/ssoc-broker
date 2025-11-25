@@ -195,6 +195,7 @@ func Exec(ctx context.Context, pfl profile.Reader[config.Config]) error {
 
 		routes := []shipx.RouteBinder{
 			shipx.NewPprof(),
+			managerapi.NewAgentConsole(pipeFS),
 			managerapi.NewPing(),
 		}
 		baseAPI := managerHandler.Group("/api/v1")

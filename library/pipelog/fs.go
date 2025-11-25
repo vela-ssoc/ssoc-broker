@@ -10,6 +10,7 @@ import (
 type FS interface {
 	io.Closer
 	Open(name string) (File, error)
+	Remove(name string) error
 }
 
 func NewFS(dir string, maxsize int64, idle time.Duration) FS {

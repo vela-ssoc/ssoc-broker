@@ -21,6 +21,7 @@ type AgentConsole struct {
 
 func (ac *AgentConsole) BindRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/agent/console/watch").GET(ac.watch)
+	rgb.Route("/agent/console/remove").GET(ac.remove)
 	return nil
 }
 
@@ -50,4 +51,14 @@ func (ac *AgentConsole) watch(c *ship.Context) error {
 	}
 
 	return nil
+}
+
+func (ac *AgentConsole) remove(c *ship.Context) error {
+	req := new(request.Int64ID)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+	name := strconv.FormatInt(req.ID, 10)
+
+	return ac.fs.Remove(name)
 }
