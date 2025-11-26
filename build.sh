@@ -1,21 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# 1. 获取程序名。
-DIR_NAME=$(basename $(pwd))
-VER=$(TZ="UTC" date -d "$(git log -1 --format=%cd --date=iso)"  +"%y.%-m.%-d-%H%M%S")
-BIN_NAME=${DIR_NAME}"-"v$VER$(go env GOEXE)
-echo "程序名为："${BIN_NAME}
+set -eu
 
-# 2. 如果执行的是清理命令，清理完就退出。
-go clean -cache
-if [ "$1" = "clean" ]; then
-    rm -rf ${DIR_NAME}*
-    echo "清理结束"
-    exit 0
-fi
+BASE_NAME=$(basename $(pwd))
+VERSION=$(TZ=UTC git log -1 --format="%cd" --date=format-local:"v%-y.%-m.%-d-%H%M%S")
+CURRENT_TIME=$(date -u +"%FT%TZ")
 
-NOW=$(date)
-LDFLAGS="-s -w -X 'github.com/vela-ssoc/ssoc-broker/banner.compileTime=$NOW'"
-go build -o ${BIN_NAME} -trimpath -v -ldflags "$LDFLAGS" ./main
+BINARY_NAME="${BASE_NAME}_$(go env GOOS)-$(go env GOARCH)_${VERSION}$(go env GOEXE)"
+LD_FLAGS="-s -w -X 'github.com/vela-ssoc/ssoc-common/banner.compileTime=${CURRENT_TIME}'"
+CGO_ENABLED=1 go build -o "${BINARY_NAME}" -trimpath -ldflags "${LD_FLAGS}" ./main
 
-echo "编译结束"
+echo "编译完成：${BINARY_NAME}"

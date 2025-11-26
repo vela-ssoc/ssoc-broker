@@ -9,13 +9,17 @@ on:
 
 jobs:
   build:
+    # 在之前，GitHub Actions 中只提供 ubuntu-latest, ubuntu-22.04, ubuntu-20.04 几种 linux 编译机，
+    # 静态编译且在 centos7 上运行，只能选 ubuntu-20.04，现在 GitHub 已经不再提供。
+    # 生产环境中大多为 centos7 (3.10 内核)
+    # https://github.blog/changelog/2025-01-15-github-actions-ubuntu-20-runner-image-brownout-dates-and-other-breaking-changes/#ubuntu-20-image-is-closing-down
     runs-on: ubuntu-20.04
 
     steps:
       - name: 编译 libpcap
         run: |          
           # 下载并编译静态 libpcap
-          wget http://www.tcpdump.org/release/libpcap-1.10.5.tar.gz
+          wget https://www.tcpdump.org/release/libpcap-1.10.5.tar.gz
           tar -xzf libpcap-1.10.5.tar.gz
           cd libpcap-1.10.5
           ./autogen.sh
