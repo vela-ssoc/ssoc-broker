@@ -1,24 +1,22 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
 name: 静态编译
 
 on:
-  #  push:
-  #    branches:
-  #      - main
-  # pull_request:
   workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  build:
-    # 在之前，GitHub Actions 中只提供 ubuntu-latest, ubuntu-22.04, ubuntu-20.04 几种 linux 编译机，
-    # 静态编译且在 centos7 上运行，只能选 ubuntu-20.04，现在 GitHub 已经不再提供。
-    # 生产环境中大多为 centos7 (3.10 内核)
-    # https://github.blog/changelog/2025-01-15-github-actions-ubuntu-20-runner-image-brownout-dates-and-other-breaking-changes/#ubuntu-20-image-is-closing-down
-    runs-on: ubuntu-20.04
 
+  build:
+    runs-on: ubuntu-latest
     steps:
       - name: 编译 libpcap
-        run: |          
-          # 下载并编译静态 libpcap
+        run: |
           wget https://www.tcpdump.org/release/libpcap-1.10.5.tar.gz
           tar -xzf libpcap-1.10.5.tar.gz
           cd libpcap-1.10.5
@@ -26,30 +24,25 @@ jobs:
           ./configure --enable-static --disable-shared
           make -j$(nproc)
           sudo make install
-          cd ..
-          
+
           # 确保 libpcap.a 存在
           ls -l /usr/local/lib/libpcap.a
 
-      - name: 安装 Go 环境
-        uses: actions/setup-go@v5
+      - name: 拉取代码
+        uses: actions/checkout@v6
+
+      - name: 安装 Go SDK
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.24
+          go-version-file: go.mod
           check-latest: true
 
-      - name: 拉取代码
-        uses: actions/checkout@v4
+      - name: 编译 linux-amd64
+        run: sh build-static.sh
 
-      - name: 编译程序
-        run: |
-          export CGO_ENABLED=1
-          export CC=gcc
-          export CGO_CFLAGS="-I/usr/local/include"
-          export CGO_LDFLAGS="-L/usr/local/lib -lpcap -static"
-          sh build.sh
-
-      - name: 上传文件
-        uses: actions/upload-artifact@v4
+      - name: 上传产物
+        uses: actions/upload-artifact@v5
         with:
-          name: ssoc-broker-static
-          path: ssoc-broker-*
+          retention-days: 30
+          name: ssoc-broker
+          path: ssoc-broker_*
