@@ -20,12 +20,12 @@ type AgentConsole struct {
 }
 
 func (ac *AgentConsole) BindRoute(rgb *ship.RouteGroupBuilder) error {
-	rgb.Route("/agent/console/watch").GET(ac.watch)
-	rgb.Route("/agent/console/remove").GET(ac.remove)
+	rgb.Route("/agent/console/read").GET(ac.read)
+	rgb.Route("/console/remove").POST(ac.remove)
 	return nil
 }
 
-func (ac *AgentConsole) watch(c *ship.Context) error {
+func (ac *AgentConsole) read(c *ship.Context) error {
 	req := new(request.Int64ID)
 	if err := c.BindQuery(req); err != nil {
 		return err

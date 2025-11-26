@@ -21,6 +21,7 @@ type AgentConsole struct {
 
 func (ac *AgentConsole) Route(r *ship.RouteGroupBuilder) {
 	r.Route("/agent/console/read").GET(ac.read)
+	r.Route("/console/remove").POST(ac.remove)
 }
 
 func (ac *AgentConsole) read(c *ship.Context) error {
@@ -74,6 +75,16 @@ func (ac *AgentConsole) read(c *ship.Context) error {
 	return nil
 }
 
+func (ac *AgentConsole) remove(c *ship.Context) error {
+	req := new(agentConsoleRemove)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+	name := strconv.FormatInt(req.ID, 10)
+
+	return ac.fs.Remove(name)
+}
+
 type agentConsoleRead struct {
 	ID int64 `json:"id" form:"id" query:"id" validate:"required"`
 	N  int   `json:"n"  form:"n"  query:"n"  validate:"required"`
@@ -82,4 +93,8 @@ type agentConsoleRead struct {
 type agentConsoleStat struct {
 	Size    int64 `json:"size"`
 	Maxsize int64 `json:"maxsize"`
+}
+
+type agentConsoleRemove struct {
+	ID int64 `json:"id" form:"id" query:"id" validate:"required"`
 }
