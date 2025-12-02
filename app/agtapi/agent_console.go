@@ -2,6 +2,8 @@ package agtapi
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"strconv"
@@ -55,7 +57,15 @@ func (ac *AgentConsole) write(c *ship.Context) error {
 	if !bytes.HasSuffix(msg, []byte("\n")) {
 		msg = append(msg, '\n')
 	}
-	f, err := ac.fs.Open(name)
+
+	var from string // 配置脚本名
+	if fv, exists := data["from"]; exists {
+		from, _ = fv.(string)
+	}
+	sum := sha1.Sum([]byte(from)) // 将文件名 hash 一下，防止文件包含敏感字符文件系统冲突
+	fullname := name + "-" + hex.EncodeToString(sum[:])
+
+	f, err := ac.fs.Open(fullname)
 	if err != nil {
 		return err
 	}

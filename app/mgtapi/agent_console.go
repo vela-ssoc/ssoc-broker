@@ -1,6 +1,8 @@
 package mgtapi
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"strconv"
 	"time"
 
@@ -36,7 +38,10 @@ func (ac *AgentConsole) read(c *ship.Context) error {
 		return ship.ErrUnsupportedMediaType
 	}
 
-	name := strconv.FormatInt(req.ID, 10)
+	id := strconv.FormatInt(req.ID, 10)
+	sum := sha1.Sum([]byte(req.From))
+	name := id + "-" + hex.EncodeToString(sum[:])
+
 	ctx := r.Context()
 	f, err := ac.fs.Open(name)
 	if err != nil {
@@ -49,8 +54,8 @@ func (ac *AgentConsole) read(c *ship.Context) error {
 	}
 	_ = sse.JSON("stat", stat)
 
-	f.Subscriber(sse, req.N)
-	defer f.Unsubscriber(sse)
+	ac.fs.Subscriber(sse, name, req.N)
+	defer ac.fs.Unsubscriber(sse, name)
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
@@ -80,14 +85,17 @@ func (ac *AgentConsole) remove(c *ship.Context) error {
 	if err := c.Bind(req); err != nil {
 		return err
 	}
-	name := strconv.FormatInt(req.ID, 10)
+	id := strconv.FormatInt(req.ID, 10)
+	sum := sha1.Sum([]byte(req.From))
+	name := id + "-" + hex.EncodeToString(sum[:])
 
 	return ac.fs.Remove(name)
 }
 
 type agentConsoleRead struct {
-	ID int64 `json:"id" form:"id" query:"id" validate:"required"`
-	N  int   `json:"n"  form:"n"  query:"n"  validate:"required"`
+	ID   int64  `json:"id"   form:"id"   query:"id"   validate:"required"`
+	From string `json:"from" form:"from" query:"from" validate:"required"`
+	N    int    `json:"n"    form:"n"    query:"n"    validate:"required"`
 }
 
 type agentConsoleStat struct {
@@ -96,5 +104,6 @@ type agentConsoleStat struct {
 }
 
 type agentConsoleRemove struct {
-	ID int64 `json:"id" form:"id" query:"id" validate:"required"`
+	ID   int64  `json:"id"   form:"id"   query:"id"   validate:"required"`
+	From string `json:"from" form:"from" query:"from" validate:"required"`
 }
