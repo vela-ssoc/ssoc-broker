@@ -5,12 +5,12 @@ go 1.25.3
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
-	github.com/vela-ssoc/ssoc-common v0.0.0-20251124091543-47b09bb45696
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20251124093951-7df5a1b8738a
-	github.com/vela-ssoc/vela-common-mba v0.0.0-20251117062119-37ccc5c8527f
+	github.com/vela-ssoc/ssoc-common v0.0.0-20251210090128-59b1df3e3fb8
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20251210102015-8adba41bb27e
+	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/xgfone/ship/v5 v5.3.2
-	github.com/xtaci/smux v1.5.44
-	golang.org/x/net v0.47.0
+	github.com/xtaci/smux v1.5.46
+	golang.org/x/net v0.48.0
 	golang.org/x/time v0.14.0
 	gorm.io/gen v0.3.27
 	gorm.io/gorm v1.31.1
@@ -34,12 +34,12 @@ require (
 	github.com/lmittmann/tint v1.1.2 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
-	golang.org/x/crypto v0.45.0 // indirect
-	golang.org/x/mod v0.30.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/mod v0.31.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
+	golang.org/x/tools v0.40.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gorm.io/datatypes v1.2.7 // indirect
 	gorm.io/driver/gaussdb v0.1.0 // indirect

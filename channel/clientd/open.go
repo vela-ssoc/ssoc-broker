@@ -4,23 +4,18 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-common-mb/options"
 	"github.com/vela-ssoc/ssoc-common/linkhub"
 	"github.com/xtaci/smux"
 )
 
-func Open(ctx context.Context, cfg Config, opts ...options.Lister[option]) (Muxer, Database, error) {
+func Open(ctx context.Context, cfg Config, opt Options) (Muxer, error) {
 	if err := cfg.preparse(); err != nil {
-		return nil, Database{}, err
+		return nil, err
 	}
-
-	opts = append(opts, fallbackOption())
-	opt := options.Eval(opts...)
 
 	mux := new(safeMuxer)
 	bc := &brokerClient{
@@ -29,55 +24,49 @@ func Open(ctx context.Context, cfg Config, opts ...options.Lister[option]) (Muxe
 		mux: mux,
 		ctx: ctx,
 	}
-	dbc, err := bc.open()
-	if err != nil {
-		return nil, dbc, err
+	if err := bc.open(); err != nil {
+		return nil, err
 	}
+	go bc.serve()
 
-	ln := &muxerListener{mux: mux}
-	go bc.serve(ln)
-
-	return mux, dbc, nil
+	return mux, nil
 }
 
 type brokerClient struct {
 	cfg Config
-	opt option
+	opt Options
 	mux *safeMuxer
 	ctx context.Context
 }
 
-// open 持续尝试连接 manager 直至成功或错误。
-func (bc *brokerClient) open() (Database, error) {
+// open 持续尝试连接 manager 直至成功或遇到不可重试错误。
+func (bc *brokerClient) open() error {
 	addrs := bc.cfg.Addresses
-	timeout := bc.opt.timeout
-	bc.log().Info("准备建立连接通道", "addresses", addrs)
+	timeout := bc.opt.timeout()
+	attrs := []any{slog.Any("addresses", addrs), slog.Duration("timeout", timeout)}
+	bc.opt.logger().Info("开始连接认证", attrs...)
 
 	beginAt := time.Now()
 	var fails int
 	for {
-		attrs := []any{
-			slog.Any("addresses", addrs),
-			slog.Duration("timeout", timeout),
-		}
 		sess, resp, err := bc.connects(addrs, timeout)
 		if err == nil {
-			bc.mux.store(sess)
-			bc.log().Info("broker 通道连接认证成功", attrs...)
-			return resp.Database, nil
+			bc.mux.replace(sess, resp.BootConfig)
+			bc.opt.logger().Info("通道连接认证成功", attrs...)
+			return nil
 		}
 
 		fails++
 		du := bc.waitN(fails, beginAt)
-		attrs = append(attrs, slog.Time("begin_at", beginAt))
-		attrs = append(attrs, slog.Int("fails", fails))
-		attrs = append(attrs, slog.Duration("timeout", timeout))
-		attrs = append(attrs, slog.Any("error", err))
-		bc.log().Warn("broker 通道连接或认证失败，稍后重试", attrs...)
+		msgs := append(attrs, slog.Time("begin_at", beginAt))
+		msgs = append(msgs, slog.Int("fails", fails))
+		msgs = append(msgs, slog.Duration("sleep", du))
+		msgs = append(msgs, slog.Any("error", err))
+		bc.opt.logger().Warn("通道连接或认证失败，稍后重试", attrs...)
 		if err = bc.sleep(du); err != nil {
 			attrs = append(attrs, slog.Any("sleep_error", err))
-			bc.log().Error("context 取消，退出重连机制", attrs...)
-			return Database{}, err
+			bc.opt.logger().Error("context 取消，退出重连机制", attrs...)
+			return err
 		}
 	}
 }
@@ -89,7 +78,6 @@ func (bc *brokerClient) connects(addrs []string, timeout time.Duration) (*smux.S
 		if err == nil {
 			return sess, resp, nil
 		}
-
 		errs = append(errs, err)
 	}
 
@@ -97,10 +85,14 @@ func (bc *brokerClient) connects(addrs []string, timeout time.Duration) (*smux.S
 }
 
 func (bc *brokerClient) connect(addr string, timeout time.Duration) (*smux.Session, *authResponse, error) {
-	sess, err := bc.dial(addr, timeout)
+	sess, err := bc.openSMUX(addr, timeout)
 	if err != nil {
+		bc.opt.logger().Warn("基础 TCP 网络连接错误", "addr", addr, "error", err)
 		return nil, nil, err
 	}
+
+	bc.opt.logger().Info("基础 TCP 网络连接成功", "addr", addr)
+
 	resp, err := bc.authentication(sess, timeout)
 	if err != nil {
 		_ = sess.Close()
@@ -108,17 +100,20 @@ func (bc *brokerClient) connect(addr string, timeout time.Duration) (*smux.Sessi
 	}
 	if err = resp.checkError(); err != nil {
 		_ = sess.Close()
+		bc.opt.logger().Warn("上线认证失败", "error", err)
 		return nil, nil, err
 	}
+	bc.opt.logger().Info("上线认证成功")
 
 	return sess, resp, nil
 }
 
-func (bc *brokerClient) dial(addr string, timeout time.Duration) (*smux.Session, error) {
+func (bc *brokerClient) openSMUX(addr string, timeout time.Duration) (*smux.Session, error) {
+	dialer := bc.opt.dialer()
+
 	ctx, cancel := context.WithTimeout(bc.ctx, timeout)
 	defer cancel()
 
-	dialer := bc.opt.dialer
 	destURL := &url.URL{Scheme: "ws", Host: addr, Path: "/api/v1/tunnel"}
 	ws, _, err := dialer.DialContext(ctx, destURL.String(), nil)
 	if err != nil {
@@ -137,6 +132,7 @@ func (bc *brokerClient) dial(addr string, timeout time.Duration) (*smux.Session,
 func (bc *brokerClient) authentication(sess *smux.Session, timeout time.Duration) (*authResponse, error) {
 	pre, err := sess.OpenStream()
 	if err != nil {
+		bc.opt.logger().Warn("打开认证虚拟子流错误", "error", err)
 		return nil, err
 	}
 	//goland:noinspection GoUnhandledErrorResult
@@ -145,41 +141,40 @@ func (bc *brokerClient) authentication(sess *smux.Session, timeout time.Duration
 
 	req := &authRequest{Secret: bc.cfg.Secret, Semver: bc.cfg.Semver}
 	if err = linkhub.WriteAuth(pre, req); err != nil {
+		bc.opt.logger().Warn("写入认证请求数据出错", "error", err)
 		return nil, err
 	}
+	bc.opt.logger().Info("写入认证请求数据成功")
 
 	resp := new(authResponse)
 	if err = linkhub.ReadAuth(pre, resp); err != nil {
+		bc.opt.logger().Warn("读取认证响应数据出错", "error", err)
 		return nil, err
 	}
+	bc.opt.logger().Info("读取认证响应数据成功")
 
 	return resp, nil
 }
 
-func (bc *brokerClient) serve(ln net.Listener) {
-	const sleep = 3 * time.Second
-
+func (bc *brokerClient) serve() {
 	for {
-		han := bc.opt.handler
-		srv := &http.Server{Handler: han}
-		err := srv.Serve(ln)
-		_ = ln.Close()
+		hand := bc.opt.handler()
+		srv := &http.Server{
+			Handler:      hand,
+			WriteTimeout: 30 * time.Second,
+			IdleTimeout:  30 * time.Second,
+		}
+		lis := &muxerListener{mux: bc.mux}
+		err := srv.Serve(lis)
+		_ = lis.Close()
 
-		attrs := []any{slog.Any("error", err), slog.Duration("timeout", sleep)}
-		bc.log().Warn("broker 掉线了", attrs...)
+		const sleep = 3 * time.Second
+		bc.opt.logger().Warn("broker 掉线了", "error", err, "sleep", sleep)
 		_ = bc.sleep(sleep)
-		if _, err = bc.open(); err != nil {
+		if err = bc.open(); err != nil {
 			break
 		}
 	}
-}
-
-func (bc *brokerClient) log() *slog.Logger {
-	if l := bc.opt.logger; l != nil {
-		return l
-	}
-
-	return slog.Default()
 }
 
 func (bc *brokerClient) sleep(d time.Duration) error {

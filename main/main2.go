@@ -10,11 +10,11 @@ import (
 	"runtime/debug"
 	"syscall"
 
-	"github.com/vela-ssoc/ssoc-broker/launch"
+	"github.com/vela-ssoc/ssoc-broker/execute"
 	"github.com/vela-ssoc/ssoc-common/banner"
 )
 
-func main_() {
+func main1() {
 	args := os.Args
 	name := filepath.Base(args[0])
 	set := flag.NewFlagSet(name, flag.ExitOnError)
@@ -37,7 +37,7 @@ func main_() {
 	ctx, cancel := signal.NotifyContext(context.Background(), signals...)
 	defer cancel()
 
-	if err := launch.Run2(ctx, *cfg); err != nil {
+	if err := execute.Exec(ctx, *cfg); err != nil {
 		slog.Error("服务运行错误", slog.Any("error", err))
 	} else {
 		slog.Info("服务停止运行")

@@ -9,61 +9,47 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func NewOption() OptionBuilder {
-	return OptionBuilder{}
+type Options struct {
+	// Handler 提供给 manager 调用服务接口。
+	Handler http.Handler
+
+	// Logger 日志。
+	Logger *slog.Logger
+
+	// Timeout 分别控制连接的超时和握手读写超时时间。
+	Timeout time.Duration
 }
 
-type OptionBuilder struct {
-	opts []func(before option) (after option)
+func (opt Options) logger() *slog.Logger {
+	if log := opt.Logger; log != nil {
+		return log
+	}
+
+	return slog.Default()
 }
 
-func (ob OptionBuilder) List() []func(option) option {
-	return ob.opts
+func (opt Options) handler() http.Handler {
+	if h := opt.Handler; h != nil {
+		return h
+	}
+	opt.logger().Warn("broker 客户端没有配置 http handler，会导致 manager ⇋ broker 无法业务调用")
+
+	return http.NotFoundHandler()
 }
 
-func (ob OptionBuilder) Logger(v *slog.Logger) OptionBuilder {
-	ob.opts = append(ob.opts, func(o option) option {
-		o.logger = v
-		return o
-	})
-	return ob
+func (opt Options) timeout() time.Duration {
+	if timeout := opt.Timeout; timeout > 0 {
+		return timeout
+	}
+
+	return 30 * time.Second
 }
 
-func (ob OptionBuilder) Handler(v http.Handler) OptionBuilder {
-	ob.opts = append(ob.opts, func(o option) option {
-		o.handler = v
-		return o
-	})
-	return ob
-}
-
-type option struct {
-	handler http.Handler
-	logger  *slog.Logger
-	dialer  *websocket.Dialer
-	timeout time.Duration
-}
-
-func fallbackOption() OptionBuilder {
-	return OptionBuilder{
-		opts: []func(option) option{
-			func(o option) option {
-				if o.handler == nil {
-					o.handler = http.NotFoundHandler()
-				}
-				if o.timeout <= 0 {
-					o.timeout = 30 * time.Second
-				}
-				if o.dialer == nil {
-					o.dialer = &websocket.Dialer{
-						Proxy:            http.ProxyFromEnvironment,
-						TLSClientConfig:  &tls.Config{InsecureSkipVerify: true},
-						HandshakeTimeout: o.timeout,
-					}
-				}
-
-				return o
-			},
+func (opt Options) dialer() *websocket.Dialer {
+	return &websocket.Dialer{
+		HandshakeTimeout: opt.timeout(),
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
 		},
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 )
 
 type Config struct {
@@ -16,10 +15,10 @@ type Config struct {
 
 func (c *Config) preparse() error {
 	if c.Secret == "" {
-		return errors.New("broker 连接密钥必须填写")
+		return errors.New("密钥必须填写")
 	}
 	if c.Semver == "" {
-		return errors.New("broker 版本号必须填写")
+		return errors.New("版本号必须填写")
 	}
 
 	uniq := make(map[string]struct{}, 16)
@@ -47,9 +46,9 @@ type authRequest struct {
 }
 
 type authResponse struct {
-	Code     int      `json:"code"`
-	Message  string   `json:"message"`
-	Database Database `json:"database"`
+	Code       int        `json:"code"`        // 状态码，2xx 为成功，其他为失败
+	Message    string     `json:"message"`     // 错误说明信息
+	BootConfig BootConfig `json:"boot_config"` // 认证成功后下发的启动配置
 }
 
 func (ar *authResponse) String() string {
@@ -65,17 +64,10 @@ func (ar *authResponse) checkError() error {
 		return nil
 	}
 
-	return fmt.Errorf("broker 认证失败: %s (%d)", ar.Message, ar.Code)
+	return fmt.Errorf("认证失败: %s (%d)", ar.Message, ar.Code)
 }
 
-func (ar *authResponse) duplicate() bool {
+// isConflict 该节点是否重复上线。
+func (ar *authResponse) isConflict() bool {
 	return ar.Code == http.StatusConflict
-}
-
-type Database struct {
-	DSN         string        `json:"dsn"           validate:"required"`
-	MaxOpenConn int           `json:"max_open_conn"`
-	MaxIdleConn int           `json:"max_idle_conn"`
-	MaxLifeTime time.Duration `json:"max_life_time"`
-	MaxIdleTime time.Duration `json:"max_idle_time"`
 }

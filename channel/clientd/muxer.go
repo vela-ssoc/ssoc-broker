@@ -2,60 +2,66 @@ package clientd
 
 import (
 	"context"
-	"errors"
 	"net"
-	"sync/atomic"
+	"sync"
+	"time"
 
 	"github.com/xtaci/smux"
 )
+
+type BootConfig struct {
+	DSN         string        `json:"dsn"           validate:"required"`
+	MaxOpenConn int           `json:"max_open_conn"`
+	MaxIdleConn int           `json:"max_idle_conn"`
+	MaxLifeTime time.Duration `json:"max_life_time"`
+	MaxIdleTime time.Duration `json:"max_idle_time"`
+}
 
 type Muxer interface {
 	// OpenConn 开启一个虚拟子流。
 	OpenConn(ctx context.Context) (net.Conn, error)
 
-	// IsClosed 判断底层连接是否关闭。
-	IsClosed() bool
+	// BootConfig 连接中心端成功后，中心端给 broker 下发启动配置。
+	BootConfig() BootConfig
 }
 
 type safeMuxer struct {
-	ptr atomic.Pointer[smux.Session]
+	mtx sync.RWMutex
+	ses *smux.Session
+	cfg BootConfig
 }
 
 func (sm *safeMuxer) OpenConn(context.Context) (net.Conn, error) {
-	sess := sm.ptr.Load()
-	if sess == nil {
-		return nil, errors.New("session uninitialized")
-	}
-
-	if stm, err := sess.OpenStream(); err != nil {
+	ses := sm.session()
+	stm, err := ses.OpenStream()
+	if err != nil {
 		return nil, err
-	} else {
-		return stm, nil
 	}
+
+	return stm, nil
 }
 
-func (sm *safeMuxer) IsClosed() bool {
-	if sess := sm.load(); sess != nil {
-		return sess.IsClosed()
-	}
+func (sm *safeMuxer) BootConfig() BootConfig {
+	sm.mtx.RLock()
+	cfg := sm.cfg
+	sm.mtx.RUnlock()
 
-	return false
+	return cfg
 }
 
-func (sm *safeMuxer) store(sess *smux.Session) {
-	if sess == nil {
-		panic("nil session is not allowed")
-	}
+func (sm *safeMuxer) session() *smux.Session {
+	sm.mtx.RLock()
+	ses := sm.ses
+	sm.mtx.RUnlock()
 
-	sm.ptr.Store(sess)
+	return ses
 }
 
-func (sm *safeMuxer) load() *smux.Session {
-	if sess := sm.ptr.Load(); sess != nil {
-		return sess
-	}
-
-	panic("session uninitialized")
+func (sm *safeMuxer) replace(ses *smux.Session, cfg BootConfig) {
+	sm.mtx.Lock()
+	sm.ses = ses
+	sm.cfg = cfg
+	sm.mtx.Unlock()
 }
 
 type muxerListener struct {
@@ -63,8 +69,8 @@ type muxerListener struct {
 }
 
 func (m *muxerListener) Accept() (net.Conn, error) {
-	sess := m.mux.load()
-	if stm, err := sess.AcceptStream(); err != nil {
+	ses := m.mux.session()
+	if stm, err := ses.AcceptStream(); err != nil {
 		return nil, err
 	} else {
 		return stm, nil
@@ -72,11 +78,13 @@ func (m *muxerListener) Accept() (net.Conn, error) {
 }
 
 func (m *muxerListener) Close() error {
-	return m.mux.load().Close()
+	ses := m.mux.session()
+	return ses.Close()
 }
 
 func (m *muxerListener) Addr() net.Addr {
-	return m.mux.load().LocalAddr()
+	ses := m.mux.session()
+	return ses.LocalAddr()
 }
 
 func NewEqualDialer(mux Muxer, host string) *EqualDialer {
