@@ -34,7 +34,6 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
-	//"github.com/vela-ssoc/ssoc-common-mb/profile"
 	"github.com/vela-ssoc/ssoc-common-mb/shipx"
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
@@ -47,6 +46,8 @@ import (
 )
 
 // Run 运行服务
+//
+//goland:noinspection GoUnhandledErrorResult
 func Run(parent context.Context, hide *negotiate.Hide) error {
 	// 项目启动时默认初始化一个日志输出，方便启动前调试。
 	logLevel := new(slog.LevelVar)
@@ -67,24 +68,13 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	log.Info("broker接入认证成功", slog.Any("ident", ident), slog.Any("issue", issue))
 
 	logCfg := issue.Logger
-	//goland:noinspection GoUnhandledErrorResult
 	defer logCfg.Close()
 
-	//logHandler.Replace()
-	//if logCfg.Console {
-	//	logWriter.Attach(os.Stdout)
-	//}
-	//if lumber := logCfg.Logger; lumber != nil && lumber.Filename != "" {
-	//	logWriter.Attach(lumber)
-	//}
-	//_ = logWriter.Level().UnmarshalText([]byte(logCfg.Level))
 	log.Info("日志组件初始化完毕")
 
 	dbCfg := issue.Database
 
 	gormLog := logger.NewGorm(logHandler, gormlogger.Config{LogLevel: gormlogger.Info})
-	// gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
-	// gormLog, _ := sqldb.NewLog(os.Stdout, gormlogger.Config{LogLevel: gormLogLevel})
 	gormCfg := &gorm.Config{Logger: gormLog}
 	db, err := sqldb.Open(dbCfg.DSN, gormCfg)
 	if err != nil {
