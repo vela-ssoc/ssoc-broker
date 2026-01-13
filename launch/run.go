@@ -54,7 +54,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	logLevel.Set(slog.LevelDebug)
 	initLogOption := &slog.HandlerOptions{AddSource: true, Level: logLevel}
 	tint := logger.NewTint(os.Stdout, initLogOption) // 默认初始化日志输出。
-	logHandler := logger.Multi(tint)
+	logHandler := logger.NewMultiHandler(tint)
 	log := slog.New(logHandler)
 	log.Info("日志组件初始化完毕")
 
@@ -115,7 +115,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	pbh := problem.NewHandle(name)
 
 	valid := validation.New()
-	if err = valid.RegisterCustomValidations(validation.Extensions()); err != nil {
+	if err = valid.RegisterCustomValidations(validation.All()); err != nil {
 		return err
 	}
 
@@ -208,7 +208,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 		elkeidFS := bytedance.ElkeidFS("resources/elkeid/", cli)
 		agtapi.Reverse(elkeidFS).Route(av1)
 
-		heartREST := agtapi.Heart()
+		heartREST := agtapi.Heart(qry)
 		heartREST.Route(av1)
 
 		proxyAPI := agtapi.Proxy(link.DialContext)

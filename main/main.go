@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"syscall"
 
 	"github.com/vela-ssoc/ssoc-broker/hideconf"
 	"github.com/vela-ssoc/ssoc-broker/launch"
@@ -32,10 +31,9 @@ func main() {
 		return
 	}
 
-	cares := []os.Signal{syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL, syscall.SIGINT}
-	ctx, cancel := signal.NotifyContext(context.Background(), cares...)
-	defer cancel()
 	slog.Info("按 Ctrl+C 结束运行")
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
 
 	if err = launch.Run(ctx, hide); err != nil {
 		slog.Error("程序运行错误", slog.Any("error", err))
