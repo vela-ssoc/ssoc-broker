@@ -5,52 +5,30 @@ name: 编译下载
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [ "main" ]
-  # pull_request:
-  #   branches: [ "main" ]
+  push:
+    branches:
+      - v2
 
 jobs:
-
-  build-windows:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: 安装 Go 环境
-      uses: actions/setup-go@v5
-      with:
-        go-version: 1.24
-        check-latest: true
-
-    - name: 编译程序
-      run: sh build.sh
-
-    - name: 下载文件
-      uses: actions/upload-artifact@v4
-      with:
-        name: vela-broker-windows
-        path: vela-broker-*
-
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: 检出代码
+        uses: actions/checkout@v6
 
-      - name: 安装 libpcap-dev
-        run: sudo apt install -y libpcap-dev
-
-      - name: 安装 Go 环境
-        uses: actions/setup-go@v5
+      - name: 安装环境
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.24
+          go-version-file: go.mod
           check-latest: true
 
       - name: 编译程序
         run: sh build.sh
 
-      - name: 下载文件
-        uses: actions/upload-artifact@v4
+      - name: 上传产物
+        uses: actions/upload-artifact@v5
         with:
-          name: ssoc-broker-linux
-          path: ssoc-broker-*
+          name: ssoc-broker
+          path: |
+            ssoc-broker_*
+            resources/log/

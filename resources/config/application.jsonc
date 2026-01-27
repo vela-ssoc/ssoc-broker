@@ -1,0 +1,8 @@
+{
+  "secret": "9f6f6e85ca7cc70ce758a0b71ebfef31ddcf5",
+  "protocol": "smux", // smux/yamux
+  "addresses": [
+    "ssoc-broker.example.com",
+    "10.23.45.66:8443"
+  ]
+}

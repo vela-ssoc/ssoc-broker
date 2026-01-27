@@ -6,38 +6,34 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"runtime/debug"
 
-	"github.com/vela-ssoc/ssoc-broker/hideconf"
 	"github.com/vela-ssoc/ssoc-broker/launch"
 	"github.com/vela-ssoc/ssoc-common/banner"
 )
 
 func main() {
-	var version bool
-	var config string
-	flag.BoolVar(&version, "v", false, "打印版本号")
-	if hideconf.DevMode { // 开发模式：go build -tags=dev
-		flag.StringVar(&config, "c", "broker.jsonc", "配置文件")
-	}
-	flag.Parse()
-
-	if _, _ = banner.ANSI(os.Stdout); version {
+	set := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	ver := set.Bool("v", false, "打印版本")
+	cfg := set.String("c", "resources/config/application.jsonc", "配置文件")
+	_ = set.Parse(os.Args[1:])
+	if _, _ = banner.ANSI(os.Stdout); *ver {
 		return
 	}
 
-	hide, err := hideconf.Read(config)
-	if err != nil {
-		slog.Error("读取 hide 配置错误", slog.Any("error", err), slog.String("config", config))
-		return
+	for _, str := range []string{"resources/.crash.txt", ".crash.txt"} {
+		if f, _ := os.Create(str); f != nil {
+			_ = debug.SetCrashOutput(f, debug.CrashOptions{})
+			_ = f.Close()
+			break
+		}
 	}
 
-	slog.Info("按 Ctrl+C 结束运行")
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	if err = launch.Run(ctx, hide); err != nil {
-		slog.Error("程序运行错误", slog.Any("error", err))
-	}
+	err := launch.Run(ctx, *cfg)
+	cause := context.Cause(ctx)
 
-	slog.Info("程序运行结束")
+	slog.Warn("服务停止运行", "error", err, "cause", cause)
 }
