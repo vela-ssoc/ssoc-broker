@@ -40,10 +40,13 @@ jobs:
           echo "正在编译 $GOOS - $GOARCH"
           sh build.sh
 
+      - name: 生成打包时间
+        run: echo "BUILD_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
       - name: 上传产物
         uses: actions/upload-artifact@v5
         with:
-          name: ssoc-broker-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: ssoc-broker_${{ matrix.goos }}-${{ matrix.goarch }}_${{ env.BUILD_DATE }}
           path: |
             ssoc-broker_*
             resources/log/
