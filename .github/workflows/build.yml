@@ -15,8 +15,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        goos: [ linux, windows, darwin ]
-        goarch: [ amd64, arm64 ]
+        goos:
+          - linux
+          - windows
+          - darwin
+        goarch:
+          - amd64
+          - arm64
         exclude:
           - goos: windows
             goarch: arm64   # 排除不用的组合
