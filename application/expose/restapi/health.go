@@ -6,8 +6,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-type Health struct {
-}
+type Health struct{}
 
 func NewHealth() *Health {
 	return &Health{}

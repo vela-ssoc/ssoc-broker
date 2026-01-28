@@ -108,7 +108,6 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		log.Error("连接中心端失败", "error", err)
 		return err
 	}
-	defer mux.Close()
 	log.Info("连接中心端成功")
 
 	bootCfg := mux.Config()
@@ -189,6 +188,10 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	_ = httpSrv.Close()
 	_ = httpsSrv.Close()
 	_ = curBrokerSvc.ResetAgents(10 * time.Second)
+	_ = mux.Close()
+
+	cause := context.Cause(ctx)
+	log.Error("程序停止运行", "error", err, "cause", cause)
 
 	return err
 }
