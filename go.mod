@@ -4,9 +4,10 @@ go 1.25.6
 
 require (
 	github.com/VictoriaMetrics/metrics v1.40.2
+	github.com/grafana/pyroscope-go v1.2.7
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/vela-ssoc/ssoc-common v0.0.0-20260128083257-09643a6bfc20
-	github.com/vela-ssoc/ssoc-proto v0.0.0-20260128054557-d59a2630ae1b
+	github.com/vela-ssoc/ssoc-common v0.0.0-20260129013908-82a9403eeebd
+	github.com/vela-ssoc/ssoc-proto v0.0.0-20260128092148-328f6253fae8
 	github.com/xgfone/ship/v5 v5.3.2
 	golang.org/x/time v0.14.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -23,12 +24,14 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.9 // indirect
 	github.com/hashicorp/yamux v0.1.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/klauspost/compress v1.18.3 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lmittmann/tint v1.1.2 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect

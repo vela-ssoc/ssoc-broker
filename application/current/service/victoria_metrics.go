@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 
@@ -30,12 +31,20 @@ func (vm *VictoriaMetrics) Load(ctx context.Context) (string, *metrics.PushOptio
 		return "", nil, err
 	}
 
+	headers := dat.Header.Pairs()
+	if dat.Username != "" || dat.Password != "" {
+		auth := dat.Username + ":" + dat.Password
+		basic := base64.StdEncoding.EncodeToString([]byte(auth))
+		pair := "Authorization: Basic " + basic
+		headers = append(headers, pair)
+	}
+
 	opts := &metrics.PushOptions{
-		Headers: dat.Header,
+		Headers: headers,
 		Method:  dat.Method,
 	}
 
-	return dat.URL, nil, nil
+	return dat.URL, opts, nil
 }
 
 func (vm *VictoriaMetrics) enabled(ctx context.Context) (*model.VictoriaMetrics, error) {

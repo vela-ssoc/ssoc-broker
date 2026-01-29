@@ -9,19 +9,26 @@ import (
 	"os"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-broker/application/cronjob"
 	curservice "github.com/vela-ssoc/ssoc-broker/application/current/service"
 	exprestapi "github.com/vela-ssoc/ssoc-broker/application/expose/restapi"
+	mgtrestapi "github.com/vela-ssoc/ssoc-broker/application/manager/restapi"
+	mgtservice "github.com/vela-ssoc/ssoc-broker/application/manager/service"
 	"github.com/vela-ssoc/ssoc-broker/config"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
 	"github.com/vela-ssoc/ssoc-common/appcfg"
+	"github.com/vela-ssoc/ssoc-common/cronv3"
 	"github.com/vela-ssoc/ssoc-common/datalayer/query"
 	"github.com/vela-ssoc/ssoc-common/logger"
+	"github.com/vela-ssoc/ssoc-common/muxserver"
 	"github.com/vela-ssoc/ssoc-common/preadtls"
 	"github.com/vela-ssoc/ssoc-common/shipx"
 	"github.com/vela-ssoc/ssoc-common/sqldb"
 	"github.com/vela-ssoc/ssoc-common/tlscert"
 	"github.com/vela-ssoc/ssoc-common/validation"
 	"github.com/vela-ssoc/ssoc-proto/muxconn"
+	"github.com/vela-ssoc/ssoc-proto/muxproto"
+	"github.com/vela-ssoc/ssoc-proto/muxtool"
 	"github.com/vela-ssoc/ssoc-proto/stegano"
 	"github.com/xgfone/ship/v5"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -75,7 +82,7 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	}
 	log.Info("隐写配置读取成功")
 
-	shipLog := logger.NewShip(logh)
+	shipLog := logger.NewFormat(logh, 6)
 	mgtSH := ship.Default()
 	mgtSH.Validator = valid
 	mgtSH.Logger = shipLog
@@ -122,14 +129,34 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	qry := query.Use(db)
 
 	curBrokerSvc := curservice.NewBroker(hide.Secret, qry, log)
+	this, err := curBrokerSvc.Get(ctx)
+	if err != nil {
+		log.Error("获取当前 broker 信息错误", "error", err)
+		return err
+	}
+
+	muxopen := muxproto.NewMUXOpener(mux, muxproto.ManagerDomain)
+	mixdial := muxserver.NewMixedDialer(muxopen)
+	baseCli := muxtool.NewClient(mixdial, log)
+
+	curPyroscopeSvc := curservice.NewPyroscope(this, qry, log)
+	if err1 := curPyroscopeSvc.Start(ctx); err1 != nil {
+		log.Warn("启动 pyroscope 出错", "error", err1)
+	}
+
+	curVictoriaMetricsSvc := curservice.NewVictoriaMetrics(qry, log)
+	mgtTunnelSvc := mgtservice.NewTunnel(mux, log)
 
 	// httpRoutes 和 httpsRoutes 均为需要暴露的路由。
 	// 由于 http 不安全，所以仅挂载必要的 agent 兼容业务。
 	httpRoutes := []shipx.RouteBinder{
-		exprestapi.NewHealth(),
+		exprestapi.NewHealth(baseCli),
+		mgtrestapi.NewTunnel(mgtTunnelSvc),
 	}
 	httpsRoutes := []shipx.RouteBinder{}
-	mgtRoutes := []shipx.RouteBinder{}
+	mgtRoutes := []shipx.RouteBinder{
+		mgtrestapi.NewTunnel(mgtTunnelSvc),
+	}
 	agtRoutes := []shipx.RouteBinder{}
 	{
 		base := httpSH.Group("/api/v1")
@@ -161,6 +188,17 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		}
 	}
 
+	cronTasks := []cronv3.Tasker{
+		cronjob.NewMetrics(this, mux, curVictoriaMetricsSvc.Load),
+	}
+
+	crontab := cronv3.New(log)
+	crontab.Start()
+	if err = crontab.AddTasks(cronTasks); err != nil {
+		log.Error("定时任务注册出错", "error", err)
+		return err
+	}
+
 	lis, err := preadtls.ListenTCP(":8082", 10*time.Second)
 	if err != nil {
 		log.Error("服务监听出错", "error", err)
@@ -185,10 +223,12 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	case err = <-errs:
 	}
 
+	crontab.Stop()
 	_ = httpSrv.Close()
 	_ = httpsSrv.Close()
 	_ = curBrokerSvc.ResetAgents(10 * time.Second)
 	_ = mux.Close()
+	_ = curPyroscopeSvc.Stop()
 
 	cause := context.Cause(ctx)
 	log.Error("程序停止运行", "error", err, "cause", cause)
