@@ -58,7 +58,7 @@ func (py *Pyroscope) Start(ctx context.Context) error {
 		pyroscope.ProfileBlockDuration,
 	}
 
-	log := logger.NewFormat(py.log.Handler(), 5)
+	log := logger.NewFormat(py.log.Handler(), 6)
 	cfg := pyroscope.Config{
 		ApplicationName:   muxproto.BrokerDomain,
 		Tags:              map[string]string{"instance": strID},
