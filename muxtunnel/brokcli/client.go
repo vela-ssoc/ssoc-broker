@@ -148,9 +148,13 @@ func (bc *brokClient) serveHTTP() {
 		srv := &http.Server{Handler: h}
 		err := srv.Serve(bc.mux)
 		_ = bc.mux.Close() // 确保关闭
-		bc.log().Error("客户端通道断线了", "error", err)
 
+		if cause := bc.ctx.Err(); cause != nil {
+			bc.log().Error("客户端通道退出连接", "error", err, "cause", cause)
+			break
+		}
 		// 开始重连
+		bc.log().Warn("客户端通道掉线了", "error", err)
 		if err = bc.openLoop(); err != nil {
 			break
 		}

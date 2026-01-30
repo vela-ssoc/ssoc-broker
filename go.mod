@@ -6,7 +6,7 @@ require (
 	github.com/VictoriaMetrics/metrics v1.40.2
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/vela-ssoc/ssoc-common v0.0.0-20260130051906-059254cb1396
+	github.com/vela-ssoc/ssoc-common v0.0.0-20260130070739-0887c75710bb
 	github.com/vela-ssoc/ssoc-proto v0.0.0-20260130033659-78e15dd90a84
 	github.com/xgfone/ship/v5 v5.3.2
 	golang.org/x/time v0.14.0

@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
-	"github.com/vela-ssoc/ssoc-broker/muxtunnel/bizclient"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/mgtclient"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
 )
 
-func NewHeartbeat(cli bizclient.Client, log *slog.Logger) cronv3.Tasker {
+func NewHeartbeat(cli mgtclient.Client, log *slog.Logger) cronv3.Tasker {
 	return &heartbeatPacket{
 		cli: cli,
 		log: log,
@@ -18,7 +18,7 @@ func NewHeartbeat(cli bizclient.Client, log *slog.Logger) cronv3.Tasker {
 }
 
 type heartbeatPacket struct {
-	cli   bizclient.Client
+	cli   mgtclient.Client
 	log   *slog.Logger
 	fails int // 连续失败的次数
 }

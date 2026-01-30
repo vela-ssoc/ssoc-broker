@@ -9,14 +9,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-broker/application/cronjob"
+	"github.com/vela-ssoc/ssoc-broker/application/current/cronjob"
 	curservice "github.com/vela-ssoc/ssoc-broker/application/current/service"
 	exprestapi "github.com/vela-ssoc/ssoc-broker/application/expose/restapi"
 	mgtrestapi "github.com/vela-ssoc/ssoc-broker/application/manager/restapi"
 	mgtservice "github.com/vela-ssoc/ssoc-broker/application/manager/service"
 	"github.com/vela-ssoc/ssoc-broker/config"
-	"github.com/vela-ssoc/ssoc-broker/muxtunnel/bizclient"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/mgtclient"
 	"github.com/vela-ssoc/ssoc-common/appcfg"
 	"github.com/vela-ssoc/ssoc-common/banner"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
@@ -38,7 +38,7 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
-func Run(ctx context.Context, cfg string) error {
+func Exec(ctx context.Context, cfg string) error {
 	var acr appcfg.Reader[config.Hide]
 	if cfg != "" {
 		acr = appcfg.NewJSON[config.Hide](cfg)
@@ -46,11 +46,11 @@ func Run(ctx context.Context, cfg string) error {
 		acr = stegano.Binary[config.Hide](os.Args[0])
 	}
 
-	return Exec(ctx, acr)
+	return Run(ctx, acr)
 }
 
 //goland:noinspection GoUnhandledErrorResult
-func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
+func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	// 项目启动时还未连接到中心端，此时要默认一个日志输出。
 	logOpts := &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}
 	tmpLumber := &lumberjack.Logger{
@@ -141,7 +141,7 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	muxopen := muxproto.NewMUXOpener(mux, muxproto.ManagerDomain)
 	mixdial := muxserver.NewMixedDialer(muxopen)
 	basecli := muxtool.NewClient(mixdial, log)
-	bizcli := bizclient.NewClient(basecli)
+	bizcli := mgtclient.NewClient(basecli)
 
 	curPyroscopeSvc := curservice.NewPyroscope(this, qry, log)
 	if err1 := curPyroscopeSvc.Start(ctx); err1 != nil {

@@ -32,7 +32,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	err := launch.Run(ctx, *cfg)
+	err := launch.Exec(ctx, *cfg)
 	cause := context.Cause(ctx)
 
 	slog.Warn("服务停止运行", "error", err, "cause", cause)

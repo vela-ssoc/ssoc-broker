@@ -1,4 +1,4 @@
-package bizclient
+package mgtclient
 
 import (
 	"context"
