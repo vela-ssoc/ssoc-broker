@@ -3,8 +3,8 @@ package restapi
 import (
 	"net/http"
 
-	"github.com/vela-ssoc/ssoc-broker/application/manager/request"
 	"github.com/vela-ssoc/ssoc-broker/application/manager/service"
+	"github.com/vela-ssoc/ssoc-common/tundata/mbreq"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -32,7 +32,7 @@ func (tnl *Tunnel) stat(c *ship.Context) error {
 }
 
 func (tnl *Tunnel) limit(c *ship.Context) error {
-	req := new(request.TunnelLimit)
+	req := new(mbreq.TunnelLimit)
 	if err := c.Bind(req); err != nil {
 		return err
 	}

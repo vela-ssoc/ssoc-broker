@@ -3,9 +3,9 @@ package service
 import (
 	"log/slog"
 
-	"github.com/vela-ssoc/ssoc-broker/application/manager/request"
-	"github.com/vela-ssoc/ssoc-broker/application/manager/response"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
+	"github.com/vela-ssoc/ssoc-common/tundata/mbreq"
+	"github.com/vela-ssoc/ssoc-common/tundata/mbresp"
 	"golang.org/x/time/rate"
 )
 
@@ -21,19 +21,19 @@ func NewTunnel(mux brokcli.Muxer, log *slog.Logger) *Tunnel {
 	}
 }
 
-func (tnl *Tunnel) Stat() *response.TunnelStat {
+func (tnl *Tunnel) Stat() *mbresp.TunnelStat {
 	rx, tx := tnl.mux.Traffic()
 	bps := tnl.mux.Limit()
 
-	return &response.TunnelStat{
-		RX:        rx,
-		TX:        tx,
-		Limit:     float64(bps),
-		Unlimited: bps == rate.Inf,
+	return &mbresp.TunnelStat{
+		RX:      rx,
+		TX:      tx,
+		Limit:   float64(bps),
+		Unlimit: bps == rate.Inf,
 	}
 }
 
-func (tnl *Tunnel) Limit(req *request.TunnelLimit) {
+func (tnl *Tunnel) Limit(req *mbreq.TunnelLimit) {
 	bps := req.Rate()
 	tnl.mux.SetLimit(bps)
 }

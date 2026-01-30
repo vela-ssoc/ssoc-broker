@@ -139,9 +139,10 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	}
 
 	muxopen := muxproto.NewMUXOpener(mux, muxproto.ManagerDomain)
-	mixdial := muxserver.NewMixedDialer(muxopen)
+	sysdial := new(net.Dialer)
+	mixdial := muxserver.NewMixedDialer(muxopen, nil, sysdial)
 	basecli := muxtool.NewClient(mixdial, log)
-	bizcli := mgtclient.NewClient(basecli)
+	mgtcli := mgtclient.NewClient(basecli)
 
 	curPyroscopeSvc := curservice.NewPyroscope(this, qry, log)
 	if err1 := curPyroscopeSvc.Start(ctx); err1 != nil {
@@ -193,7 +194,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	}
 
 	cronTasks := []cronv3.Tasker{
-		cronjob.NewHeartbeat(bizcli, log),
+		cronjob.NewHeartbeat(mgtcli, log),
 		cronjob.NewMetrics(this, mux, curVictoriaMetricsSvc.Load),
 	}
 
