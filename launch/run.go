@@ -15,8 +15,10 @@ import (
 	mgtrestapi "github.com/vela-ssoc/ssoc-broker/application/manager/restapi"
 	mgtservice "github.com/vela-ssoc/ssoc-broker/application/manager/service"
 	"github.com/vela-ssoc/ssoc-broker/config"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/bizclient"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
 	"github.com/vela-ssoc/ssoc-common/appcfg"
+	"github.com/vela-ssoc/ssoc-common/banner"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
 	"github.com/vela-ssoc/ssoc-common/datalayer/query"
 	"github.com/vela-ssoc/ssoc-common/logger"
@@ -99,10 +101,11 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	agtSH.Validator = valid
 	agtSH.Logger = shipLog
 
+	semver := banner.Version()
 	brokOpts := brokcli.Options{
 		Secret:    hide.Secret,
 		Addresses: hide.Addresses,
-		Semver:    hide.Semver,
+		Semver:    semver,
 		Handler:   mgtSH,
 		Validator: valid.Validate,
 		DialConfig: muxconn.DialConfig{
@@ -137,7 +140,8 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 
 	muxopen := muxproto.NewMUXOpener(mux, muxproto.ManagerDomain)
 	mixdial := muxserver.NewMixedDialer(muxopen)
-	baseCli := muxtool.NewClient(mixdial, log)
+	basecli := muxtool.NewClient(mixdial, log)
+	bizcli := bizclient.NewClient(basecli)
 
 	curPyroscopeSvc := curservice.NewPyroscope(this, qry, log)
 	if err1 := curPyroscopeSvc.Start(ctx); err1 != nil {
@@ -150,7 +154,7 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	// httpRoutes 和 httpsRoutes 均为需要暴露的路由。
 	// 由于 http 不安全，所以仅挂载必要的 agent 兼容业务。
 	httpRoutes := []shipx.RouteBinder{
-		exprestapi.NewHealth(baseCli),
+		exprestapi.NewHeartbeat(),
 		mgtrestapi.NewTunnel(mgtTunnelSvc),
 	}
 	httpsRoutes := []shipx.RouteBinder{}
@@ -189,6 +193,7 @@ func Exec(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	}
 
 	cronTasks := []cronv3.Tasker{
+		cronjob.NewHeartbeat(bizcli, log),
 		cronjob.NewMetrics(this, mux, curVictoriaMetricsSvc.Load),
 	}
 

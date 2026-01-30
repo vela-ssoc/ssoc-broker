@@ -35,7 +35,7 @@ type metricsJob struct {
 	label string
 }
 
-func (vm *metricsJob) Info() cronv3.TaskInfo {
+func (*metricsJob) Info() cronv3.TaskInfo {
 	return cronv3.TaskInfo{
 		Name:      "上报系统指标",
 		Timeout:   9 * time.Second,
@@ -43,23 +43,23 @@ func (vm *metricsJob) Info() cronv3.TaskInfo {
 	}
 }
 
-func (vm *metricsJob) Call(ctx context.Context) error {
-	pushURL, opts, err := vm.cfg(ctx)
+func (m *metricsJob) Call(ctx context.Context) error {
+	pushURL, opts, err := m.cfg(ctx)
 	if err != nil {
 		return err
 	}
-	opts.ExtraLabels = vm.label
+	opts.ExtraLabels = m.label
 
-	return metrics.PushMetricsExt(ctx, pushURL, vm.defaultWrite, opts)
+	return metrics.PushMetricsExt(ctx, pushURL, m.defaultWrite, opts)
 }
 
-func (vm *metricsJob) defaultWrite(w io.Writer) {
+func (m *metricsJob) defaultWrite(w io.Writer) {
 	metrics.WritePrometheus(w, true)
 	metrics.WriteFDMetrics(w)
 
-	rx, tx := vm.mux.Traffic()
-	rxName := fmt.Sprintf("tunnel_receive_bytes{%s}", vm.label)
-	txName := fmt.Sprintf("tunnel_transmit_bytes{%s}", vm.label)
+	rx, tx := m.mux.Traffic()
+	rxName := fmt.Sprintf("tunnel_receive_bytes{%s}", m.label)
+	txName := fmt.Sprintf("tunnel_transmit_bytes{%s}", m.label)
 	metrics.WriteCounterUint64(w, rxName, rx)
 	metrics.WriteCounterUint64(w, txName, tx)
 }
