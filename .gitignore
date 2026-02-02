@@ -103,5 +103,6 @@ crash.txt
 *.crash.txt
 *.cast
 *.upx
-*.jsonl
 *.mmdb
+*.jsonl
+*.jsonl.gz

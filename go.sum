@@ -15,8 +15,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
-github.com/gabriel-vasile/mimetype v1.4.12 h1:e9hWvmLYvtp846tLHam2o++qitpguFiYCKbn0w9jyqw=
-github.com/gabriel-vasile/mimetype v1.4.12/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
+github.com/gabriel-vasile/mimetype v1.4.13 h1:46nXokslUBsAJE/wMsp5gtO500a4F3Nkz9Ufpk2AcUM=
+github.com/gabriel-vasile/mimetype v1.4.13/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
 github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=
 github.com/go-playground/assert/v2 v2.2.0/go.mod h1:VDjEfimB/XKnb+ZQfWdccd7VUvScMdVu0Titje2rxJ4=
 github.com/go-playground/locales v0.14.1 h1:EWaQ/wswjilfKLTECiXz7Rh+3BjFhfDFKv/oXslEjJA=
@@ -100,12 +100,10 @@ github.com/valyala/fastrand v1.1.0 h1:f+5HkLW4rsgzdNoleUOB69hyT9IlD2ZQh9GyDMfb5G
 github.com/valyala/fastrand v1.1.0/go.mod h1:HWqCzkrkg6QXT8V2EXWvXCoow7vLwOFN002oeRzjapQ=
 github.com/valyala/histogram v1.2.0 h1:wyYGAZZt3CpwUiIb9AU/Zbllg1llXyrtApRS815OLoQ=
 github.com/valyala/histogram v1.2.0/go.mod h1:Hb4kBwb4UxsaNbbbh+RRz8ZR6pdodR57tzWUS3BUzXY=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260130051906-059254cb1396 h1:w8rphs4ssYcpNkxh1g/o7louRs7GyGekjnnY53kIKsA=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260130051906-059254cb1396/go.mod h1:JqBe+6HLKwooabUVFW8Tae7rtvp+DoWW/aOSivPjwwI=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260130070739-0887c75710bb h1:Ttz+BG1OKNZfhBHluZAlG6TFGRtcJWYCRzJS2xp7hcE=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260130070739-0887c75710bb/go.mod h1:JqBe+6HLKwooabUVFW8Tae7rtvp+DoWW/aOSivPjwwI=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260130033659-78e15dd90a84 h1:OaDGCCeXf7FyAMh9TtaktZTiKhCnUm7QmGdkub6uYjg=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260130033659-78e15dd90a84/go.mod h1:wFsC7xMfHDEmuc7F62kzuyrHb7SqtHPrPhOSKo2YbnA=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260202073410-f1098b7cb4fa h1:p3fWivg+WqE/fm8Kjj2hiMntBgvohZwWrz+TdYMPXdM=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260202073410-f1098b7cb4fa/go.mod h1:cgn3PaFo8916TbII+eNA3v4QyQQh+rcFRll4F1rr5a4=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260202070721-1acfa0a8f362 h1:atfVRpBtWnZRnEbzkoj2PZd4jXHCABvCD4sF6p9NYYU=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260202070721-1acfa0a8f362/go.mod h1:BMHvwLNNDseN/2yU9iqALAtAruO2P7GwP6MX3LIK9e0=
 github.com/xgfone/ship/v5 v5.3.2 h1:PFFNyCTT8psAfeizDexFX33SgFJpVikPuSMcjYxqGJA=
 github.com/xgfone/ship/v5 v5.3.2/go.mod h1:mGI+65lLL3kaOseMkWUYgy+OFl27WV2LY1NSsecu/9g=
 github.com/xtaci/smux v1.5.55 h1:BdOj0tHZmiZOeZ8VQaOKpBcuL2MIMed5Ubhn5G3xDlo=

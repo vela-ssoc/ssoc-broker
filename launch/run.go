@@ -156,10 +156,10 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	// 由于 http 不安全，所以仅挂载必要的 agent 兼容业务。
 	httpRoutes := []shipx.RouteBinder{
 		exprestapi.NewHeartbeat(),
-		mgtrestapi.NewTunnel(mgtTunnelSvc),
 	}
 	httpsRoutes := []shipx.RouteBinder{}
 	mgtRoutes := []shipx.RouteBinder{
+		mgtrestapi.NewSpeedtest(),
 		mgtrestapi.NewTunnel(mgtTunnelSvc),
 	}
 	agtRoutes := []shipx.RouteBinder{}
@@ -217,7 +217,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		return err
 	}
 
-	crtPool := tlscert.NewMatch(noneTLS, log)
+	crtPool := tlscert.NewMatch(noneTLS{}, log)
 	httpSrv := &http.Server{Handler: httpSH}
 	httpsSrv := &http.Server{Handler: httpsSH, TLSConfig: &tls.Config{GetCertificate: crtPool.GetCertificate}}
 	errs := make(chan error, 1)
@@ -250,6 +250,8 @@ func serveHTTPS(errs chan<- error, srv *http.Server, ln net.Listener) {
 	errs <- srv.ServeTLS(ln, "", "")
 }
 
-func noneTLS(context.Context) ([]*tls.Certificate, error) {
+type noneTLS struct{}
+
+func (noneTLS) LoadCertificate(context.Context) ([]*tls.Certificate, error) {
 	return nil, nil
 }
