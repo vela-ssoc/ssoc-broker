@@ -74,8 +74,8 @@ github.com/klauspost/compress v1.18.3 h1:9PJRvfbmTabkOX8moIpXPbMMbYN60bWImDDU7L+
 github.com/klauspost/compress v1.18.3/go.mod h1:R0h/fSBs8DE4ENlcrlib3PsXS61voFxhIs2DeRhCvJ4=
 github.com/leodido/go-urn v1.4.0 h1:WT9HwE9SGECu3lg4d/dIA+jxlljEa1/ffXKmRjqdmIQ=
 github.com/leodido/go-urn v1.4.0/go.mod h1:bvxc+MVxLKB4z00jd1z+Dvzr47oO32F/QSNjSBOlFxI=
-github.com/lmittmann/tint v1.1.2 h1:2CQzrL6rslrsyjqLDwD11bZ5OpLBPU+g3G/r5LSfS8w=
-github.com/lmittmann/tint v1.1.2/go.mod h1:HIS3gSy7qNwGCj+5oRjAutErFBl4BzdQP6cJZ0NfMwE=
+github.com/lmittmann/tint v1.1.3 h1:Hv4EaHWXQr+GTFnOU4VKf8UvAtZgn0VuKT+G0wFlO3I=
+github.com/lmittmann/tint v1.1.3/go.mod h1:HIS3gSy7qNwGCj+5oRjAutErFBl4BzdQP6cJZ0NfMwE=
 github.com/mattn/go-sqlite3 v1.14.15/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg=
 github.com/mattn/go-sqlite3 v1.14.16/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg=
 github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
@@ -100,10 +100,10 @@ github.com/valyala/fastrand v1.1.0 h1:f+5HkLW4rsgzdNoleUOB69hyT9IlD2ZQh9GyDMfb5G
 github.com/valyala/fastrand v1.1.0/go.mod h1:HWqCzkrkg6QXT8V2EXWvXCoow7vLwOFN002oeRzjapQ=
 github.com/valyala/histogram v1.2.0 h1:wyYGAZZt3CpwUiIb9AU/Zbllg1llXyrtApRS815OLoQ=
 github.com/valyala/histogram v1.2.0/go.mod h1:Hb4kBwb4UxsaNbbbh+RRz8ZR6pdodR57tzWUS3BUzXY=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260202073410-f1098b7cb4fa h1:p3fWivg+WqE/fm8Kjj2hiMntBgvohZwWrz+TdYMPXdM=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260202073410-f1098b7cb4fa/go.mod h1:cgn3PaFo8916TbII+eNA3v4QyQQh+rcFRll4F1rr5a4=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260202070721-1acfa0a8f362 h1:atfVRpBtWnZRnEbzkoj2PZd4jXHCABvCD4sF6p9NYYU=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260202070721-1acfa0a8f362/go.mod h1:BMHvwLNNDseN/2yU9iqALAtAruO2P7GwP6MX3LIK9e0=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260203051751-2433b726423e h1:yxvAQlCCJi/VSQqO0ZbCjYeeYCJE30krEuXPHL4BSNI=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260203051751-2433b726423e/go.mod h1:5URSKA60HnAV60c2CXiShif28xj8w/ha+j5YtLeI8Os=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260203023231-86ee9c5c0c56 h1:Y8cI9ssrc+iybufENj/sfZfjZ0/o2sRgFd8EzqgONs8=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260203023231-86ee9c5c0c56/go.mod h1:BMHvwLNNDseN/2yU9iqALAtAruO2P7GwP6MX3LIK9e0=
 github.com/xgfone/ship/v5 v5.3.2 h1:PFFNyCTT8psAfeizDexFX33SgFJpVikPuSMcjYxqGJA=
 github.com/xgfone/ship/v5 v5.3.2/go.mod h1:mGI+65lLL3kaOseMkWUYgy+OFl27WV2LY1NSsecu/9g=
 github.com/xtaci/smux v1.5.55 h1:BdOj0tHZmiZOeZ8VQaOKpBcuL2MIMed5Ubhn5G3xDlo=
