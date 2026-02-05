@@ -62,4 +62,10 @@ func (m *metricsJob) defaultWrite(w io.Writer) {
 	txName := fmt.Sprintf("tunnel_transmit_bytes{%s}", m.label)
 	metrics.WriteCounterUint64(w, rxName, rx)
 	metrics.WriteCounterUint64(w, txName, tx)
+
+	cumulative, active := m.mux.NumStreams()
+	cumulativeName := fmt.Sprintf("tunnel_cumulative_streams{%s}", m.label)
+	activeName := fmt.Sprintf("tunnel_active_streams{%s}", m.label)
+	metrics.WriteCounterUint64(w, cumulativeName, uint64(cumulative))
+	metrics.WriteCounterUint64(w, activeName, uint64(active))
 }

@@ -22,14 +22,20 @@ func NewTunnel(mux brokcli.Muxer, log *slog.Logger) *Tunnel {
 }
 
 func (tnl *Tunnel) Stat() *mbresp.TunnelStat {
+	cumulative, active := tnl.mux.NumStreams()
+	name, module := tnl.mux.Library()
 	rx, tx := tnl.mux.Traffic()
 	bps := tnl.mux.Limit()
 
 	return &mbresp.TunnelStat{
-		RX:      rx,
-		TX:      tx,
-		Limit:   float64(bps),
-		Unlimit: bps == rate.Inf,
+		Name:       name,
+		Module:     module,
+		Cumulative: cumulative,
+		Active:     active,
+		RX:         rx,
+		TX:         tx,
+		Limit:      float64(bps),
+		Unlimit:    bps == rate.Inf,
 	}
 }
 
