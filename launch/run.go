@@ -205,7 +205,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		return err
 	}
 
-	lis, err := preadtls.ListenTCP(":8082", 10*time.Second)
+	lis, err := preadtls.ListenTCP(":8101", 10*time.Second)
 	if err != nil {
 		log.Error("服务监听出错", "error", err)
 		return err

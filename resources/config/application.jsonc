@@ -1,8 +1,10 @@
 {
+  // 连接密钥，在管理端创建 broker 节点时生成。
   "secret": "9f6f6e85ca7cc70ce758a0b71ebfef31ddcf5",
-  "protocol": "smux", // smux/yamux
+  // 多路复用协议：smux/yamux
+  "protocol": "smux",
   "addresses": [
     "ssoc-broker.example.com",
-    "10.23.45.66:8443"
+    "localhost:8020"
   ]
 }
