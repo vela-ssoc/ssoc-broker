@@ -11,6 +11,7 @@ import (
 
 	"github.com/vela-ssoc/ssoc-broker/application/current/cronjob"
 	curservice "github.com/vela-ssoc/ssoc-broker/application/current/service"
+	"github.com/vela-ssoc/ssoc-broker/application/current/vmetric"
 	exprestapi "github.com/vela-ssoc/ssoc-broker/application/expose/restapi"
 	mgtrestapi "github.com/vela-ssoc/ssoc-broker/application/manager/restapi"
 	mgtservice "github.com/vela-ssoc/ssoc-broker/application/manager/service"
@@ -193,9 +194,15 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		}
 	}
 
+	extraLabels := vmetric.Label(this)
+	metricWriters := []vmetric.MetricWriter{
+		vmetric.NewPsutil(),
+		vmetric.NewTunnel(mux),
+	}
+
 	cronTasks := []cronv3.Tasker{
 		cronjob.NewHeartbeat(mgtcli, log),
-		cronjob.NewMetrics(this, mux, curVictoriaMetricsSvc.Load),
+		cronjob.NewMetrics(extraLabels, curVictoriaMetricsSvc, metricWriters),
 	}
 
 	crontab := cronv3.New(log)

@@ -25,7 +25,7 @@ func NewVictoriaMetrics(qry *query.Query, log *slog.Logger) *VictoriaMetrics {
 	return vm
 }
 
-func (vm *VictoriaMetrics) Load(ctx context.Context) (string, *metrics.PushOptions, error) {
+func (vm *VictoriaMetrics) LoadConfig(ctx context.Context) (string, *metrics.PushOptions, error) {
 	dat, err := vm.mem.Load(ctx)
 	if err != nil {
 		return "", nil, err
