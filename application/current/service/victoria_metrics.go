@@ -7,31 +7,31 @@ import (
 	"log/slog"
 
 	"github.com/VictoriaMetrics/metrics"
-	"github.com/vela-ssoc/ssoc-common/datalayer/model"
-	"github.com/vela-ssoc/ssoc-common/datalayer/query"
 	"github.com/vela-ssoc/ssoc-common/memcache"
+	"github.com/vela-ssoc/ssoc-common/store/model"
+	"github.com/vela-ssoc/ssoc-common/store/repository"
 )
 
-type VictoriaMetrics struct {
-	qry *query.Query
+type VictoriaMetricsConfig struct {
+	db  repository.Database
 	log *slog.Logger
-	mem memcache.Cache[*model.VictoriaMetrics, error]
+	mem memcache.Cache[*model.VictoriaMetricsConfig, error]
 }
 
-func NewVictoriaMetrics(qry *query.Query, log *slog.Logger) *VictoriaMetrics {
-	vm := &VictoriaMetrics{qry: qry, log: log}
+func NewVictoriaMetricsConfig(db repository.Database, log *slog.Logger) *VictoriaMetricsConfig {
+	vm := &VictoriaMetricsConfig{db: db, log: log}
 	vm.mem = memcache.NewCache(vm.enabled)
 
 	return vm
 }
 
-func (vm *VictoriaMetrics) LoadConfig(ctx context.Context) (string, *metrics.PushOptions, error) {
+func (vm *VictoriaMetricsConfig) LoadConfig(ctx context.Context) (string, *metrics.PushOptions, error) {
 	dat, err := vm.mem.Load(ctx)
 	if err != nil {
 		return "", nil, err
 	}
 
-	headers := dat.Header.Pairs()
+	headers := dat.Headers.Lines()
 	if dat.Username != "" || dat.Password != "" {
 		auth := dat.Username + ":" + dat.Password
 		basic := base64.StdEncoding.EncodeToString([]byte(auth))
@@ -47,14 +47,12 @@ func (vm *VictoriaMetrics) LoadConfig(ctx context.Context) (string, *metrics.Pus
 	return dat.URL, opts, nil
 }
 
-func (vm *VictoriaMetrics) enabled(ctx context.Context) (*model.VictoriaMetrics, error) {
-	tbl := vm.qry.VictoriaMetrics
-	dao := tbl.WithContext(ctx)
-
-	dat, err := dao.Where(tbl.Enabled.Is(true)).First()
+func (vm *VictoriaMetricsConfig) enabled(ctx context.Context) (*model.VictoriaMetricsConfig, error) {
+	coll := vm.db.VictoriaMetricsConfig()
+	cfg, err := coll.Enabled(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("查询 victoria-metrics 配置出错: %w", err)
 	}
 
-	return dat, nil
+	return cfg, nil
 }

@@ -24,13 +24,17 @@ type Options struct {
 
 func Open(ctx context.Context, opts Options) (Muxer, error) {
 	hostname, _ := os.Hostname()
-	req := &authRequest{
+	req := &muxproto.BrokerAuthRequest{
 		Secret:   opts.Secret,
 		Semver:   opts.Semver,
 		Goos:     runtime.GOOS,
 		Goarch:   runtime.GOARCH,
+		PID:      os.Getpid(),
 		Hostname: hostname,
+		Args:     os.Args,
 	}
+	req.Workdir, _ = os.Getwd()
+	req.Executable, _ = os.Executable()
 
 	mux := new(safeMUX)
 	cli := &brokClient{opts: opts, req: req, mux: mux, ctx: ctx}
@@ -46,7 +50,7 @@ func Open(ctx context.Context, opts Options) (Muxer, error) {
 
 type brokClient struct {
 	opts Options
-	req  *authRequest
+	req  *muxproto.BrokerAuthRequest
 	mux  *safeMUX
 	ctx  context.Context
 }
@@ -93,7 +97,7 @@ func (bc *brokClient) open() error {
 }
 
 //goland:noinspection GoUnhandledErrorResult
-func (bc *brokClient) authentication(mux muxconn.Muxer) (*BrokConfig, error) {
+func (bc *brokClient) authentication(mux muxconn.Muxer) (*muxproto.BrokerBootConfig, error) {
 	outbound := muxproto.Outbound(mux.Addr())
 	attrs := []any{"outbound", outbound}
 	bc.req.Inet = outbound.String()
@@ -116,16 +120,17 @@ func (bc *brokClient) authentication(mux muxconn.Muxer) (*BrokConfig, error) {
 		return nil, err
 	}
 
-	resp := new(authResponse)
+	resp := new(muxproto.BrokerAuthResponse)
 	_ = conn.SetReadDeadline(time.Now().Add(timeout))
 	if err = muxproto.ReadAuth(conn, resp); err != nil {
 		attrs = append(attrs, "error", err)
 		bc.log().Warn("读取认证报文出错", attrs...)
 		return nil, err
 	}
-	if !resp.isSucceed() {
+	if re := resp.Err(); re != nil {
+		attrs = append(attrs, "error", re)
 		bc.log().Warn("服务端认证失败", attrs...)
-		return nil, resp
+		return nil, re
 	}
 
 	cfg := resp.Config
@@ -185,12 +190,12 @@ func (bc *brokClient) perContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(bc.ctx, d)
 }
 
-func (bc *brokClient) validBrokConfig(cfg *BrokConfig) error {
+func (bc *brokClient) validBrokConfig(cfg *muxproto.BrokerBootConfig) error {
 	if v := bc.opts.Validator; v != nil {
 		return v(cfg)
 	}
 
-	if cfg.DSN == "" {
+	if cfg.URI == "" {
 		return errors.New("响应报文缺少数据库连接地址(dsn)")
 	}
 

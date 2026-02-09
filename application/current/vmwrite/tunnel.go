@@ -1,4 +1,4 @@
-package vmetric
+package vmwrite
 
 import (
 	"context"
@@ -6,9 +6,10 @@ import (
 
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
+	"github.com/vela-ssoc/ssoc-common/vmetric"
 )
 
-func NewTunnel(mux brokcli.Muxer) MetricWriter {
+func NewTunnel(mux brokcli.Muxer) vmetric.MetricWriter {
 	return &tunnelMetric{
 		mux: mux,
 	}

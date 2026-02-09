@@ -11,7 +11,7 @@ import (
 
 	"github.com/vela-ssoc/ssoc-broker/application/current/cronjob"
 	curservice "github.com/vela-ssoc/ssoc-broker/application/current/service"
-	"github.com/vela-ssoc/ssoc-broker/application/current/vmetric"
+	"github.com/vela-ssoc/ssoc-broker/application/current/vmwrite"
 	exprestapi "github.com/vela-ssoc/ssoc-broker/application/expose/restapi"
 	mgtrestapi "github.com/vela-ssoc/ssoc-broker/application/manager/restapi"
 	mgtservice "github.com/vela-ssoc/ssoc-broker/application/manager/service"
@@ -21,22 +21,21 @@ import (
 	"github.com/vela-ssoc/ssoc-common/appcfg"
 	"github.com/vela-ssoc/ssoc-common/banner"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
-	"github.com/vela-ssoc/ssoc-common/datalayer/query"
 	"github.com/vela-ssoc/ssoc-common/logger"
+	"github.com/vela-ssoc/ssoc-common/mongodb"
 	"github.com/vela-ssoc/ssoc-common/muxserver"
 	"github.com/vela-ssoc/ssoc-common/preadtls"
 	"github.com/vela-ssoc/ssoc-common/shipx"
-	"github.com/vela-ssoc/ssoc-common/sqldb"
+	"github.com/vela-ssoc/ssoc-common/store/repository"
 	"github.com/vela-ssoc/ssoc-common/tlscert"
 	"github.com/vela-ssoc/ssoc-common/validation"
+	"github.com/vela-ssoc/ssoc-common/vmetric"
 	"github.com/vela-ssoc/ssoc-proto/muxconn"
 	"github.com/vela-ssoc/ssoc-proto/muxproto"
 	"github.com/vela-ssoc/ssoc-proto/muxtool"
 	"github.com/vela-ssoc/ssoc-proto/stegano"
 	"github.com/xgfone/ship/v5"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"gorm.io/gorm"
-	gormlogger "gorm.io/gorm/logger"
 )
 
 func Exec(ctx context.Context, cfg string) error {
@@ -122,17 +121,16 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	log.Info("连接中心端成功")
 
 	bootCfg := mux.Config()
-	gormLogCfg := gormlogger.Config{LogLevel: gormlogger.Info}
-	gormLog := logger.NewGorm(logh, gormLogCfg)
-	gormCfg := &gorm.Config{Logger: gormLog}
-	db, err := sqldb.Open(bootCfg.DSN, gormCfg)
+	log.Info("开始连接接数据库")
+	mdb, err := mongodb.Connect(bootCfg.URI)
 	if err != nil {
-		log.Error("连接数据库失败", "error", err)
+		log.Error("数据库连接错误", "error", err)
 		return err
 	}
-	qry := query.Use(db)
+	db := repository.NewDB(mdb, log)
+	log.Info("数据库连接成功")
 
-	curBrokerSvc := curservice.NewBroker(hide.Secret, qry, log)
+	curBrokerSvc := curservice.NewBroker(db, hide.Secret, log)
 	this, err := curBrokerSvc.Get(ctx)
 	if err != nil {
 		log.Error("获取当前 broker 信息错误", "error", err)
@@ -145,12 +143,12 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	basecli := muxtool.NewClient(mixdial, log)
 	mgtcli := mgtclient.NewClient(basecli)
 
-	curPyroscopeSvc := curservice.NewPyroscope(this, qry, log)
+	curPyroscopeSvc := curservice.NewPyroscopeConfig(db, this.ID, log)
 	if err1 := curPyroscopeSvc.Start(ctx); err1 != nil {
 		log.Warn("启动 pyroscope 出错", "error", err1)
 	}
 
-	curVictoriaMetricsSvc := curservice.NewVictoriaMetrics(qry, log)
+	curVictoriaMetricsSvc := curservice.NewVictoriaMetricsConfig(db, log)
 	mgtTunnelSvc := mgtservice.NewTunnel(mux, log)
 
 	// httpRoutes 和 httpsRoutes 均为需要暴露的路由。
@@ -194,10 +192,10 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		}
 	}
 
-	extraLabels := vmetric.Label(this)
+	extraLabels := vmetric.BrokerLabel(this.ID.Hex(), this.Name)
 	metricWriters := []vmetric.MetricWriter{
 		vmetric.NewPsutil(),
-		vmetric.NewTunnel(mux),
+		vmwrite.NewTunnel(mux),
 	}
 
 	cronTasks := []cronv3.Tasker{

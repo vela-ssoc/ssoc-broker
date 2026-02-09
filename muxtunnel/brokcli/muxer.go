@@ -6,17 +6,18 @@ import (
 	"sync/atomic"
 
 	"github.com/vela-ssoc/ssoc-proto/muxconn"
+	"github.com/vela-ssoc/ssoc-proto/muxproto"
 	"golang.org/x/time/rate"
 )
 
 type Muxer interface {
 	muxconn.Muxer
-	Config() BrokConfig
+	Config() muxproto.BrokerBootConfig
 }
 
 type muxHolder struct {
 	mux muxconn.Muxer
-	cfg BrokConfig
+	cfg muxproto.BrokerBootConfig
 }
 
 type safeMUX struct {
@@ -34,13 +35,13 @@ func (s *safeMUX) SetLimit(bps rate.Limit)                    { s.loadMUX().SetL
 func (s *safeMUX) NumStreams() (int64, int64)                 { return s.loadMUX().NumStreams() }
 func (s *safeMUX) Traffic() (uint64, uint64)                  { return s.loadMUX().Traffic() }
 func (s *safeMUX) Library() (string, string)                  { return s.loadMUX().Library() }
-func (s *safeMUX) Config() BrokConfig                         { return s.ptr.Load().cfg }
+func (s *safeMUX) Config() muxproto.BrokerBootConfig          { return s.ptr.Load().cfg }
 
 func (s *safeMUX) loadMUX() muxconn.Muxer {
 	return s.ptr.Load().mux
 }
 
-func (s *safeMUX) store(mux muxconn.Muxer, cfg BrokConfig) {
+func (s *safeMUX) store(mux muxconn.Muxer, cfg muxproto.BrokerBootConfig) {
 	hold := &muxHolder{mux: mux, cfg: cfg}
 	s.ptr.Store(hold)
 }

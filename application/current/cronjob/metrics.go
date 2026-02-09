@@ -7,8 +7,8 @@ import (
 
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/robfig/cron/v3"
-	"github.com/vela-ssoc/ssoc-broker/application/current/vmetric"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
+	"github.com/vela-ssoc/ssoc-common/vmetric"
 )
 
 func NewMetrics(label string, cfg vmetric.ConfigLoader, writers []vmetric.MetricWriter) cronv3.Tasker {
@@ -39,7 +39,6 @@ func (m *metricsJob) Call(ctx context.Context) error {
 		return err
 	}
 	opts.ExtraLabels = m.label
-	opts.DisableCompression = true
 
 	return metrics.PushMetricsExt(ctx, pushURL, m.writeWithContext(ctx), opts)
 }
