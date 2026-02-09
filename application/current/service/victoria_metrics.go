@@ -10,17 +10,20 @@ import (
 	"github.com/vela-ssoc/ssoc-common/memcache"
 	"github.com/vela-ssoc/ssoc-common/store/model"
 	"github.com/vela-ssoc/ssoc-common/store/repository"
+	"github.com/vela-ssoc/ssoc-common/vmetric"
 )
 
 type VictoriaMetricsConfig struct {
-	db  repository.Database
-	log *slog.Logger
-	mem memcache.Cache[*model.VictoriaMetricsConfig, error]
+	db    repository.Database
+	log   *slog.Logger
+	mem   memcache.Cache[*model.VictoriaMetricsConfig, error]
+	label string
 }
 
-func NewVictoriaMetricsConfig(db repository.Database, log *slog.Logger) *VictoriaMetricsConfig {
+func NewVictoriaMetricsConfig(db repository.Database, this *model.Broker, log *slog.Logger) *VictoriaMetricsConfig {
 	vm := &VictoriaMetricsConfig{db: db, log: log}
 	vm.mem = memcache.NewCache(vm.enabled)
+	vm.label = vmetric.BrokerLabel(this.ID.Hex(), this.Name)
 
 	return vm
 }
@@ -40,8 +43,9 @@ func (vm *VictoriaMetricsConfig) LoadConfig(ctx context.Context) (string, *metri
 	}
 
 	opts := &metrics.PushOptions{
-		Headers: headers,
-		Method:  dat.Method,
+		Headers:     headers,
+		Method:      dat.Method,
+		ExtraLabels: vm.label,
 	}
 
 	return dat.URL, opts, nil

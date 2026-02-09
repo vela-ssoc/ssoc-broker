@@ -137,6 +137,38 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		return err
 	}
 
+	cfg := this.Config
+	{
+		// 初始化 logger
+		lcfg := cfg.Logger
+		level := new(slog.LevelVar)
+		if e := level.UnmarshalText([]byte(lcfg.Level)); e != nil {
+			level.Set(slog.LevelInfo)
+		}
+		opts := &slog.HandlerOptions{AddSource: true, Level: level}
+		logh.Replace()
+		if lcfg.Console {
+			out := logger.NewTint(os.Stdout, opts)
+			logh.Append(out)
+		}
+		if name := lcfg.Filename; name != "" {
+			lumber := &lumberjack.Logger{
+				Filename:   name,
+				MaxSize:    lcfg.MaxSize,
+				MaxAge:     lcfg.MaxAge,
+				MaxBackups: lcfg.MaxBackups,
+				LocalTime:  lcfg.LocalTime,
+				Compress:   lcfg.Compress,
+			}
+			defer lumber.Close()
+
+			out := slog.NewJSONHandler(lumber, opts)
+			logh.Append(out)
+		}
+		tmpLumber.Close() // 关闭临时输出
+	}
+	log.Info("日志初始化完毕")
+
 	muxopen := muxproto.NewMUXOpener(mux, muxproto.ManagerDomain)
 	sysdial := new(net.Dialer)
 	mixdial := muxserver.NewMixedDialer(muxopen, nil, sysdial)
@@ -148,7 +180,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		log.Warn("启动 pyroscope 出错", "error", err1)
 	}
 
-	curVictoriaMetricsSvc := curservice.NewVictoriaMetricsConfig(db, log)
+	curVictoriaMetricsSvc := curservice.NewVictoriaMetricsConfig(db, this, log)
 	mgtTunnelSvc := mgtservice.NewTunnel(mux, log)
 
 	// httpRoutes 和 httpsRoutes 均为需要暴露的路由。
@@ -192,7 +224,6 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		}
 	}
 
-	extraLabels := vmetric.BrokerLabel(this.ID.Hex(), this.Name)
 	metricWriters := []vmetric.MetricWriter{
 		vmetric.NewPsutil(),
 		vmwrite.NewTunnel(mux),
@@ -200,7 +231,8 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 
 	cronTasks := []cronv3.Tasker{
 		cronjob.NewHeartbeat(mgtcli, log),
-		cronjob.NewMetrics(extraLabels, curVictoriaMetricsSvc, metricWriters),
+		cronjob.NewMetrics(curVictoriaMetricsSvc, metricWriters),
+		cronjob.NewTunnelStat(db, this.ID, mux),
 	}
 
 	crontab := cronv3.New(log)
@@ -210,7 +242,11 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		return err
 	}
 
-	lis, err := preadtls.ListenTCP(":8101", 10*time.Second)
+	addr := cfg.Server.Addr
+	if addr == "" {
+		addr = ":443"
+	}
+	lis, err := preadtls.ListenTCP(addr, 10*time.Second)
 	if err != nil {
 		log.Error("服务监听出错", "error", err)
 		return err

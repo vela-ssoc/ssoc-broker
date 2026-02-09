@@ -11,16 +11,14 @@ import (
 	"github.com/vela-ssoc/ssoc-common/vmetric"
 )
 
-func NewMetrics(label string, cfg vmetric.ConfigLoader, writers []vmetric.MetricWriter) cronv3.Tasker {
+func NewMetrics(cfg vmetric.ConfigLoader, writers []vmetric.MetricWriter) cronv3.Tasker {
 	return &metricsJob{
-		label:   label,
 		cfg:     cfg,
 		writers: writers,
 	}
 }
 
 type metricsJob struct {
-	label   string
 	cfg     vmetric.ConfigLoader
 	writers []vmetric.MetricWriter
 }
@@ -38,7 +36,6 @@ func (m *metricsJob) Call(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	opts.ExtraLabels = m.label
 
 	return metrics.PushMetricsExt(ctx, pushURL, m.writeWithContext(ctx), opts)
 }
