@@ -65,6 +65,8 @@ github.com/valyala/histogram v1.2.0 h1:wyYGAZZt3CpwUiIb9AU/Zbllg1llXyrtApRS815OL
 github.com/valyala/histogram v1.2.0/go.mod h1:Hb4kBwb4UxsaNbbbh+RRz8ZR6pdodR57tzWUS3BUzXY=
 github.com/vela-ssoc/ssoc-common v0.0.0-20260211052351-b5b82d9939ee h1:R4g0gQVHVZzS0bkT8/Sd4k5ZJvpPl3fATLyACavBCgE=
 github.com/vela-ssoc/ssoc-common v0.0.0-20260211052351-b5b82d9939ee/go.mod h1:DzMt/S/4GROt34vKfTk6TCGjJGOJ1fUMMHyOI9McHiw=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260211094443-948082101c8f h1:mcFkEHwpHxhRDfvXnZIqRmCgYjJ+816qFu01xyvm2Q0=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260211094443-948082101c8f/go.mod h1:DzMt/S/4GROt34vKfTk6TCGjJGOJ1fUMMHyOI9McHiw=
 github.com/vela-ssoc/ssoc-proto v0.0.0-20260210022027-fc6c19e92abc h1:Kbj6EhEq5DbpkSXcm87Wn01WftKlMxNXh+gVvQd65Aw=
 github.com/vela-ssoc/ssoc-proto v0.0.0-20260210022027-fc6c19e92abc/go.mod h1:K0yq+yTfzeO6pgajrwl7A9yvTrfF9Gu/3lSesdBT9ss=
 github.com/xdg-go/pbkdf2 v1.0.0 h1:Su7DPu48wXMwC3bs7MCNG+z4FhcyEuz5dlvchbq0B0c=
