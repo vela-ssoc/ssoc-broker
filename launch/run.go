@@ -103,15 +103,12 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 
 	semver := banner.Version()
 	brokOpts := brokcli.Options{
-		Secret:    hide.Secret,
-		Addresses: hide.Addresses,
-		Semver:    semver,
-		Handler:   mgtSH,
-		Validator: valid.Validate,
-		DialConfig: muxconn.DialConfig{
-			Protocol: hide.Protocol,
-			Logger:   log,
-		},
+		Secret:     hide.Secret,
+		Addresses:  hide.Addresses,
+		Semver:     semver,
+		Handler:    mgtSH,
+		Validator:  valid.Validate,
+		DialConfig: muxconn.DialConfig{Logger: log},
 	}
 	mux, err := brokcli.Open(ctx, brokOpts)
 	if err != nil {

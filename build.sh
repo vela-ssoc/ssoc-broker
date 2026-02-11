@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
+# git >= 2.6
 VERSION=$(TZ=UTC git log -1 --format="%cd" --date=format-local:"v%-y.%-m.%-d-t%H%M%S")
+# git < 2.6
+# VERSION=$(git log -1 --format=%ct | xargs -I{} date -u -d @{} +"v%-y.%-m.%-d-t%H%M%S")
 
 OS_TYPE=$(uname -s)
 case "$OS_TYPE" in

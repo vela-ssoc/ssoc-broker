@@ -30,3 +30,30 @@ yum install libpcap-devel
 
 未曾在苹果系统下开发部署过该程序，个人猜测未经验证：可能需要使用 [Homebrew](https://brew.sh/)
 安装 [libpcap](https://formulae.brew.sh/formula/libpcap) 相关依赖。
+
+
+#### ssoc-broker.service
+
+```text
+[Unit]
+Description=SSOCv2 BROKER
+After=network-online.target
+Wants=network-online.target
+Documentation=https://github.com/vela-ssoc
+
+[Service]
+Type=simple
+WorkingDirectory=/vdb/ssoc/broker
+ExecStart=/vdb/ssoc/broker/ssoc-broker
+KillSignal=SIGINT
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65535
+Environment=TERM=xterm-256color
+StandardOutput=append:/vdb/ssoc/broker/resources/log/systemd-stdout.log
+StandardError=append:/vdb/ssoc/broker/resources/log/systemd-stderr.log
+
+[Install]
+WantedBy=multi-user.target
+```
