@@ -177,7 +177,8 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		log.Warn("启动 pyroscope 出错", "error", err1)
 	}
 
-	curVictoriaMetricsSvc := curservice.NewVictoriaMetricsConfig(db, this, log)
+	metricLabel := vmetric.BrokerLabel(this.ID.Hex(), this.Name)
+	curVictoriaMetricsSvc := curservice.NewVictoriaMetricsConfig(db, metricLabel, log)
 	mgtTunnelSvc := mgtservice.NewTunnel(mux, log)
 
 	// httpRoutes 和 httpsRoutes 均为需要暴露的路由。

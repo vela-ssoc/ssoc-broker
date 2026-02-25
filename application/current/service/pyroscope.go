@@ -19,14 +19,14 @@ type PyroscopeConfig struct {
 	db     repository.Database
 	instID bson.ObjectID
 	log    *slog.Logger
-	mem    memcache.Cache[*model.PyroscopeConfig, error]
+	che    *memcache.Cache[*model.PyroscopeConfig]
 	mtx    sync.Mutex // 防止并发启动
 	prf    *pyroscope.Profiler
 }
 
 func NewPyroscopeConfig(db repository.Database, instanceID bson.ObjectID, log *slog.Logger) *PyroscopeConfig {
 	py := &PyroscopeConfig{db: db, instID: instanceID, log: log}
-	py.mem = memcache.NewCache(py.enabled)
+	py.che = memcache.NewCache(py.enabled)
 
 	return py
 }
@@ -91,7 +91,7 @@ func (py *PyroscopeConfig) Stop() error {
 }
 
 func (py *PyroscopeConfig) Enabled(ctx context.Context) (*model.PyroscopeConfig, error) {
-	return py.mem.Load(ctx)
+	return py.che.Load(ctx)
 }
 
 func (py *PyroscopeConfig) enabled(ctx context.Context) (*model.PyroscopeConfig, error) {
