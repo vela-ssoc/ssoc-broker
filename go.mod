@@ -5,9 +5,10 @@ go 1.26
 require (
 	github.com/VictoriaMetrics/metrics v1.41.2
 	github.com/grafana/pyroscope-go v1.2.7
+	github.com/magnetde/slog-loki v0.1.4
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.26.1
-	github.com/vela-ssoc/ssoc-common v0.0.0-20260225013544-fe3f7ce73ac0
+	github.com/vela-ssoc/ssoc-common v0.0.0-20260225055229-cd4dabbb4b40
 	github.com/vela-ssoc/ssoc-proto v0.0.0-20260210022027-fc6c19e92abc
 	github.com/xgfone/ship/v5 v5.3.2
 	go.mongodb.org/mongo-driver/v2 v2.5.0

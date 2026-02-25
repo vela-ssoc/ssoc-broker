@@ -35,15 +35,6 @@ func (brk *Broker) ResetAgents(timeout time.Duration) error {
 	defer cancel()
 
 	_, err := brk.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	//coll := brk.db.Broker()
-	//
-	//online, offline := uint8(model.MSOnline), uint8(model.MSOffline)
-	//_, err = dao.Where(tbl.Status.Value(online), tbl.BrokerID.Eq(this.ID)).
-	//	UpdateColumnSimple(tbl.Status.Value(offline))
 
 	return err
 }

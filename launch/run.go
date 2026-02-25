@@ -139,9 +139,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		// 初始化 logger
 		lcfg := cfg.Logger
 		level := new(slog.LevelVar)
-		if e := level.UnmarshalText([]byte(lcfg.Level)); e != nil {
-			level.Set(slog.LevelInfo)
-		}
+		_ = level.UnmarshalText([]byte(lcfg.Level))
 		opts := &slog.HandlerOptions{AddSource: true, Level: level}
 		logh.Replace()
 		if lcfg.Console {
@@ -172,9 +170,14 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	basecli := muxtool.NewClient(mixdial, log)
 	mgtcli := mgtclient.NewClient(basecli)
 
-	curPyroscopeSvc := curservice.NewPyroscopeConfig(db, this.ID, log)
-	if err1 := curPyroscopeSvc.Start(ctx); err1 != nil {
+	curPyroscopeConfigSvc := curservice.NewPyroscopeConfig(db, this.ID, log)
+	curLokiConfigSvc := curservice.NewLokiConfig(db, this.ID, logh, log)
+
+	if err1 := curPyroscopeConfigSvc.Start(ctx); err1 != nil {
 		log.Warn("启动 pyroscope 出错", "error", err1)
+	}
+	if err1 := curLokiConfigSvc.Start(ctx); err1 != nil {
+		log.Warn("启动 loki 出错", "error", err1)
 	}
 
 	metricLabel := vmetric.BrokerLabel(this.ID.Hex(), this.Name)
@@ -273,7 +276,8 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	_ = httpsSrv.Close()
 	_ = curBrokerSvc.ResetAgents(10 * time.Second)
 	_ = mux.Close()
-	_ = curPyroscopeSvc.Stop()
+	_ = curPyroscopeConfigSvc.Close()
+	_ = curLokiConfigSvc.Close()
 
 	cause := context.Cause(ctx)
 	log.Error("程序停止运行", "error", err, "cause", cause)
