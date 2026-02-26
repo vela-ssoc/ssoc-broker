@@ -17,17 +17,17 @@ import (
 type LokiConfig struct {
 	db     repository.Database
 	instID bson.ObjectID
-	logh   logger.Handler
+	lmh    *logger.MultiHandler
 	log    *slog.Logger
 	mtx    sync.Mutex // 防止并发启动
 	lok    *loki.Handler
 }
 
-func NewLokiConfig(db repository.Database, instanceID bson.ObjectID, logh logger.Handler, log *slog.Logger) *LokiConfig {
+func NewLokiConfig(db repository.Database, instanceID bson.ObjectID, lmh *logger.MultiHandler, log *slog.Logger) *LokiConfig {
 	return &LokiConfig{
 		db:     db,
 		instID: instanceID,
-		logh:   logh,
+		lmh:    lmh,
 		log:    log,
 	}
 }
@@ -52,7 +52,7 @@ func (lc *LokiConfig) Start(ctx context.Context) error {
 		loki.WithLabel("instance", instance),
 	}
 	h := loki.NewHandler(cfg.URL, opts...)
-	lc.logh.Append(h)
+	lc.lmh.Append(h)
 	lc.lok = h
 
 	return nil
@@ -68,7 +68,7 @@ func (lc *LokiConfig) Close() error {
 
 	lok := lc.lok
 	lc.lok = nil
-	lc.logh.Remove(lok)
+	lc.lmh.Remove(lok)
 
 	return lok.Close()
 }
