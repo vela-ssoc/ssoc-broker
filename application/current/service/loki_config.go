@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"sync"
 
@@ -17,17 +18,19 @@ import (
 type LokiConfig struct {
 	db     repository.Database
 	instID bson.ObjectID
-	lmh    *logger.MultiHandler
+	lopt   *slog.HandlerOptions
+	lhans  *logger.MultiHandler
 	log    *slog.Logger
 	mtx    sync.Mutex // 防止并发启动
 	lok    *loki.Handler
 }
 
-func NewLokiConfig(db repository.Database, instanceID bson.ObjectID, lmh *logger.MultiHandler, log *slog.Logger) *LokiConfig {
+func NewLokiConfig(db repository.Database, instanceID bson.ObjectID, lopt *slog.HandlerOptions, lhans *logger.MultiHandler, log *slog.Logger) *LokiConfig {
 	return &LokiConfig{
 		db:     db,
 		instID: instanceID,
-		lmh:    lmh,
+		lopt:   lopt,
+		lhans:  lhans,
 		log:    log,
 	}
 }
@@ -48,11 +51,17 @@ func (lc *LokiConfig) Start(ctx context.Context) error {
 
 	instance := lc.instID.Hex()
 	opts := []loki.Option{
+		loki.WithHandler(func(w io.Writer) slog.Handler {
+			return loki.NewLogfmtHandler(w, &loki.LogfmtOptions{
+				AddSource: lc.lopt.AddSource,
+				Level:     lc.lopt.Level,
+			})
+		}),
 		loki.WithName(muxproto.BrokerDomain),
 		loki.WithLabel("instance", instance),
 	}
 	h := loki.NewHandler(cfg.URL, opts...)
-	lc.lmh.Append(h)
+	lc.lhans.Append(h)
 	lc.lok = h
 
 	return nil
@@ -68,7 +77,7 @@ func (lc *LokiConfig) Close() error {
 
 	lok := lc.lok
 	lc.lok = nil
-	lc.lmh.Remove(lok)
+	lc.lhans.Remove(lok)
 
 	return lok.Close()
 }

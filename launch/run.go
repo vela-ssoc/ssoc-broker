@@ -52,20 +52,21 @@ func Exec(ctx context.Context, cfg string) error {
 //goland:noinspection GoUnhandledErrorResult
 func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	// 项目启动时还未连接到中心端，此时要默认一个日志输出。
-	logOpts := &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}
-	tmpLumber := &lumberjack.Logger{
+	loglevel := new(slog.LevelVar) // 默认 INFO
+	logoptions := &slog.HandlerOptions{AddSource: true, Level: loglevel}
+	bootlogfile := &lumberjack.Logger{
 		Filename:   "resources/log/application.jsonl",
 		MaxSize:    100,
 		MaxBackups: 10,
 		LocalTime:  true,
 		Compress:   true,
 	}
-	logh := logger.NewMultiHandler(
-		logger.NewTint(os.Stdout, logOpts),
-		slog.NewJSONHandler(tmpLumber, logOpts),
+	loghandlers := logger.NewMultiHandler(
+		slog.NewJSONHandler(bootlogfile, logoptions), // 输出到文件
+		slog.NewTextHandler(os.Stdout, logoptions),   // 输出到控制台
 	)
-	log := slog.New(logh)
-	log.Info("初始日志组件装配完毕")
+	log := slog.New(loghandlers)
+	log.Info("日志组件准备完毕（临时）")
 
 	valid := validation.New()
 	if err := valid.RegisterCustomValidations(validation.All()); err != nil {
@@ -84,7 +85,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	}
 	log.Info("隐写配置读取成功")
 
-	shipLog := logger.NewFormat(logh, 6)
+	shipLog := logger.NewFormat(loghandlers, 6)
 	mgtSH := ship.Default()
 	mgtSH.Validator = valid
 	mgtSH.Logger = shipLog
@@ -138,13 +139,11 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	{
 		// 初始化 logger
 		lcfg := cfg.Logger
-		level := new(slog.LevelVar)
-		_ = level.UnmarshalText([]byte(lcfg.Level))
-		opts := &slog.HandlerOptions{AddSource: true, Level: level}
-		logh.Replace()
+		_ = loglevel.UnmarshalText([]byte(lcfg.Level))
+		loghandlers.Replace()
 		if lcfg.Console {
-			out := logger.NewTint(os.Stdout, opts)
-			logh.Append(out)
+			out := logger.NewTint(os.Stdout, logoptions)
+			loghandlers.Append(out)
 		}
 		if name := lcfg.Filename; name != "" {
 			lumber := &lumberjack.Logger{
@@ -157,10 +156,10 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 			}
 			defer lumber.Close()
 
-			out := slog.NewJSONHandler(lumber, opts)
-			logh.Append(out)
+			out := slog.NewJSONHandler(lumber, logoptions)
+			loghandlers.Append(out)
 		}
-		tmpLumber.Close() // 关闭临时输出
+		bootlogfile.Close() // 关闭临时输出
 	}
 	log.Info("日志初始化完毕")
 
@@ -171,7 +170,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	mgtcli := mgtclient.NewClient(basecli)
 
 	curPyroscopeConfigSvc := curservice.NewPyroscopeConfig(db, this.ID, log)
-	curLokiConfigSvc := curservice.NewLokiConfig(db, this.ID, logh, log)
+	curLokiConfigSvc := curservice.NewLokiConfig(db, this.ID, logoptions, loghandlers, log)
 
 	if err1 := curPyroscopeConfigSvc.Start(ctx); err1 != nil {
 		log.Warn("启动 pyroscope 出错", "error", err1)
