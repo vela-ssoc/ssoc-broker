@@ -18,7 +18,7 @@ func NewTunnel(svc *service.Tunnel) *Tunnel {
 	}
 }
 
-func (tnl *Tunnel) BindRoute(rgb *ship.RouteGroupBuilder) error {
+func (tnl *Tunnel) RegisterRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/tunnel/stat").GET(tnl.stat)
 	rgb.Route("/tunnel/limit").POST(tnl.limit)
 

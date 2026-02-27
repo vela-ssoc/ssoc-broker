@@ -12,7 +12,7 @@ func NewHeartbeat() *Heartbeat {
 	return &Heartbeat{}
 }
 
-func (h *Heartbeat) BindRoute(rgb *ship.RouteGroupBuilder) error {
+func (h *Heartbeat) RegisterRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/heartbeat").GET(h.ping)
 	return nil
 }

@@ -7,8 +7,8 @@ require (
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/magnetde/slog-loki v0.1.4
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/vela-ssoc/ssoc-common v0.0.0-20260225093508-db971c8e9739
-	github.com/vela-ssoc/ssoc-proto v0.0.0-20260210022027-fc6c19e92abc
+	github.com/vela-ssoc/ssoc-common v0.0.0-20260227022333-9ddc615ec2af
+	github.com/vela-ssoc/ssoc-proto v0.0.0-20260226093001-4a1aa7ee3fac
 	github.com/xgfone/ship/v5 v5.3.2
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 	golang.org/x/time v0.14.0
@@ -16,19 +16,15 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.1 // indirect
-	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.9 // indirect
 	github.com/hashicorp/yamux v0.1.2 // indirect
-	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lmittmann/tint v1.1.3 // indirect

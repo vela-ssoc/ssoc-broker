@@ -18,7 +18,7 @@ func NewSpeedtest() *Speedtest {
 	return &Speedtest{}
 }
 
-func (st *Speedtest) BindRoute(rgb *ship.RouteGroupBuilder) error {
+func (st *Speedtest) RegisterRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/speedtest").GET(st.download)
 
 	return nil

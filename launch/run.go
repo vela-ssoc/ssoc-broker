@@ -185,18 +185,18 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 
 	// httpRoutes 和 httpsRoutes 均为需要暴露的路由。
 	// 由于 http 不安全，所以仅挂载必要的 agent 兼容业务。
-	httpRoutes := []shipx.RouteBinder{
+	httpRoutes := []shipx.RouteRegister{
 		exprestapi.NewHeartbeat(),
 	}
-	httpsRoutes := []shipx.RouteBinder{}
-	mgtRoutes := []shipx.RouteBinder{
+	httpsRoutes := []shipx.RouteRegister{}
+	mgtRoutes := []shipx.RouteRegister{
 		mgtrestapi.NewSpeedtest(),
 		mgtrestapi.NewTunnel(mgtTunnelSvc),
 	}
-	agtRoutes := []shipx.RouteBinder{}
+	agtRoutes := []shipx.RouteRegister{}
 	{
 		base := httpSH.Group("/api/v1")
-		if err = shipx.BindRoutes(base, httpRoutes); err != nil {
+		if err = shipx.RegisterRoutes(base, httpRoutes); err != nil {
 			log.Error("注册 http 路由出错", "error", err)
 			return err
 		}
@@ -204,21 +204,21 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	{
 		routes := append(httpsRoutes, httpRoutes...)
 		base := httpsSH.Group("/api/v1")
-		if err = shipx.BindRoutes(base, routes); err != nil {
+		if err = shipx.RegisterRoutes(base, routes); err != nil {
 			log.Error("注册 https 路由出错", "error", err)
 			return err
 		}
 	}
 	{
 		base := mgtSH.Group("/api/v1")
-		if err = shipx.BindRoutes(base, mgtRoutes); err != nil {
+		if err = shipx.RegisterRoutes(base, mgtRoutes); err != nil {
 			log.Error("注册 manager 路由出错", "error", err)
 			return err
 		}
 	}
 	{
 		base := mgtSH.Group("/api/v1")
-		if err = shipx.BindRoutes(base, agtRoutes); err != nil {
+		if err = shipx.RegisterRoutes(base, agtRoutes); err != nil {
 			log.Error("注册 agent 路由出错", "error", err)
 			return err
 		}
