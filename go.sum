@@ -27,8 +27,6 @@ github.com/grafana/pyroscope-go/godeltaprof v0.1.9 h1:c1Us8i6eSmkW+Ez05d3co8kasn
 github.com/grafana/pyroscope-go/godeltaprof v0.1.9/go.mod h1:2+l7K7twW49Ct4wFluZD3tZ6e0SjanjcUUBPVD/UuGU=
 github.com/hashicorp/yamux v0.1.2 h1:XtB8kyFOyHXYVFnwT5C3+Bdo8gArse7j2AQ0DA0Uey8=
 github.com/hashicorp/yamux v0.1.2/go.mod h1:C+zze2n6e/7wshOZep2A70/aQU6QBRWJO/G6FT1wIns=
-github.com/jinzhu/now v1.1.5 h1:/o9tlHleP7gOFmsnYNz3RGnqzefHA47wQpKrrdTIwXQ=
-github.com/jinzhu/now v1.1.5/go.mod h1:d3SSVoowX0Lcu0IBviAWJpolVfI5UJVZZ7cO71lE/z8=
 github.com/klauspost/compress v1.18.4 h1:RPhnKRAQ4Fh8zU2FY/6ZFDwTVTxgJ/EMydqSTzE9a2c=
 github.com/klauspost/compress v1.18.4/go.mod h1:R0h/fSBs8DE4ENlcrlib3PsXS61voFxhIs2DeRhCvJ4=
 github.com/leodido/go-urn v1.4.0 h1:WT9HwE9SGECu3lg4d/dIA+jxlljEa1/ffXKmRjqdmIQ=
@@ -59,10 +57,12 @@ github.com/valyala/fastrand v1.1.0 h1:f+5HkLW4rsgzdNoleUOB69hyT9IlD2ZQh9GyDMfb5G
 github.com/valyala/fastrand v1.1.0/go.mod h1:HWqCzkrkg6QXT8V2EXWvXCoow7vLwOFN002oeRzjapQ=
 github.com/valyala/histogram v1.2.0 h1:wyYGAZZt3CpwUiIb9AU/Zbllg1llXyrtApRS815OLoQ=
 github.com/valyala/histogram v1.2.0/go.mod h1:Hb4kBwb4UxsaNbbbh+RRz8ZR6pdodR57tzWUS3BUzXY=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260227022333-9ddc615ec2af h1:Fc02nmAdW6AjvArnl40X7KUUGfLxD1HKuBy2SUe0Ypw=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260227022333-9ddc615ec2af/go.mod h1:D1/BzW1NqkyStQIn5Jmv1awBCBnReVEEK8hVqDUKJUA=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260226093001-4a1aa7ee3fac h1:Ece6VdUBD7yFl+Hy2uYk1j2d07v7q7M4QF3yqvydS/o=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260226093001-4a1aa7ee3fac/go.mod h1:K0yq+yTfzeO6pgajrwl7A9yvTrfF9Gu/3lSesdBT9ss=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260227111641-1d0e76741f3e h1:SoSBIHo2GgX5YBtvBZasH2BkPehFZb6eaoLfEAkXrgg=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260227111641-1d0e76741f3e/go.mod h1:eE4mmL/EF8qqdlb3B/p3SJmmqyRfKQlLQbysl7cuUg8=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260227111052-cf550b0089ef h1:2OnHSwVTcbQZLMJdVp3uTX/Lw93nJbSX5buqaNAvFCU=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260227111052-cf550b0089ef/go.mod h1:K0yq+yTfzeO6pgajrwl7A9yvTrfF9Gu/3lSesdBT9ss=
+github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277 h1:yoGmjdg62V+7ttvssABuXmXMyqwWdDTACQ8YZOXKRnQ=
+github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277/go.mod h1:DMN/az9fN2p0mJ1CNouJjsEJWs69Ucqbtq34DOCaTlc=
 github.com/xdg-go/pbkdf2 v1.0.0 h1:Su7DPu48wXMwC3bs7MCNG+z4FhcyEuz5dlvchbq0B0c=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.2.0 h1:bYKF2AEwG5rqd1BumT4gAnvwU/M9nBp2pTSxeZw7Wvs=
@@ -120,5 +120,3 @@ gopkg.in/natefinch/lumberjack.v2 v2.2.1 h1:bBRl1b0OH9s/DuPhuXpNl+VtCaJXFZ5/uEFST
 gopkg.in/natefinch/lumberjack.v2 v2.2.1/go.mod h1:YD8tP3GAjkrDg1eZH7EGmyESg/lsYskCTPBJVb9jqSc=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-gorm.io/gorm v1.31.1 h1:7CA8FTFz/gRfgqgpeKIBcervUn3xSyPUmr6B2WXJ7kg=
-gorm.io/gorm v1.31.1/go.mod h1:XyQVbO2k6YkOis7C2437jSit3SsDK72s7n7rsSHd+Gs=

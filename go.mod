@@ -7,8 +7,9 @@ require (
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/magnetde/slog-loki v0.1.4
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/vela-ssoc/ssoc-common v0.0.0-20260227022333-9ddc615ec2af
-	github.com/vela-ssoc/ssoc-proto v0.0.0-20260226093001-4a1aa7ee3fac
+	github.com/vela-ssoc/ssoc-common v0.0.0-20260227111641-1d0e76741f3e
+	github.com/vela-ssoc/ssoc-proto v0.0.0-20260227111052-cf550b0089ef
+	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/xgfone/ship/v5 v5.3.2
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 	golang.org/x/time v0.14.0
@@ -45,5 +46,4 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	gorm.io/gorm v1.31.1 // indirect
 )

@@ -16,6 +16,7 @@ import (
 	mgtrestapi "github.com/vela-ssoc/ssoc-broker/application/manager/restapi"
 	mgtservice "github.com/vela-ssoc/ssoc-broker/application/manager/service"
 	"github.com/vela-ssoc/ssoc-broker/config"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/agtaccept"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/mgtclient"
 	"github.com/vela-ssoc/ssoc-common/appcfg"
@@ -86,21 +87,30 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	log.Info("隐写配置读取成功")
 
 	shipLog := logger.NewFormat(loghandlers, 6)
+	shipErr := shipx.NewErrorHandler(log)
 	mgtSH := ship.Default()
 	mgtSH.Validator = valid
 	mgtSH.Logger = shipLog
+	mgtSH.NotFound = shipErr.NotFound
+	mgtSH.HandleError = shipErr.HandleError
 
 	httpSH := ship.Default()
 	httpSH.Validator = valid
 	httpSH.Logger = shipLog
+	httpSH.NotFound = shipErr.NotFound
+	httpSH.HandleError = shipErr.HandleError
 
 	httpsSH := ship.Default()
 	httpsSH.Validator = valid
 	httpsSH.Logger = shipLog
+	httpsSH.NotFound = shipErr.NotFound
+	httpsSH.HandleError = shipErr.HandleError
 
 	agtSH := ship.Default()
 	agtSH.Validator = valid
 	agtSH.Logger = shipLog
+	agtSH.NotFound = shipErr.NotFound
+	agtSH.HandleError = shipErr.HandleError
 
 	semver := banner.Version()
 	brokOpts := brokcli.Options{
@@ -163,9 +173,10 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	}
 	log.Info("日志初始化完毕")
 
+	hub := muxserver.NewAgentHub()
 	muxopen := muxproto.NewMUXOpener(mux, muxproto.ManagerDomain)
 	sysdial := new(net.Dialer)
-	mixdial := muxserver.NewMixedDialer(muxopen, nil, sysdial)
+	mixdial := muxserver.NewMixedDialer(muxopen, hub, sysdial)
 	basecli := muxtool.NewClient(mixdial, log)
 	mgtcli := mgtclient.NewClient(basecli)
 
@@ -183,10 +194,21 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	curVictoriaMetricsSvc := curservice.NewVictoriaMetricsConfig(db, metricLabel, log)
 	mgtTunnelSvc := mgtservice.NewTunnel(mux, log)
 
+	acptOpt := agtaccept.Options{
+		Huber:      hub,
+		Handler:    agtSH,
+		Validator:  valid.Validate,
+		Logger:     log,
+		BootLoader: nil,
+		Notifier:   nil,
+	}
+	agtAcpt := agtaccept.NewAccept(db, acptOpt)
+
 	// httpRoutes 和 httpsRoutes 均为需要暴露的路由。
 	// 由于 http 不安全，所以仅挂载必要的 agent 兼容业务。
 	httpRoutes := []shipx.RouteRegister{
 		exprestapi.NewHeartbeat(),
+		exprestapi.NewTunnel(agtAcpt),
 	}
 	httpsRoutes := []shipx.RouteRegister{}
 	mgtRoutes := []shipx.RouteRegister{
