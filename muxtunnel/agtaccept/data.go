@@ -59,6 +59,7 @@ type tunnelSessionDataV1 struct {
 	TunnelLibrary model.TunnelLibrary `json:"tunnel_library,omitzero"`
 	ExecuteStat   model.ExecuteStat   `json:"execute_stat,omitzero"`
 	TunnelStat    model.TunnelStat    `json:"tunnel_stat,omitzero"`
+	Broker        model.MinionBroker  `json:"broker,omitzero"`
 }
 
 func (d tunnelSessionDataV1) connectedSeconds() uint64 {

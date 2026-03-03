@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	agtrestapi "github.com/vela-ssoc/ssoc-broker/application/agent/restapi"
+	agtservice "github.com/vela-ssoc/ssoc-broker/application/agent/service"
 	"github.com/vela-ssoc/ssoc-broker/application/current/cronjob"
 	curservice "github.com/vela-ssoc/ssoc-broker/application/current/service"
 	"github.com/vela-ssoc/ssoc-broker/application/current/vmwrite"
@@ -36,6 +38,7 @@ import (
 	"github.com/vela-ssoc/ssoc-proto/muxtool"
 	"github.com/vela-ssoc/ssoc-proto/stegano"
 	"github.com/xgfone/ship/v5"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -138,14 +141,13 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	db := repository.NewDB(mdb, log)
 	log.Info("数据库连接成功")
 
-	curBrokerSvc := curservice.NewBroker(db, hide.Secret, log)
-	this, err := curBrokerSvc.Get(ctx)
+	this, err := db.Broker().FindBySecret(ctx, hide.Secret)
 	if err != nil {
 		log.Error("获取当前 broker 信息错误", "error", err)
 		return err
 	}
 
-	cfg := this.Config
+	thisID, cfg := this.ID, this.Config
 	{
 		// 初始化 logger
 		lcfg := cfg.Logger
@@ -180,8 +182,9 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	basecli := muxtool.NewClient(mixdial, log)
 	mgtcli := mgtclient.NewClient(basecli)
 
-	curPyroscopeConfigSvc := curservice.NewPyroscopeConfig(db, this.ID, log)
-	curLokiConfigSvc := curservice.NewLokiConfig(db, this.ID, logoptions, loghandlers, log)
+	curBrokerSvc := curservice.NewBroker(db, thisID, log)
+	curPyroscopeConfigSvc := curservice.NewPyroscopeConfig(db, thisID, log)
+	curLokiConfigSvc := curservice.NewLokiConfig(db, thisID, logoptions, loghandlers, log)
 
 	if err1 := curPyroscopeConfigSvc.Start(ctx); err1 != nil {
 		log.Warn("启动 pyroscope 出错", "error", err1)
@@ -190,7 +193,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		log.Warn("启动 loki 出错", "error", err1)
 	}
 
-	metricLabel := vmetric.BrokerLabel(this.ID.Hex(), this.Name)
+	metricLabel := vmetric.BrokerLabel(thisID.Hex(), this.Name)
 	curVictoriaMetricsSvc := curservice.NewVictoriaMetricsConfig(db, metricLabel, log)
 	mgtTunnelSvc := mgtservice.NewTunnel(mux, log)
 
@@ -200,22 +203,35 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		Validator:  valid.Validate,
 		Logger:     log,
 		BootLoader: nil,
-		Notifier:   nil,
+		ThisBroker: func() (bson.ObjectID, string) {
+			return thisID, this.Name
+		},
+		Notifier: nil,
 	}
 	agtAcpt := agtaccept.NewAccept(db, acptOpt)
+	tunnelV1API := exprestapi.NewTunnelV1(agtAcpt)
 
 	// httpRoutes 和 httpsRoutes 均为需要暴露的路由。
 	// 由于 http 不安全，所以仅挂载必要的 agent 兼容业务。
 	httpRoutes := []shipx.RouteRegister{
 		exprestapi.NewHeartbeat(),
-		exprestapi.NewTunnel(agtAcpt),
+		tunnelV1API,
 	}
-	httpsRoutes := []shipx.RouteRegister{}
+	httpsRoutes := []shipx.RouteRegister{
+		exprestapi.NewTunnel(agtAcpt), // 新版 tunnel 仅支持 https
+		tunnelV1API,
+	}
 	mgtRoutes := []shipx.RouteRegister{
 		mgtrestapi.NewSpeedtest(),
 		mgtrestapi.NewTunnel(mgtTunnelSvc),
 	}
-	agtRoutes := []shipx.RouteRegister{}
+
+	agtHeartbeatV1Svc := agtservice.NewHeartbeatV1(db, log)
+	agtSysInfoV1Svc := agtservice.NewSysInfoV1(db, log)
+	agtRoutes := []shipx.RouteRegister{
+		agtrestapi.NewHeartbeatV1(agtHeartbeatV1Svc),
+		agtrestapi.NewSysInfoV1(agtSysInfoV1Svc),
+	}
 	{
 		base := httpSH.Group("/api/v1")
 		if err = shipx.RegisterRoutes(base, httpRoutes); err != nil {
@@ -239,7 +255,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		}
 	}
 	{
-		base := mgtSH.Group("/api/v1")
+		base := agtSH.Group("/api/v1")
 		if err = shipx.RegisterRoutes(base, agtRoutes); err != nil {
 			log.Error("注册 agent 路由出错", "error", err)
 			return err
@@ -252,9 +268,10 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	}
 
 	cronTasks := []cronv3.Tasker{
+		cronjob.NewAgentTunnelStat(db, hub, basecli),
 		cronjob.NewHeartbeat(mgtcli, log),
 		cronjob.NewMetrics(curVictoriaMetricsSvc, metricWriters),
-		cronjob.NewTunnelStat(db, this.ID, mux),
+		cronjob.NewTunnelStat(db, thisID, mux),
 	}
 
 	crontab := cronv3.New(log)
@@ -280,7 +297,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		return err
 	}
 
-	crtPool := tlscert.NewMatch(noneTLS{}, log)
+	crtPool := tlscert.NewMatch(db.Certificate(), log)
 	httpSrv := &http.Server{Handler: httpSH}
 	httpsSrv := &http.Server{Handler: httpsSH, TLSConfig: &tls.Config{GetCertificate: crtPool.GetCertificate}}
 	errs := make(chan error, 1)
@@ -312,10 +329,4 @@ func serveHTTP(errs chan<- error, srv *http.Server, ln net.Listener) {
 
 func serveHTTPS(errs chan<- error, srv *http.Server, ln net.Listener) {
 	errs <- srv.ServeTLS(ln, "", "")
-}
-
-type noneTLS struct{}
-
-func (noneTLS) LoadCertificate(context.Context) ([]*tls.Certificate, error) {
-	return nil, nil
 }

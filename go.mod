@@ -7,8 +7,8 @@ require (
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/magnetde/slog-loki v0.1.4
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/vela-ssoc/ssoc-common v0.0.0-20260227111641-1d0e76741f3e
-	github.com/vela-ssoc/ssoc-proto v0.0.0-20260227111052-cf550b0089ef
+	github.com/vela-ssoc/ssoc-common v0.0.0-20260303031640-0d30af296635
+	github.com/vela-ssoc/ssoc-proto v0.0.0-20260302055533-a55ad4e4b97e
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/xgfone/ship/v5 v5.3.2
 	go.mongodb.org/mongo-driver/v2 v2.5.0
@@ -31,7 +31,7 @@ require (
 	github.com/lmittmann/tint v1.1.3 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260216142805-b3301c5f2a88 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/shirou/gopsutil/v4 v4.26.1 // indirect
+	github.com/shirou/gopsutil/v4 v4.26.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/valyala/fastrand v1.1.0 // indirect

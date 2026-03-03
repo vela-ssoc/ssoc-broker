@@ -11,7 +11,6 @@ import (
 	mathrand "math/rand/v2"
 	"net"
 	"net/http"
-	"runtime"
 	"time"
 
 	"github.com/vela-ssoc/ssoc-common/muxserver"
@@ -20,7 +19,9 @@ import (
 	"github.com/vela-ssoc/ssoc-proto/muxconn"
 	"github.com/vela-ssoc/ssoc-proto/muxproto"
 	"github.com/vela-ssoc/ssoc-proto/muxtool"
+	velasmux "github.com/vela-ssoc/vela-common-mba/smux"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type Options struct {
@@ -28,6 +29,7 @@ type Options struct {
 	Handler    http.Handler
 	Validator  func(any) error
 	Logger     *slog.Logger
+	ThisBroker func() (bson.ObjectID, string)
 	PerTimeout time.Duration
 	BootLoader muxserver.BootLoader[muxproto.AgentBootConfig] // 必须填写，节点认证通过后加载启动配置。
 	Notifier   muxserver.ConnectNotifier
@@ -51,19 +53,10 @@ func (srv *agentAccept) AcceptMUX(mux muxconn.Muxer) error {
 
 // AcceptTCP 该接口用于兼容老版本 agent 节点上线。
 //
-// 老版本的多路复用连接方式有诸多问题，将会逐渐淘汰掉。
+// 老版本的多路复用连接方式有诸多问题，将会逐渐淘汰掉，新版将完全迁移至 [agentAccept.AcceptMUX]。
 func (srv *agentAccept) AcceptTCP(w http.ResponseWriter, r *http.Request) error {
 	connectAt := time.Now()
-	sessData := &tunnelSessionDataV1{
-		Peer:          nil,
-		Request:       nil,
-		ConnectAt:     connectAt,
-		LocalAddr:     "",
-		RemoteAddr:    "",
-		TunnelLibrary: model.TunnelLibrary{},
-		ExecuteStat:   model.ExecuteStat{},
-		TunnelStat:    model.TunnelStat{},
-	}
+	sessData := &tunnelSessionDataV1{ConnectAt: connectAt}
 	peer, err := srv.authenticationV1(w, r, sessData)
 	if err != nil {
 		srv.log().Warn("节点认证上线是失败", "session", sessData, "error", err)
@@ -112,13 +105,9 @@ func (srv *agentAccept) authenticationV1(w http.ResponseWriter, r *http.Request,
 		srv.log().Warn("客户端连接 hijack 出错", "session", sessData, "error", err)
 		return nil, err
 	}
-
-	if runtime.NumCPU() != 100000000 { // FIXME 模拟错误
-		pde := &muxtool.ProblemDetails{Status: http.StatusTooManyRequests, Detail: "限流测试"}
-		srv.writeErrorV1(conn, r, pde) // 响应错误信息。
-
-		return nil, errors.New(pde.Detail)
-	}
+	// broker 视角记录 agent 的地址，raddr laddr 互换。
+	sessData.RemoteAddr = conn.LocalAddr().String()
+	sessData.LocalAddr = conn.RemoteAddr().String()
 
 	// 参数校验
 	if pde := srv.validateV1(req); pde != nil {
@@ -136,87 +125,199 @@ func (srv *agentAccept) authenticationV1(w http.ResponseWriter, r *http.Request,
 	if node.Status == model.MinionStatusDelete {
 		detail := "节点已被标记删除"
 		pde = &muxtool.ProblemDetails{Status: http.StatusForbidden, Detail: detail}
+		srv.writeErrorV1(conn, r, pde) // 响应错误信息。
 		srv.log().Error(detail, "session", sessData)
 		return nil, errors.New(detail)
 	} else if node.Status == model.MinionStatusOnline {
 		detail := "节点已经在线（数据库检查）"
 		pde = &muxtool.ProblemDetails{Status: http.StatusConflict, Detail: detail}
+		srv.writeErrorV1(conn, r, pde) // 响应错误信息。
 		srv.log().Error(detail, "session", sessData)
 		return nil, errors.New(detail)
 	}
 
-	return nil, nil
+	info := muxserver.PeerInfo{
+		Instance:    req.MachineID,
+		Semver:      req.Semver,
+		Inet:        req.Inet,
+		Goos:        req.Goos,
+		Goarch:      req.Arch,
+		Hostname:    req.Hostname,
+		ConnectedAt: sessData.ConnectAt,
+	}
+	if info.Instance == "" {
+		info.Instance = info.Inet
+	}
+
+	var passwd []byte
+	muxcfg := velasmux.DefaultConfig()
+	muxcfg.KeepAliveDisabled = false
+	if r.TLS == nil { // 如果未配置 TLS 加密，通道就开启加密传输。
+		passwd = srv.generatePasswd()
+		muxcfg.Passwd = passwd
+	}
+	mux := muxconn.NewVela(nil, conn, muxcfg, true)
+	name, module := mux.Library()
+
+	// 加入到连接池中
+	id := node.ID
+	sessData.ID = id
+	sessData.TunnelLibrary = model.TunnelLibrary{Name: name, Module: module}
+	peer, details := srv.putHub(id, mux, info)
+	if details != nil {
+		srv.log().Warn(details.Detail, "session", sessData)
+		srv.writeErrorV1(conn, r, details)
+		return nil, errors.New(details.Detail)
+	}
+	sessData.Peer = peer
+
+	// 节点上线
+	if pde = srv.updateOnlineV1(sessData, node); pde != nil {
+		srv.delHub(id) // 从连接池中删除
+		srv.log().Error(pde.Detail, "session", sessData)
+		srv.writeErrorV1(conn, r, pde)
+		return nil, errors.New(pde.Detail)
+	}
+
+	// 回写成功消息
+	resp := &IssueV1{Passwd: passwd, SID: id.Hex()}
+	if err = srv.writeSuccessV1(conn, r, resp); err != nil {
+		srv.delHub(id) // 从连接池中删除
+		srv.log().Error("写入响应报文出错", "session", sessData, "error", err)
+
+		return nil, err
+	}
+
+	return peer, nil
 }
 
 func (srv *agentAccept) findOrCreateV1(req *IdentV1) (*model.Minion, *muxtool.ProblemDetails) {
-	//coll := srv.db.Minion()
-	//coll.Find(ctx)
-	//
-	//machineID, inet := req.MachineID, req.Inet
-	//if machineID != "" {
-	//
-	//}
-	//
-	//dat := &model.Minion{
-	//	MachineID:   req.MachineID,
-	//	Status:      0,
-	//	Tags:        nil,
-	//	TunnelStat:  nil,
-	//	ExecuteStat: nil,
-	//	CMDB:        nil,
-	//	CreatedAt:   time.Time{},
-	//	UpdatedAt:   time.Time{},
-	//}
+	if req.MachineID != "" {
+		return srv.findOrCreateByMachineIDV1(req)
+	}
 
-	return nil, nil
+	return srv.findOrCreateByInetV1(req)
 }
 
-func (srv *agentAccept) updateOnline(data *tunnelSessionDataV1) error {
-	//// 每次上线都要更新标签
-	//goos, goarch, inet := req.Goos, req.Arch, req.Inet
-	//tags := dat.Tags.ReplaceAllSystemTags(goos, goarch, inet)
-	//
-	//execStat := &model.ExecuteStat{
-	//	Inet:       "",
-	//	Goos:       "",
-	//	Goarch:     "",
-	//	Semver:     "",
-	//	Version:    0,
-	//	Unstable:   false,
-	//	PID:        0,
-	//	Args:       nil,
-	//	Hostname:   "",
-	//	Workdir:    "",
-	//	Executable: "",
-	//}
-	//tunStat := &model.TunnelStat{
-	//	ConnectedAt: time.Time{},
-	//	KeepaliveAt: time.Time{},
-	//	Library:     model.TunnelLibrary{},
-	//	LocalAddr:   "",
-	//	RemoteAddr:  "",
-	//}
-	//
-	//filter := bson.M{"_id": id, "status": model.MinionStatusOffline}
-	//update := bson.M{"$set": bson.M{
-	//	"inet": inet,
-	//
-	//	"tags":     tags,
-	//	"status":   model.MinionStatusOnline,
-	//	"unstable": req.Unstable,
-	//}}
-	//type Minion struct {
-	//	MachineID   string        `bson:"machine_id"             json:"machine_id"`
-	//	Inet        string        `bson:"inet"                   json:"inet"` // 主要 IP，非唯一标识，主要用于用户识别的。
-	//	Status      MinionStatus  `bson:"status"                 json:"status"`
-	//	Tags        MinionTags    `bson:"tags"                   json:"tags"`   // 节点标签，配置下发。
-	//	Unload      bool          `bson:"unload"                 json:"unload"` // 此模式开启，此节点不会加载任何配置。
-	//	TunnelStat  *TunnelStat   `bson:"tunnel_stat,omitempty"  json:"tunnel_stat,omitzero"`
-	//	ExecuteStat *ExecuteStat  `bson:"execute_stat,omitempty" json:"execute_stat,omitzero"`
-	//	CMDB        *MinionCMDB   `bson:"cmdb,omitempty"         json:"cmdb,omitempty"`
-	//	CreatedAt   time.Time     `bson:"created_at,omitempty"   json:"created_at"`
-	//	UpdatedAt   time.Time     `bson:"updated_at,omitempty"   json:"updated_at"`
-	//}
+func (srv *agentAccept) findOrCreateByMachineIDV1(req *IdentV1) (*model.Minion, *muxtool.ProblemDetails) {
+	ctx, cancel := srv.perContext()
+	defer cancel()
+
+	coll := srv.db.Minion()
+	machineID := req.MachineID
+	dat, err := coll.FindOne(ctx, bson.D{{Key: "machine_id", Value: machineID}})
+	if err == nil {
+		return dat, nil
+	} else if !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, &muxtool.ProblemDetails{Status: http.StatusInternalServerError, Detail: err.Error()}
+	}
+
+	return srv.findOrCreateByInetV1(req)
+}
+
+func (srv *agentAccept) findOrCreateByInetV1(req *IdentV1) (*model.Minion, *muxtool.ProblemDetails) {
+	ctx, cancel := srv.perContext()
+	defer cancel()
+
+	inet := req.Inet
+	coll := srv.db.Minion()
+	filter := bson.M{"machine_id": "", "inet": inet}
+	dat, err := coll.FindOne(ctx, filter)
+	if err == nil {
+		return dat, nil
+	} else if !errors.Is(err, mongo.ErrNoDocuments) {
+		srv.log().Error("通过 inet 查询节点错误", "inet", inet, "error", err)
+		return nil, &muxtool.ProblemDetails{Status: http.StatusInternalServerError, Detail: err.Error()}
+	}
+
+	return srv.createMinionV1(req)
+}
+
+// createMinionV1 新增 agent 节点。
+func (srv *agentAccept) createMinionV1(req *IdentV1) (*model.Minion, *muxtool.ProblemDetails) {
+	now := time.Now()
+	doc := &model.Minion{
+		MachineID: req.MachineID,
+		Inet:      req.Inet,
+		Status:    model.MinionStatusOffline,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	coll := srv.db.Minion()
+	ctx, cancel := srv.perContext()
+	defer cancel()
+
+	ret, err := coll.InsertOne(ctx, doc)
+	if err != nil {
+		srv.log().Error("节点新增错误", "new_minion", doc, "error", err)
+		return nil, &muxtool.ProblemDetails{Status: http.StatusInternalServerError, Detail: err.Error()}
+	}
+	id, ok := ret.InsertedID.(bson.ObjectID)
+	if !ok {
+		msg := "新增 ID 类型错误"
+		srv.log().Error(msg, "inserted_id", id)
+		return nil, &muxtool.ProblemDetails{Status: http.StatusInternalServerError, Detail: msg}
+	}
+	doc.ID = id
+
+	return doc, nil
+}
+
+func (srv *agentAccept) updateOnlineV1(sessData *tunnelSessionDataV1, node *model.Minion) *muxtool.ProblemDetails {
+	// 每次上线都要更新标签
+	req := sessData.Request
+	goos, goarch, inet := req.Goos, req.Arch, req.Inet
+	tags := node.Tags.ReplaceAllSystemTags(inet, goos, goarch)
+
+	var broker model.MinionBroker
+	if fn := srv.opts.ThisBroker; fn != nil {
+		broker.ID, broker.Name = fn()
+	}
+
+	execStat := model.ExecuteStat{
+		Goos:       goos,
+		Goarch:     goarch,
+		Semver:     req.Semver,
+		Version:    model.Semver(req.Semver).Uint64(),
+		Unstable:   req.Unstable,
+		PID:        req.PID,
+		Args:       []string{},
+		Hostname:   req.Hostname,
+		Workdir:    req.Workdir,
+		Executable: req.Executable,
+	}
+	tunStat := model.TunnelStat{
+		Inet:        inet,
+		ConnectedAt: sessData.ConnectAt,
+		KeepaliveAt: sessData.ConnectAt,
+		Library:     sessData.TunnelLibrary,
+		LocalAddr:   sessData.LocalAddr,
+		RemoteAddr:  sessData.RemoteAddr,
+	}
+	sessData.TunnelStat = tunStat
+	sessData.ExecuteStat = execStat
+	sessData.Broker = broker
+
+	filter := bson.M{"_id": sessData.ID, "status": model.MinionStatusOffline}
+	update := bson.M{"$set": bson.M{
+		"machine_id":   req.MachineID,
+		"status":       model.MinionStatusOnline,
+		"tags":         tags,
+		"unload":       req.Unload,
+		"broker":       broker,
+		"tunnel_stat":  tunStat,
+		"execute_stat": execStat,
+	}}
+
+	ctx, cancel := srv.perContext()
+	defer cancel()
+
+	coll := srv.db.Minion()
+	if _, err := coll.UpdateOne(ctx, filter, update); err != nil {
+		srv.log().Error("修改节点在线状态错误", "session", sessData)
+		return &muxtool.ProblemDetails{Status: http.StatusInternalServerError, Detail: err.Error()}
+	}
 
 	return nil
 }
@@ -247,6 +348,20 @@ func (srv *agentAccept) writeErrorV1(conn net.Conn, r *http.Request, pde *muxtoo
 	json.NewEncoder(body).Encode(pde)
 
 	status := pde.Status
+	srv.writeBodyV1(conn, r, status, body)
+}
+
+func (srv *agentAccept) writeSuccessV1(conn net.Conn, r *http.Request, resp *IssueV1) error {
+	enc, err := resp.Encrypt()
+	if err != nil {
+		return err
+	}
+
+	return srv.writeBodyV1(conn, r, http.StatusAccepted, bytes.NewBuffer(enc))
+}
+
+//goland:noinspection GoUnhandledErrorResult
+func (srv *agentAccept) writeBodyV1(conn net.Conn, r *http.Request, status int, body *bytes.Buffer) error {
 	res := &http.Response{
 		Status:        http.StatusText(status),
 		StatusCode:    status,
@@ -259,8 +374,11 @@ func (srv *agentAccept) writeErrorV1(conn net.Conn, r *http.Request, pde *muxtoo
 	}
 
 	d := srv.perTimeout()
-	_ = conn.SetWriteDeadline(time.Now().Add(d))
-	res.Write(conn)
+	conn.SetWriteDeadline(time.Now().Add(d))
+	err := res.Write(conn)
+	conn.SetWriteDeadline(time.Time{}) // 设置 deadline 后一定要清除 deadline
+
+	return err
 }
 
 func (srv *agentAccept) validateV1(req *IdentV1) *muxtool.ProblemDetails {
@@ -274,7 +392,7 @@ func (srv *agentAccept) validateV1(req *IdentV1) *muxtool.ProblemDetails {
 
 		return nil
 	}
-
+	// TODO 校验参数
 	return nil
 }
 
@@ -336,7 +454,7 @@ func (srv *agentAccept) disconnected(sessData *tunnelSessionDataV1) {
 	id, peer := sessData.ID, sessData.Peer
 	tx, rx := peer.MUX().Traffic()
 	{
-		filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: true}}
+		filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: model.MinionStatusOnline}}
 		update := bson.M{"$set": bson.M{
 			"status":                      model.MinionStatusOffline,
 			"tunnel_stat.disconnected_at": sessData.DisconnectAt,
@@ -354,7 +472,7 @@ func (srv *agentAccept) disconnected(sessData *tunnelSessionDataV1) {
 		} else if ret.ModifiedCount <= 0 {
 			srv.log().Error("节点下线修改数据库未匹配到数据", "session", sessData)
 		} else {
-			srv.log().Info("节点下线修改数据库完毕", "session", sessData)
+			srv.log().Debug("节点下线修改数据库完毕", "session", sessData)
 		}
 	}
 	srv.delHub(id) // 从 hub 中删除连接
@@ -374,6 +492,7 @@ func (srv *agentAccept) disconnected(sessData *tunnelSessionDataV1) {
 		}
 		his := &model.MinionConnectHistory{
 			MinionID:    id,
+			Broker:      sessData.Broker,
 			ExecuteStat: sessData.ExecuteStat,
 			TunnelStat:  tunStatHis,
 		}

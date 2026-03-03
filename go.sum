@@ -43,8 +43,8 @@ github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 h1:o4JXh1EVt
 github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55/go.mod h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
 github.com/robfig/cron/v3 v3.0.1/go.mod h1:eQICP3HwyT7UooqI/z+Ov+PtYAWygg1TEWWzGIFLtro=
-github.com/shirou/gopsutil/v4 v4.26.1 h1:TOkEyriIXk2HX9d4isZJtbjXbEjf5qyKPAzbzY0JWSo=
-github.com/shirou/gopsutil/v4 v4.26.1/go.mod h1:medLI9/UNAb0dOI9Q3/7yWSqKkj00u+1tgY8nvv41pc=
+github.com/shirou/gopsutil/v4 v4.26.2 h1:X8i6sicvUFih4BmYIGT1m2wwgw2VG9YgrDTi7cIRGUI=
+github.com/shirou/gopsutil/v4 v4.26.2/go.mod h1:LZ6ewCSkBqUpvSOf+LsTGnRinC6iaNUNMGBtDkJBaLQ=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
@@ -57,10 +57,12 @@ github.com/valyala/fastrand v1.1.0 h1:f+5HkLW4rsgzdNoleUOB69hyT9IlD2ZQh9GyDMfb5G
 github.com/valyala/fastrand v1.1.0/go.mod h1:HWqCzkrkg6QXT8V2EXWvXCoow7vLwOFN002oeRzjapQ=
 github.com/valyala/histogram v1.2.0 h1:wyYGAZZt3CpwUiIb9AU/Zbllg1llXyrtApRS815OLoQ=
 github.com/valyala/histogram v1.2.0/go.mod h1:Hb4kBwb4UxsaNbbbh+RRz8ZR6pdodR57tzWUS3BUzXY=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260227111641-1d0e76741f3e h1:SoSBIHo2GgX5YBtvBZasH2BkPehFZb6eaoLfEAkXrgg=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260227111641-1d0e76741f3e/go.mod h1:eE4mmL/EF8qqdlb3B/p3SJmmqyRfKQlLQbysl7cuUg8=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260227111052-cf550b0089ef h1:2OnHSwVTcbQZLMJdVp3uTX/Lw93nJbSX5buqaNAvFCU=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260227111052-cf550b0089ef/go.mod h1:K0yq+yTfzeO6pgajrwl7A9yvTrfF9Gu/3lSesdBT9ss=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260302100746-43a3109198ed h1:+LQuXUKx57xIAwGjue8PUvOseWI5FzEGg9aCGwBBgfg=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260302100746-43a3109198ed/go.mod h1:K2x4OCBTrCybrkHqKEFcdwSCLbeBzhbtQ//UXjtdlSA=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260303031640-0d30af296635 h1:1eIz8chMR0+v3+f1gf8G7BuUTxpwp90XsFTteh2ZzPg=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260303031640-0d30af296635/go.mod h1:K2x4OCBTrCybrkHqKEFcdwSCLbeBzhbtQ//UXjtdlSA=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260302055533-a55ad4e4b97e h1:f5+eB9hAqgpl91IlcpBgcKjolCbahIrjFSA67rBEU2Q=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260302055533-a55ad4e4b97e/go.mod h1:6akI+jTpzZSDeeYx8OS1uMj8s++MKrnzjHp95glT05o=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277 h1:yoGmjdg62V+7ttvssABuXmXMyqwWdDTACQ8YZOXKRnQ=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277/go.mod h1:DMN/az9fN2p0mJ1CNouJjsEJWs69Ucqbtq34DOCaTlc=
 github.com/xdg-go/pbkdf2 v1.0.0 h1:Su7DPu48wXMwC3bs7MCNG+z4FhcyEuz5dlvchbq0B0c=
