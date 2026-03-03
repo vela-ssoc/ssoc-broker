@@ -2,10 +2,12 @@ package service
 
 import (
 	"log/slog"
+	"slices"
 
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
 	"github.com/vela-ssoc/ssoc-common/tundata/mbreq"
 	"github.com/vela-ssoc/ssoc-common/tundata/mbresp"
+	"github.com/vela-ssoc/ssoc-proto/muxconn"
 	"golang.org/x/time/rate"
 )
 
@@ -27,7 +29,7 @@ func (tnl *Tunnel) Stat() *mbresp.TunnelStat {
 	rx, tx := tnl.mux.Traffic()
 	bps := tnl.mux.Limit()
 
-	return &mbresp.TunnelStat{
+	stat := &mbresp.TunnelStat{
 		Name:       name,
 		Module:     module,
 		Cumulative: cumulative,
@@ -37,6 +39,17 @@ func (tnl *Tunnel) Stat() *mbresp.TunnelStat {
 		Limit:      float64(bps),
 		Unlimit:    bps == rate.Inf,
 	}
+
+	streams := tnl.mux.Streams()
+	for _, s := range streams {
+		ss := s.Stats()
+		stat.Streams = append(stat.Streams, ss)
+	}
+	slices.SortFunc(stat.Streams, func(a, b *muxconn.StreamStats) int {
+		return a.EstablishedAt.Compare(b.EstablishedAt)
+	})
+
+	return stat
 }
 
 func (tnl *Tunnel) Limit(req *mbreq.TunnelLimit) {

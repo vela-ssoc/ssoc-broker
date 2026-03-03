@@ -151,7 +151,6 @@ func (srv *agentAccept) authenticationV1(w http.ResponseWriter, r *http.Request,
 
 	var passwd []byte
 	muxcfg := velasmux.DefaultConfig()
-	muxcfg.KeepAliveDisabled = false
 	if r.TLS == nil { // 如果未配置 TLS 加密，通道就开启加密传输。
 		passwd = srv.generatePasswd()
 		muxcfg.Passwd = passwd
@@ -334,8 +333,10 @@ func (srv *agentAccept) serveHTTP(peer muxserver.Peer) error {
 		},
 	}
 	mux := peer.MUX()
+	err := hs.Serve(mux)
+	_ = mux.Close()
 
-	return hs.Serve(mux)
+	return err
 }
 
 // writeErrorV1 旧版 agent 上线失败响应消息。

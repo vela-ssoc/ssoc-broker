@@ -35,6 +35,7 @@ func (s *safeMUX) SetLimit(bps rate.Limit)                    { s.loadMUX().SetL
 func (s *safeMUX) NumStreams() (int64, int64)                 { return s.loadMUX().NumStreams() }
 func (s *safeMUX) Traffic() (uint64, uint64)                  { return s.loadMUX().Traffic() }
 func (s *safeMUX) Library() (string, string)                  { return s.loadMUX().Library() }
+func (s *safeMUX) Streams() []muxconn.Conn                    { return s.loadMUX().Streams() }
 func (s *safeMUX) Config() muxproto.BrokerBootConfig          { return s.ptr.Load().cfg }
 
 func (s *safeMUX) loadMUX() muxconn.Muxer {
