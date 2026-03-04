@@ -28,6 +28,7 @@ type IdentV1 struct {
 	Unload     bool          `json:"unload"`                         // 是否开启静默模式，仅在新注册节点时有效
 	Unstable   bool          `json:"unstable"`                       // 不稳定版本
 	Customized string        `json:"customized"`                     // 定制版本
+	Args       []string      `json:"args"`
 }
 
 // Decrypt 认证身份信息解密

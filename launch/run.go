@@ -203,10 +203,11 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		Validator:  valid.Validate,
 		Logger:     log,
 		BootLoader: nil,
+		Limiter:    agtservice.NewConnectLimit(100), // 每秒允许上线的节点数
 		ThisBroker: func() (bson.ObjectID, string) {
 			return thisID, this.Name
 		},
-		Notifier: nil,
+		Notifier: agtservice.NewConnectNotice(log),
 	}
 	agtAcpt := agtaccept.NewAccept(db, acptOpt)
 	tunnelV1API := exprestapi.NewTunnelV1(agtAcpt)

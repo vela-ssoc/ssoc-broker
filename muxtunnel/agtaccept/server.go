@@ -29,13 +29,16 @@ type Options struct {
 	Handler    http.Handler
 	Validator  func(any) error
 	Logger     *slog.Logger
+	Limiter    Limiter
 	ThisBroker func() (bson.ObjectID, string)
 	PerTimeout time.Duration
 	BootLoader muxserver.BootLoader[muxproto.AgentBootConfig] // 必须填写，节点认证通过后加载启动配置。
-	Notifier   muxserver.ConnectNotifier
+	Notifier   Notifier
 }
 
 func NewAccept(db repository.Database, opts Options) muxserver.MUXAccepter {
+	opts.Notifier = wrapSafeNotifier(opts.Notifier)
+
 	return &agentAccept{
 		db:   db,
 		opts: opts,
@@ -57,26 +60,22 @@ func (srv *agentAccept) AcceptMUX(mux muxconn.Muxer) error {
 func (srv *agentAccept) AcceptTCP(w http.ResponseWriter, r *http.Request) error {
 	connectAt := time.Now()
 	sessData := &tunnelSessionDataV1{ConnectAt: connectAt}
-	peer, err := srv.authenticationV1(w, r, sessData)
-	if err != nil {
-		srv.log().Warn("节点认证上线是失败", "session", sessData, "error", err)
-
-		if ntf := srv.opts.Notifier; ntf == nil {
-			srv.log().Debug("没有注册回调函数，无需触发认证失败回调")
-		} else {
-			srv.log().Debug("触发认证失败回调")
-
-			ctx, cancel := srv.perContext()
-			defer cancel()
-
-			ntf.OnAuthFailed(ctx, nil, connectAt, err)
+	peer, fail := srv.authenticationV1(w, r, sessData)
+	{
+		ntf := srv.opts.Notifier
+		ctx, cancel := srv.perContext()
+		defer cancel()
+		if fail != nil {
+			_ = ntf.OnFailed(ctx, fail)
+			return fail.Error
 		}
 
-		return err
+		id, info := peer.ID(), peer.Info()
+		_ = ntf.OnConnected(ctx, id, info)
 	}
 
 	srv.log().Debug("开始服务节点业务", "session", sessData)
-	err = srv.serveHTTP(peer)
+	err := srv.serveHTTP(peer)
 	sessData.DisconnectAt = time.Now()
 	srv.log().Debug("节点下线", "session", sessData, "error", err)
 
@@ -85,25 +84,30 @@ func (srv *agentAccept) AcceptTCP(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 
-func (srv *agentAccept) authenticationV1(w http.ResponseWriter, r *http.Request, sessData *tunnelSessionDataV1) (muxserver.Peer, error) {
+func (srv *agentAccept) authenticationV1(w http.ResponseWriter, r *http.Request, sessData *tunnelSessionDataV1) (muxserver.Peer, *FailedData) {
 	buf := make([]byte, 100*1024) // 100K 一般是足够存放认证报文了。
 	n, _ := io.ReadFull(r.Body, buf)
-	req := new(IdentV1)
+	req, fail := new(IdentV1), new(FailedData)
 	if err := req.Decrypt(buf[:n]); err != nil {
 		srv.log().Error("认证报文解析错误", "session", sessData, "error", err)
-		return nil, err
+		fail.Error = err
+		return nil, fail
 	}
 	sessData.Request = req
+	fail.Inet = req.Inet
+	fail.MachineID = req.MachineID
 
 	hijacker, support := w.(http.Hijacker)
 	if !support {
 		srv.log().Warn("客户端连接不支持 hijacker", "session", sessData)
-		return nil, errors.New("客户端连接不支持 hijacker")
+		fail.Error = errors.New("客户端连接不支持 hijacker")
+		return nil, fail
 	}
 	conn, _, err := hijacker.Hijack()
 	if err != nil {
 		srv.log().Warn("客户端连接 hijack 出错", "session", sessData, "error", err)
-		return nil, err
+		fail.Error = err
+		return nil, fail
 	}
 	// broker 视角记录 agent 的地址，raddr laddr 互换。
 	sessData.RemoteAddr = conn.LocalAddr().String()
@@ -113,27 +117,42 @@ func (srv *agentAccept) authenticationV1(w http.ResponseWriter, r *http.Request,
 	if pde := srv.validateV1(req); pde != nil {
 		srv.writeErrorV1(conn, r, pde) // 响应错误信息。
 		srv.log().Warn("认证报文校验错误", "session", sessData, "error", pde)
-		return nil, errors.New(pde.Detail)
+		fail.Error = errors.New(pde.Detail)
+		return nil, fail
+	}
+
+	if !srv.allowConnect() {
+		msg := "限流器限频"
+		pde := &muxtool.ProblemDetails{Status: http.StatusTooManyRequests, Detail: msg}
+		srv.writeErrorV1(conn, r, pde) // 响应错误信息。
+		srv.log().Warn(msg, "session", sessData, "error", pde)
+		fail.Error = errors.New(msg)
+		return nil, fail
 	}
 
 	node, pde := srv.findOrCreateV1(req)
 	if pde != nil {
 		srv.writeErrorV1(conn, r, pde) // 响应错误信息。
-		srv.log().Error("查询/创建节点错误", "session", sessData, "error", err)
-		return nil, err
+		srv.log().Error("查询/创建节点错误", "session", sessData, "error", pde)
+		fail.Error = errors.New(pde.Detail)
+		return nil, fail
 	}
+	fail.ID = node.ID
 	if node.Status == model.MinionStatusDelete {
 		detail := "节点已被标记删除"
 		pde = &muxtool.ProblemDetails{Status: http.StatusForbidden, Detail: detail}
 		srv.writeErrorV1(conn, r, pde) // 响应错误信息。
 		srv.log().Error(detail, "session", sessData)
-		return nil, errors.New(detail)
+		fail.Error = errors.New(pde.Detail)
+		return nil, fail
 	} else if node.Status == model.MinionStatusOnline {
 		detail := "节点已经在线（数据库检查）"
 		pde = &muxtool.ProblemDetails{Status: http.StatusConflict, Detail: detail}
 		srv.writeErrorV1(conn, r, pde) // 响应错误信息。
 		srv.log().Error(detail, "session", sessData)
-		return nil, errors.New(detail)
+		fail.Error = errors.New(pde.Detail)
+		fail.Conflict = true
+		return nil, fail
 	}
 
 	info := muxserver.PeerInfo{
@@ -166,7 +185,9 @@ func (srv *agentAccept) authenticationV1(w http.ResponseWriter, r *http.Request,
 	if details != nil {
 		srv.log().Warn(details.Detail, "session", sessData)
 		srv.writeErrorV1(conn, r, details)
-		return nil, errors.New(details.Detail)
+		fail.Conflict = details.Status == http.StatusConflict
+		fail.Error = errors.New(details.Detail)
+		return nil, fail
 	}
 	sessData.Peer = peer
 
@@ -175,7 +196,8 @@ func (srv *agentAccept) authenticationV1(w http.ResponseWriter, r *http.Request,
 		srv.delHub(id) // 从连接池中删除
 		srv.log().Error(pde.Detail, "session", sessData)
 		srv.writeErrorV1(conn, r, pde)
-		return nil, errors.New(pde.Detail)
+		fail.Error = errors.New(pde.Detail)
+		return nil, fail
 	}
 
 	// 回写成功消息
@@ -183,8 +205,9 @@ func (srv *agentAccept) authenticationV1(w http.ResponseWriter, r *http.Request,
 	if err = srv.writeSuccessV1(conn, r, resp); err != nil {
 		srv.delHub(id) // 从连接池中删除
 		srv.log().Error("写入响应报文出错", "session", sessData, "error", err)
+		fail.Error = err
 
-		return nil, err
+		return nil, fail
 	}
 
 	return peer, nil
@@ -280,8 +303,9 @@ func (srv *agentAccept) updateOnlineV1(sessData *tunnelSessionDataV1, node *mode
 		Semver:     req.Semver,
 		Version:    model.Semver(req.Semver).Uint64(),
 		Unstable:   req.Unstable,
+		Customized: req.Customized,
 		PID:        req.PID,
-		Args:       []string{},
+		Args:       req.Args,
 		Hostname:   req.Hostname,
 		Workdir:    req.Workdir,
 		Executable: req.Executable,
@@ -504,17 +528,22 @@ func (srv *agentAccept) disconnected(sessData *tunnelSessionDataV1) {
 		_, _ = hisColl.InsertOne(ctx, his)
 	}
 
-	if ntf := srv.opts.Notifier; ntf == nil {
-		srv.log().Debug("没有注册回调函数，无需触发下线通知回调")
-	} else {
-		srv.log().Debug("触发下线通知回调")
-
+	{
+		ntf := srv.opts.Notifier
 		ctx, cancel := srv.perContext()
 		defer cancel()
 
 		info := peer.Info()
-		ntf.OnDisconnected(ctx, info, sessData.ConnectAt, sessData.DisconnectAt)
+		_ = ntf.OnDisconnected(ctx, id, info, sessData.DisconnectAt)
 	}
 
 	srv.log().Info("节点下线处理完毕", "session", sessData)
+}
+
+func (srv *agentAccept) allowConnect() bool {
+	if l := srv.opts.Limiter; l != nil {
+		return l.Allowed()
+	}
+
+	return true
 }
