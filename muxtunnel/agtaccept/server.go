@@ -477,7 +477,8 @@ func (srv *agentAccept) delHub(id bson.ObjectID) {
 
 func (srv *agentAccept) disconnected(sessData *tunnelSessionDataV1) {
 	id, peer := sessData.ID, sessData.Peer
-	tx, rx := peer.MUX().Traffic()
+	mux := peer.MUX()
+	tx, rx := mux.Traffic()
 	{
 		filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: model.MinionStatusOnline}}
 		update := bson.M{"$set": bson.M{
@@ -503,12 +504,14 @@ func (srv *agentAccept) disconnected(sessData *tunnelSessionDataV1) {
 	srv.delHub(id) // 从 hub 中删除连接
 
 	{
+		cumulative, _ := mux.NumStreams()
 		tunStat := sessData.TunnelStat
 		tunStatHis := model.TunnelStatHistory{
 			Inet:           tunStat.Inet,
 			ConnectedAt:    sessData.ConnectAt,
 			DisconnectedAt: sessData.DisconnectAt,
 			ConnectSeconds: sessData.connectedSeconds(),
+			Cumulative:     cumulative,
 			Library:        tunStat.Library,
 			LocalAddr:      sessData.LocalAddr,
 			RemoteAddr:     sessData.RemoteAddr,

@@ -57,10 +57,10 @@ github.com/valyala/fastrand v1.1.0 h1:f+5HkLW4rsgzdNoleUOB69hyT9IlD2ZQh9GyDMfb5G
 github.com/valyala/fastrand v1.1.0/go.mod h1:HWqCzkrkg6QXT8V2EXWvXCoow7vLwOFN002oeRzjapQ=
 github.com/valyala/histogram v1.2.0 h1:wyYGAZZt3CpwUiIb9AU/Zbllg1llXyrtApRS815OLoQ=
 github.com/valyala/histogram v1.2.0/go.mod h1:Hb4kBwb4UxsaNbbbh+RRz8ZR6pdodR57tzWUS3BUzXY=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260304061159-c626c26ec842 h1:5Juve4OvuHKrpnAoeRRd84zZzU/ORfATsxk2yA8wWyI=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260304061159-c626c26ec842/go.mod h1:b69ZhjVKoHCuFNGQZcDZHc2SzISed+sR7EgcP6r/+2M=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260304061026-672b6d59a7f3 h1:Tuaeg58p4/FgZudwKwUzEH7sfRNhe9RCFMyKnNVEoLY=
-github.com/vela-ssoc/ssoc-proto v0.0.0-20260304061026-672b6d59a7f3/go.mod h1:6akI+jTpzZSDeeYx8OS1uMj8s++MKrnzjHp95glT05o=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260305014033-5216ee315ebb h1:J5YmGGLFboXMhioGgu/j7ursRUIiopX8Kg+WLK2oREM=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260305014033-5216ee315ebb/go.mod h1:PbsLtLZIWAnVJbjcKLShlIzLPchPtgqK84sC/0GmJcg=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260304120203-3a5b79b179c9 h1:niitf5SUtFwZQAVXsbWWIjl2LKg5GYrVypwTvT3ufE8=
+github.com/vela-ssoc/ssoc-proto v0.0.0-20260304120203-3a5b79b179c9/go.mod h1:6akI+jTpzZSDeeYx8OS1uMj8s++MKrnzjHp95glT05o=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277 h1:yoGmjdg62V+7ttvssABuXmXMyqwWdDTACQ8YZOXKRnQ=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277/go.mod h1:DMN/az9fN2p0mJ1CNouJjsEJWs69Ucqbtq34DOCaTlc=
 github.com/xdg-go/pbkdf2 v1.0.0 h1:Su7DPu48wXMwC3bs7MCNG+z4FhcyEuz5dlvchbq0B0c=

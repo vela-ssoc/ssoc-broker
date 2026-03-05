@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cmp"
 	"log/slog"
 	"slices"
 
@@ -46,7 +47,7 @@ func (tnl *Tunnel) Stat() *mbresp.TunnelStat {
 		stat.Streams = append(stat.Streams, ss)
 	}
 	slices.SortFunc(stat.Streams, func(a, b *muxconn.StreamStats) int {
-		return a.EstablishedAt.Compare(b.EstablishedAt)
+		return cmp.Compare(a.ID, b.ID)
 	})
 
 	return stat
@@ -55,4 +56,14 @@ func (tnl *Tunnel) Stat() *mbresp.TunnelStat {
 func (tnl *Tunnel) Limit(req *mbreq.TunnelLimit) {
 	bps := req.Rate()
 	tnl.mux.SetLimit(bps)
+}
+
+func (tnl *Tunnel) Kill(id uint64) {
+	streams := tnl.mux.Streams()
+	for _, stm := range streams {
+		if stm.Stats().ID == id {
+			stm.Close()
+			break
+		}
+	}
 }

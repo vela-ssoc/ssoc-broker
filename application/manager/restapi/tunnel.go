@@ -2,6 +2,7 @@ package restapi
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/vela-ssoc/ssoc-broker/application/manager/service"
 	"github.com/vela-ssoc/ssoc-common/tundata/mbreq"
@@ -21,6 +22,7 @@ func NewTunnel(svc *service.Tunnel) *Tunnel {
 func (tnl *Tunnel) RegisterRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/tunnel/stat").GET(tnl.stat)
 	rgb.Route("/tunnel/limit").POST(tnl.limit)
+	rgb.Route("/tunnel/kill").GET(tnl.kill)
 
 	return nil
 }
@@ -37,6 +39,18 @@ func (tnl *Tunnel) limit(c *ship.Context) error {
 		return err
 	}
 	tnl.svc.Limit(req)
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (tnl *Tunnel) kill(c *ship.Context) error {
+	sid := c.Query("stream_id")
+	id, _ := strconv.Atoi(sid)
+	if id == 0 {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	tnl.svc.Kill(uint64(id))
 
 	return c.NoContent(http.StatusNoContent)
 }
