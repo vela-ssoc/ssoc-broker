@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
-	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
 	"github.com/vela-ssoc/ssoc-common/store/repository"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-func NewTunnelStat(db repository.Database, id bson.ObjectID, mux brokcli.Muxer) cronv3.Tasker {
+func NewTunnelStat(db repository.Database, id bson.ObjectID, mux brokclient.Muxer) cronv3.Tasker {
 	return &tunnelStat{
 		db:  db,
 		id:  id,
@@ -22,7 +22,7 @@ func NewTunnelStat(db repository.Database, id bson.ObjectID, mux brokcli.Muxer) 
 type tunnelStat struct {
 	db  repository.Database
 	id  bson.ObjectID
-	mux brokcli.Muxer
+	mux brokclient.Muxer
 }
 
 func (t *tunnelStat) Info() cronv3.TaskInfo {

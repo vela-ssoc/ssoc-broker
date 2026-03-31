@@ -1,4 +1,4 @@
-package brokcli
+package brokclient
 
 import (
 	"context"

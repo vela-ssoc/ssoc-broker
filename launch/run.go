@@ -19,7 +19,7 @@ import (
 	mgtservice "github.com/vela-ssoc/ssoc-broker/application/manager/service"
 	"github.com/vela-ssoc/ssoc-broker/config"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/agtaccept"
-	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/mgtclient"
 	"github.com/vela-ssoc/ssoc-common/appcfg"
 	"github.com/vela-ssoc/ssoc-common/banner"
@@ -116,7 +116,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 	agtSH.HandleError = shipErr.HandleError
 
 	semver := banner.Version()
-	brokOpts := brokcli.Options{
+	brokOpts := brokclient.Options{
 		Secret:     hide.Secret,
 		Addresses:  hide.Addresses,
 		Semver:     semver,
@@ -124,7 +124,7 @@ func Run(ctx context.Context, acr appcfg.Reader[config.Hide]) error {
 		Validator:  valid.Validate,
 		DialConfig: muxconn.DialConfig{Logger: log},
 	}
-	mux, err := brokcli.Open(ctx, brokOpts)
+	mux, err := brokclient.Open(ctx, brokOpts)
 	if err != nil {
 		log.Error("连接中心端失败", "error", err)
 		return err

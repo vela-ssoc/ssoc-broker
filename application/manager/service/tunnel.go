@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"slices"
 
-	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
 	"github.com/vela-ssoc/ssoc-common/tundata/mbreq"
 	"github.com/vela-ssoc/ssoc-common/tundata/mbresp"
 	"github.com/vela-ssoc/ssoc-proto/muxconn"
@@ -13,11 +13,11 @@ import (
 )
 
 type Tunnel struct {
-	mux brokcli.Muxer
+	mux brokclient.Muxer
 	log *slog.Logger
 }
 
-func NewTunnel(mux brokcli.Muxer, log *slog.Logger) *Tunnel {
+func NewTunnel(mux brokclient.Muxer, log *slog.Logger) *Tunnel {
 	return &Tunnel{
 		mux: mux,
 		log: log,

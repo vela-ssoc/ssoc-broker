@@ -5,18 +5,18 @@ import (
 	"io"
 
 	"github.com/VictoriaMetrics/metrics"
-	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokcli"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
 	"github.com/vela-ssoc/ssoc-common/vmetric"
 )
 
-func NewTunnel(mux brokcli.Muxer) vmetric.MetricWriter {
+func NewTunnel(mux brokclient.Muxer) vmetric.MetricWriter {
 	return &tunnelMetric{
 		mux: mux,
 	}
 }
 
 type tunnelMetric struct {
-	mux brokcli.Muxer
+	mux brokclient.Muxer
 }
 
 func (m *tunnelMetric) WriteMetric(_ context.Context, w io.Writer) {

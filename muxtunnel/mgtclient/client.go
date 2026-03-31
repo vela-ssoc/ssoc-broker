@@ -26,3 +26,7 @@ func (c Client) Ping(ctx context.Context) error {
 
 	return c.base.JSON(ctx, http.MethodGet, strURL, nil)
 }
+
+type AgentClient struct{}
+
+type ManagerClient struct{}
