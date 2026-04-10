@@ -225,8 +225,16 @@ func (bc *brokerClient) heartbeat(du time.Duration) {
 	for !over {
 		select {
 		case <-ticker.C:
+			_ = bc.sendHeartbeat()
 		case <-bc.parent.Done():
 			over = true
 		}
 	}
+}
+
+func (bc *brokerClient) sendHeartbeat() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	return bc.client.SilentJSON(ctx, http.MethodGet, "http://vtun/heartbeat", nil, nil)
 }

@@ -10,14 +10,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"gorm.io/gen"
+	"gorm.io/gorm"
 )
 
 func NewSystem(link telecom.Linker, qry *query.Query, gfs gridfs.FS, log *slog.Logger) *System {
