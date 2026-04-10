@@ -46,5 +46,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           retention-days: 30
-          name: ssoc-broker_${{ env.GIT_SHORT_SHA }}
+          name: ssoc-broker_${{ env.GIT_SHORT_SHA }}_static
           path: ssoc-broker_*
