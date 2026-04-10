@@ -86,7 +86,7 @@ func (sys *System) Update(semver model.Semver) error {
 	tbl := sys.qry.BrokerBin
 	wheres := []gen.Condition{tbl.Goos.Eq(goos), tbl.Arch.Eq(arch)}
 	if semver != "" {
-		wheres = append(wheres, tbl.Semver.Eq(semver.String()))
+		wheres = append(wheres, tbl.Semver.Eq(string(semver)))
 	} else {
 		wheres = append(wheres, tbl.SemverWeight.Gt(currentVersionNum))
 	}
