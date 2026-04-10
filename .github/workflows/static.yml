@@ -7,8 +7,6 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
 
@@ -40,9 +38,13 @@ jobs:
       - name: 编译 linux-amd64
         run: sh build-static.sh
 
+      - name: 获取短哈希
+        id: vars
+        run: echo "GIT_SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
       - name: 上传产物
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           retention-days: 30
-          name: ssoc-broker
+          name: ssoc-broker_${{ env.GIT_SHORT_SHA }}
           path: ssoc-broker_*

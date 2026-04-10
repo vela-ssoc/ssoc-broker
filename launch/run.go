@@ -20,6 +20,7 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
 	"github.com/vela-ssoc/ssoc-broker/foreign/bytedance"
+	"github.com/vela-ssoc/ssoc-broker/hideconf"
 	"github.com/vela-ssoc/ssoc-broker/library/pipelog"
 	"github.com/vela-ssoc/ssoc-common-mb/accord"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
@@ -50,13 +51,10 @@ import (
 //goland:noinspection GoUnhandledErrorResult
 func Run(parent context.Context, hide *negotiate.Hide) error {
 	// 项目启动时默认初始化一个日志输出，方便启动前调试。
-	logLevel := new(slog.LevelVar)
-	logLevel.Set(slog.LevelDebug)
-	initLogOption := &slog.HandlerOptions{AddSource: true, Level: logLevel}
-	tint := logger.NewTint(os.Stdout, initLogOption) // 默认初始化日志输出。
-	logHandler := logger.NewMultiHandler(tint)
+	initLogOption := &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}
+	logHandler := logger.NewMultiHandler(logger.NewTint(os.Stdout, initLogOption))
 	log := slog.New(logHandler)
-	log.Info("日志组件初始化完毕")
+	log.Info("临时日志组件初始化完毕")
 
 	link, err := telecom.Dial(parent, hide, log) // 与中心端建立连接
 	if err != nil {
@@ -67,14 +65,24 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	issue := link.Issue()
 	log.Info("broker接入认证成功", slog.Any("ident", ident), slog.Any("issue", issue))
 
+	dbCfg := issue.Database
 	logCfg := issue.Logger
-	defer logCfg.Close()
+	logHandler.Replace() // 清空初始化日志
+	logLevel := new(slog.LevelVar)
+	_ = logLevel.UnmarshalText([]byte(dbCfg.Level))
+	logOpt := &slog.HandlerOptions{AddSource: true, Level: logLevel}
+	if hideconf.DevMode && logCfg.Console {
+		h := logger.NewTint(os.Stdout, logOpt)
+		logHandler.Append(h)
+	}
+	if lum := logCfg.Lumber(); lum != nil {
+		defer lum.Close()
+		h := slog.NewJSONHandler(lum, logOpt)
+		logHandler.Append(h)
+	}
 
 	log.Info("日志组件初始化完毕")
-
-	dbCfg := issue.Database
-
-	gormLog := logger.NewGorm(logHandler, gormlogger.Config{LogLevel: gormlogger.Info})
+	gormLog := sqldb.NewGormLog(logHandler, gormlogger.Config{LogLevel: gormlogger.Info})
 	gormCfg := &gorm.Config{Logger: gormLog}
 	db, err := sqldb.Open(dbCfg.DSN, gormCfg)
 	if err != nil {
@@ -257,7 +265,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	api.Route("/api/v1/deploy/minion").GET(deployAPI.Script)
 	api.Route("/api/v1/deploy/minion/download").GET(deployAPI.MinionDownload)
 	{
-		routes := []shipx.RouteBinder{}
+		var routes []shipx.RouteBinder
 		baseAPI := mux.Group("/api/v1")
 		if err = shipx.BindRouters(baseAPI, routes); err != nil {
 			return err
