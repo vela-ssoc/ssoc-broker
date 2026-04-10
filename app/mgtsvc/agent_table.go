@@ -8,7 +8,7 @@ import (
 )
 
 func (biz *agentService) TableTask(_ context.Context, tid int64) error {
-	bid := biz.lnk.Link().Ident().ID
+	bid := biz.lnk.Link().Issue().ID
 	go biz.scanTableTask(bid, tid)
 	return nil
 }

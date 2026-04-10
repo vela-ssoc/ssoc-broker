@@ -108,11 +108,10 @@ func (hub *minionHub) Authorize(ident temporary.Ident) (claim temporary.Claim, e
 		}
 
 		// 不存在则注册插入
-		bident := hub.broker.Ident()
 		issue := hub.broker.Issue()
 		mn.Inet, mn.Inet6, mn.MAC = inet, inet6, mac
 		mn.Goos, mn.Arch, mn.Edition = ident.Goos, ident.Arch, ident.Edition
-		mn.BrokerID, mn.BrokerName, mn.Status = bident.ID, issue.Name, model.MSOffline
+		mn.BrokerID, mn.BrokerName, mn.Status = issue.ID, issue.Name, model.MSOffline
 		// 创建数据、创建标签
 		if err = hub.db.Create(&mn).Error; err != nil {
 			return
@@ -154,7 +153,7 @@ func (hub *minionHub) Connect(conn *temporary.Conn) {
 	mac := ident.MAC.String()
 	goos, arch, edition := ident.Goos, ident.Arch, ident.Edition
 
-	brokerID, brokerName := hub.broker.Ident().ID, hub.broker.Issue().Name
+	brokerID, brokerName := hub.broker.Issue().ID, hub.broker.Issue().Name
 	hub.log.Info("minion 节点在 v2.0 接口上线", slog.Any("inet", inet), slog.Int64("minion_id", minionID))
 
 	hub.minions.Store(minionID, conn)
@@ -205,7 +204,7 @@ func (hub *minionHub) Receive(conn *temporary.Conn, rec *temporary.Receive) {
 func (hub *minionHub) Disconnect(conn *temporary.Conn) {
 	claim := conn.Claim()
 	inet := conn.Inet()
-	minionID, brokerID := claim.ID, hub.broker.Ident().ID
+	minionID, brokerID := claim.ID, hub.broker.Issue().ID
 	hub.log.Warn(fmt.Sprintf("minion 节点 %s (%d) 下线了", inet, minionID))
 
 	hub.minions.Delete(minionID)
@@ -266,7 +265,7 @@ func (hub *minionHub) Broadcast(opcode temporary.Opcode, data any) error {
 }
 
 func (hub *minionHub) Reset() {
-	bid := hub.broker.Ident().ID
+	bid := hub.broker.Issue().ID
 	hub.db.Model(&model.Minion{}).
 		Where("broker_id = ? AND status = ?", bid, model.MSOnline).
 		Update("status", model.MSOffline)
@@ -423,7 +422,7 @@ func (hub *minionHub) Upgrade(c *ship.Context) error {
 		return c.NoContent(http.StatusNoContent)
 	}
 
-	bid := hub.broker.Ident().ID
+	bid := hub.broker.Issue().ID
 	// 查询 broker 信息
 	brkTbl := hub.qry.Broker
 	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(bid)).First()

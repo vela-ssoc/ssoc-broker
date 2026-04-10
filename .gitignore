@@ -28,3 +28,6 @@ resources/elkeid/
 resources/cdn/
 .crash
 .crash.txt
+
+broker.json
+broker.jsonc

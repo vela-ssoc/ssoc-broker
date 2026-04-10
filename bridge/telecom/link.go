@@ -23,23 +23,23 @@ type Linker interface {
 	Listen() net.Listener
 	Reconnect(context.Context) error
 	DialContext(ctx context.Context, network, addr string) (net.Conn, error)
-	// Fetch(context.Context, opcode.URLer, io.Reader, http.Header) (*http.Response, error)
-	// Oneway(context.Context, opcode.URLer, io.Reader, http.Header) error
-	// JSON(context.Context, opcode.URLer, any, any) error
-	// OnewayJSON(context.Context, opcode.URLer, any) error
 }
 
-func Dial(parent context.Context, hide *negotiate.Hide, log *slog.Logger) (Linker, error) {
+func Dial(parent context.Context, hide *negotiate.Hide, version string, log *slog.Logger) (Linker, error) {
 	addrs := hide.Servers.Preformat()
 	if len(addrs) == 0 {
 		return nil, ErrEmptyAddress
 	}
 
 	dialer := newIterDial(addrs)
+	if version == "" {
+		version = "0.0.0"
+	}
 	bc := &brokerClient{
-		hide:   *hide,
-		log:    log,
-		dialer: dialer,
+		hide:    *hide,
+		version: version,
+		log:     log,
+		dialer:  dialer,
 	}
 	trip := &http.Transport{DialContext: bc.dialContext}
 	bc.client = netutil.NewClient(trip)
@@ -48,7 +48,7 @@ func Dial(parent context.Context, hide *negotiate.Hide, log *slog.Logger) (Linke
 		return nil, err
 	}
 
-	// go bc.heartbeat(time.Minute)
+	go bc.heartbeat(time.Minute)
 
 	return bc, nil
 }

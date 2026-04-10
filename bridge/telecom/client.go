@@ -23,17 +23,18 @@ import (
 )
 
 type brokerClient struct {
-	hide   negotiate.Hide
-	ident  negotiate.Ident
-	issue  negotiate.Issue
-	client netutil.HTTPClient
-	log    *slog.Logger
-	dialer *iterDial
-	mux    *smux.Session
-	joinAt time.Time
-	parent context.Context
-	ctx    context.Context
-	cancel context.CancelFunc
+	hide    negotiate.Hide
+	ident   negotiate.Ident
+	issue   negotiate.Issue
+	version string
+	client  netutil.HTTPClient
+	log     *slog.Logger
+	dialer  *iterDial
+	mux     *smux.Session
+	joinAt  time.Time
+	parent  context.Context
+	ctx     context.Context
+	cancel  context.CancelFunc
 }
 
 func (bc *brokerClient) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -49,7 +50,7 @@ func (bc *brokerClient) JoinAt() time.Time {
 }
 
 func (bc *brokerClient) Name() string {
-	return fmt.Sprintf("broker-%s-%d", bc.ident.Inet, bc.ident.ID)
+	return fmt.Sprintf("broker-%s-%d", bc.ident.Inet, bc.issue.ID)
 }
 
 func (bc *brokerClient) Reconnect(parent context.Context) error {
@@ -113,9 +114,8 @@ func (bc *brokerClient) consult(parent context.Context, conn net.Conn, addr *net
 	mac := bc.dialer.lookupMAC(ip)
 
 	ident := negotiate.Ident{
-		ID:     bc.hide.ID,
 		Secret: bc.hide.Secret,
-		Semver: bc.hide.Semver,
+		Semver: bc.version,
 		Inet:   ip,
 		MAC:    mac.String(),
 		Goos:   runtime.GOOS,

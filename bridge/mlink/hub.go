@@ -65,7 +65,7 @@ func LinkHub(qry *query.Query, link telecom.Linker, handler http.Handler, phase 
 		qry:     qry,
 		link:    link,
 		handler: handler,
-		bid:     link.Ident().ID,
+		bid:     link.Issue().ID,
 		name:    link.Name(),
 		log:     log,
 		section: newSegmentMap(128, 64), // 预分配 8192 个连接空间，已经足够使用了。
@@ -173,7 +173,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 	defer hub.section.Del(sid)
 
 	nullableAt := sql.NullTime{Valid: true, Time: now}
-	brokerID, brokerName := hub.link.Ident().ID, hub.link.Issue().Name
+	brokerID, brokerName := hub.link.Issue().ID, hub.link.Issue().Name
 	online, offline := uint8(model.MSOnline), uint8(model.MSOffline)
 
 	minionTbl := hub.qry.Minion

@@ -107,8 +107,6 @@ func (sys *System) Update(semver model.Semver) error {
 	sys.log.Info("已找到升级包文件", attrs...)
 
 	hide := sys.link.Hide()
-	hide.Semver = brokerBin.Semver.String()
-
 	enc, exx := ciphertext.EncryptPayload(hide)
 	if exx != nil {
 		return exx

@@ -39,6 +39,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
+	"github.com/vela-ssoc/ssoc-common/banner"
 	"github.com/vela-ssoc/ssoc-common/logger"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
@@ -56,14 +57,14 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	log := slog.New(logHandler)
 	log.Info("临时日志组件初始化完毕")
 
-	link, err := telecom.Dial(parent, hide, log) // 与中心端建立连接
+	version := banner.Version()
+	link, err := telecom.Dial(parent, hide, version, log) // 与中心端建立连接
 	if err != nil {
 		return err
 	}
 
-	ident := link.Ident()
-	issue := link.Issue()
-	log.Info("broker接入认证成功", slog.Any("ident", ident), slog.Any("issue", issue))
+	ident, issue := link.Ident(), link.Issue()
+	log.Info("broker接入认证成功", "ident", ident, "issue", issue)
 
 	dbCfg := issue.Database
 	logCfg := issue.Logger
@@ -239,7 +240,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 		thirdREST := agtapi.Third(thirdService)
 		thirdREST.Route(av1)
 
-		bid := link.Ident().ID
+		bid := issue.ID
 		upgradeREST := agtapi.Upgrade(qry, bid, gfs)
 		upgradeREST.Route(av1)
 
@@ -251,7 +252,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	oldHandler := linkhub.New(db, qry, link, log, gfs)
 	temp := temporary.REST(oldHandler, valid, log)
 	gw := gateway.New(hub, valid)
-	deployService := agtsvc.Deploy(qry, store, gfs, ident.ID)
+	deployService := agtsvc.Deploy(qry, store, gfs, issue.ID)
 	deployAPI := agtapi.Deploy(deployService)
 
 	mux := ship.Default()

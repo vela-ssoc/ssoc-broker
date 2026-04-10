@@ -70,7 +70,7 @@ func (tsk *Task) execute(data *model.TaskExecute) error {
 	taskExecuteItem := tsk.qry.TaskExecuteItem
 	taskExecuteItemDo := taskExecuteItem.WithContext(context.Background())
 
-	brokerID := tsk.lnk.Link().Ident().ID
+	brokerID := tsk.lnk.Link().Issue().ID
 
 	wheres := []gen.Condition{
 		taskExecuteItem.BrokerID.Eq(brokerID),
