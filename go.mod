@@ -6,7 +6,7 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260410064214-562dac08ad58
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260410085025-6857e3c26f14
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260413092115-917ba34e927a
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/xgfone/ship/v5 v5.3.2
 	github.com/xtaci/smux v1.5.57
