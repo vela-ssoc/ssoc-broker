@@ -23,7 +23,6 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
-	"gorm.io/gorm/clause"
 )
 
 var (
@@ -233,7 +232,7 @@ func (hub *minionHub) Join(parent context.Context, tran net.Conn, ident gateway.
 			// 1. 删除所有的内置标签
 			_, _ = dao.Where(minionTagTbl.MinionID.Eq(id), minionTagTbl.Kind.Eq(int8(kind))).Delete()
 			// 2. 插入新的内置标签
-			_ = dao.Clauses(clause.OnConflict{DoNothing: true}).Create(tags...)
+			_ = dao.Create(tags...)
 
 			return nil
 		})
