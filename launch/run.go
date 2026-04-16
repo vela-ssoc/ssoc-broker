@@ -83,7 +83,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	}
 
 	log.Info("日志组件初始化完毕")
-	gormLog := sqldb.NewGormLog(logHandler, gormlogger.Config{LogLevel: gormlogger.Info})
+	gormLog := sqldb.NewGormLog(logHandler, gormlogger.Config{LogLevel: gormlogger.Warn})
 	gormCfg := &gorm.Config{Logger: gormLog}
 	db, err := sqldb.Open(dbCfg.DSN, gormCfg)
 	if err != nil {
