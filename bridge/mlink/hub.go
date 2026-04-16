@@ -418,18 +418,20 @@ func (hub *minionHub) lookupByMachineID(ctx context.Context, ident gateway.Ident
 }
 
 func (hub *minionHub) createNew(ctx context.Context, ident gateway.Ident) (*model.Minion, error) {
+	now := time.Now()
 	data := &model.Minion{
-		MachineID:  ident.MachineID,
-		Inet:       ident.Inet.String(),
-		MAC:        ident.MAC,
-		Goos:       ident.Goos,
-		Arch:       ident.Arch,
-		Edition:    ident.Semver,
-		Status:     model.MSOffline,
-		Uptime:     sql.NullTime{Time: time.Now(), Valid: true},
-		Unload:     ident.Unload,
-		Unstable:   ident.Unstable,
-		Customized: ident.Customized,
+		MachineID:   ident.MachineID,
+		Inet:        ident.Inet.String(),
+		MAC:         ident.MAC,
+		Goos:        ident.Goos,
+		Arch:        ident.Arch,
+		Edition:     ident.Semver,
+		Status:      model.MSOffline,
+		Uptime:      sql.NullTime{Time: now, Valid: true},
+		Unload:      ident.Unload,
+		Unstable:    ident.Unstable,
+		Customized:  ident.Customized,
+		HeartbeatAt: now,
 	}
 
 	tbl := hub.qry.Minion
