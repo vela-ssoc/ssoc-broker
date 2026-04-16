@@ -53,7 +53,7 @@ func (sys *System) Exit() {
 func (sys *System) Update(semver model.Semver) error {
 	ident := sys.link.Ident()
 	goos, arch := ident.Goos, ident.Arch
-	attrs := []any{slog.Any("goos", goos), slog.Any("arch", arch)}
+	attrs := []any{"goos", goos, "arch", arch}
 
 	if !sys.update.CompareAndSwap(false, true) {
 		sys.log.Warn("收到重复的升级命令", attrs...)
@@ -65,8 +65,8 @@ func (sys *System) Update(semver model.Semver) error {
 	currentVersion := model.Semver(ident.Semver)
 	currentVersionNum := currentVersion.Uint64()
 	if semver != "" {
-		attrs = append(attrs, slog.Any("update_version", semver))
-		attrs = append(attrs, slog.Any("current_version", currentVersion))
+		attrs = append(attrs, "update_version", semver)
+		attrs = append(attrs, "current_version", currentVersion)
 		if semver == currentVersion {
 			sys.log.Warn("目标版本一致，无需升级", attrs...)
 			return nil
@@ -91,18 +91,18 @@ func (sys *System) Update(semver model.Semver) error {
 	}
 	brokerBin, err := tbl.WithContext(ctx).
 		Where(wheres...).
-		Order(tbl.SemverWeight.Desc()).
+		Order(tbl.SemverWeight.Desc(), tbl.ID.Desc()).
 		First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			sys.log.Warn("没有合适的更新包", attrs...)
 		} else {
-			attrs = append(attrs, slog.Any("error", err))
+			attrs = append(attrs, "error", err)
 			sys.log.Error("查询升级包错误", attrs...)
 		}
 		return err
 	}
-	attrs = append(attrs, slog.Any("target_semver", brokerBin.Semver))
+	attrs = append(attrs, "target_semver", brokerBin.Semver)
 	sys.log.Info("已找到升级包文件", attrs...)
 
 	hide := sys.link.Hide()
@@ -113,7 +113,7 @@ func (sys *System) Update(semver model.Semver) error {
 
 	gf, err := sys.gfs.OpenID(brokerBin.FileID)
 	if err != nil {
-		attrs = append(attrs, slog.Any("error", err))
+		attrs = append(attrs, "error", err)
 		sys.log.Error("打开 gridfs 文件出错", attrs...)
 		return err
 	}
@@ -123,22 +123,22 @@ func (sys *System) Update(semver model.Semver) error {
 	file := gridfs.Merge(gf, enc)
 	exeName, err := sys.saveFile(brokerBin, file)
 	if err != nil {
-		attrs = append(attrs, slog.Any("error", err))
+		attrs = append(attrs, "error", err)
 		sys.log.Error("文件保存到磁盘出错", attrs...)
 		return err
 	}
 
 	const linkname = "ssoc-broker"
-	attrs = append(attrs, slog.String("linkname", linkname))
+	attrs = append(attrs, "linkname", linkname)
 	// 先删除已存在的软链接。
 	if err = os.Remove(linkname); err != nil && !os.IsNotExist(err) {
-		attrs = append(attrs, slog.Any("error", err))
+		attrs = append(attrs, "error", err)
 		sys.log.Error("删除软链接出错", attrs...)
 		return err
 	}
 
 	if err = os.Symlink(exeName, linkname); err != nil {
-		attrs = append(attrs, slog.Any("error", err))
+		attrs = append(attrs, "error", err)
 		sys.log.Error("创建软链接出错", attrs...)
 	}
 	time.Sleep(300 * time.Millisecond)
