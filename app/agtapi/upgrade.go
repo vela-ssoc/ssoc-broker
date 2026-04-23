@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
 	"github.com/vela-ssoc/ssoc-broker/app/route"
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
@@ -22,20 +23,21 @@ import (
 
 func Upgrade(qry *query.Query, bid int64, gfs gridfs.FS) route.Router {
 	return &upgradeREST{
-		qry:     qry,
-		bid:     bid,
-		gfs:     gfs,
-		maxsize: 200,
+		qry:   qry,
+		bid:   bid,
+		gfs:   gfs,
+		limit: 300,
+		downs: metrics.GetOrCreateCounter("ssoc_agent_update_download_total"),
 	}
 }
 
 type upgradeREST struct {
-	qry     *query.Query
-	bid     int64
-	gfs     gridfs.FS
-	mutex   sync.Mutex
-	maxsize int
-	count   int
+	qry   *query.Query
+	bid   int64
+	gfs   gridfs.FS
+	downs *metrics.Counter
+	limit int32
+	count atomic.Int32
 }
 
 func (rest *upgradeREST) Route(r *ship.RouteGroupBuilder) {
@@ -58,10 +60,16 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 		return nil
 	}
 
-	if !rest.tryLock() {
-		return c.NoContent(http.StatusTooManyRequests)
+	if rest.limit > 0 {
+		cnt := rest.count.Add(1)
+		defer rest.count.Add(-1)
+		if cnt > rest.limit {
+			return c.NoContent(http.StatusTooManyRequests)
+		}
 	}
-	defer rest.unlock()
+
+	rest.downs.Inc()
+	defer rest.downs.Dec()
 
 	bin, err := rest.matchBinary(ctx, inf, &req)
 	if err != nil {
@@ -135,27 +143,6 @@ func (rest *upgradeREST) Download(c *ship.Context) error {
 	c.Header().Set(ship.HeaderContentDisposition, stm.Disposition())
 
 	return c.Stream(http.StatusOK, stm.ContentType(), stm)
-}
-
-func (rest *upgradeREST) tryLock() bool {
-	rest.mutex.Lock()
-	defer rest.mutex.Unlock()
-
-	ok := rest.maxsize > rest.count
-	if ok {
-		rest.count++
-	}
-
-	return ok
-}
-
-func (rest *upgradeREST) unlock() {
-	rest.mutex.Lock()
-	defer rest.mutex.Unlock()
-	rest.count--
-	if rest.count < 0 {
-		rest.count = 0
-	}
 }
 
 func (rest *upgradeREST) matchBinary(ctx context.Context, inf mlink.Infer, req *param.UpgradeDownload) (*model.MinionBin, error) {

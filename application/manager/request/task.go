@@ -1,4 +1,4 @@
-package mrequest
+package request
 
 import "time"
 

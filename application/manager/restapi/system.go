@@ -1,21 +1,21 @@
-package mrestapi
+package restapi
 
 import (
 	"log/slog"
 
-	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mrequest"
-	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mservice"
+	"github.com/vela-ssoc/ssoc-broker/application/manager/request"
+	"github.com/vela-ssoc/ssoc-broker/application/manager/service"
 	"github.com/xgfone/ship/v5"
 )
 
-func NewSystem(svc *mservice.System) *System {
+func NewSystem(svc *service.System) *System {
 	return &System{
 		svc: svc,
 	}
 }
 
 type System struct {
-	svc *mservice.System
+	svc *service.System
 }
 
 func (sys *System) BindRoute(r *ship.RouteGroupBuilder) error {
@@ -30,7 +30,7 @@ func (sys *System) exit(_ *ship.Context) error {
 }
 
 func (sys *System) update(c *ship.Context) error {
-	req := new(mrequest.SystemUpdate)
+	req := new(request.SystemUpdate)
 	if err := c.Bind(req); err != nil {
 		return err
 	}

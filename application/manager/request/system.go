@@ -1,4 +1,4 @@
-package mrequest
+package request
 
 import "github.com/vela-ssoc/ssoc-common-mb/dal/model"
 

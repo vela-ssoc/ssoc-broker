@@ -1,4 +1,4 @@
-package mservice
+package service
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mrequest"
+	"github.com/vela-ssoc/ssoc-broker/application/manager/request"
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
@@ -103,7 +103,7 @@ func (tsk *Task) execute(data *model.TaskExecute) error {
 }
 
 func (tsk *Task) pushTask(minionID, execID int64, data *model.TaskExecute) error {
-	req := &mrequest.TaskPushData{
+	req := &request.TaskPushData{
 		ID:       data.TaskID,
 		ExecID:   execID,
 		Name:     data.Name,

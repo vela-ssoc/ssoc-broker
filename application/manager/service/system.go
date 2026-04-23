@@ -1,4 +1,4 @@
-package mservice
+package service
 
 import (
 	"context"

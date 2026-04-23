@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/vela-ssoc/ssoc-broker/app/agtapi"
@@ -14,8 +15,10 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/app/middle"
 	"github.com/vela-ssoc/ssoc-broker/app/temporary"
 	"github.com/vela-ssoc/ssoc-broker/app/temporary/linkhub"
-	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mrestapi"
-	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mservice"
+	manapi "github.com/vela-ssoc/ssoc-broker/application/manager/restapi"
+	mansvc "github.com/vela-ssoc/ssoc-broker/application/manager/service"
+	pgmcron "github.com/vela-ssoc/ssoc-broker/application/program/cronjob"
+	pgmsvc "github.com/vela-ssoc/ssoc-broker/application/program/service"
 	"github.com/vela-ssoc/ssoc-broker/bridge/gateway"
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
@@ -40,7 +43,9 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
 	"github.com/vela-ssoc/ssoc-common/banner"
+	"github.com/vela-ssoc/ssoc-common/cronv3"
 	"github.com/vela-ssoc/ssoc-common/logger"
+	"github.com/vela-ssoc/ssoc-common/vmetric"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
@@ -102,6 +107,15 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	sdb.SetConnMaxIdleTime(dbCfg.MaxIdleTime.Duration())
 	log.Warn("当前数据库类型", slog.String("dialect", db.Dialector.Name()))
 
+	crontab := cronv3.New(log)
+	crontab.Start()
+	defer crontab.Stop()
+
+	strID := strconv.FormatInt(issue.ID, 10)
+	extraLabels := "instance=" + strconv.Quote(strID) +
+		",instance_type=" + strconv.Quote("broker") +
+		",instance_name=" + strconv.Quote(issue.Name)
+
 	qry := query.Use(db)
 	gfs := gridfs.NewCache(qry, issue.Server.CDN)
 
@@ -147,6 +161,11 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbCli := cmdb.NewClient(qry, cmdbCfg, cli)
 
+	metricWriters := []vmetric.MetricWriter{vmetric.NewPsutil()}
+	pgmVictoriaMetricsConfigSvc := pgmsvc.NewVictoriaMetricsConfig(qry, extraLabels, log)
+	pgmMetricsTask := pgmcron.NewMetrics(pgmVictoriaMetricsConfigSvc, metricWriters)
+	crontab.AddTask(pgmMetricsTask)
+
 	sonaCfg := sonatype.HardConfig()
 	sonaCli := sonatype.NewClient(sonaCfg, cli)
 	vsync := vulnsync.New(db, sonaCli)
@@ -182,11 +201,11 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 		pprofREST := mgtapi.Pprof(link)
 		pprofREST.Route(mv1)
 
-		systemSvc := mservice.NewSystem(link, qry, gfs, log)
-		taskSvc := mservice.NewTask(qry, hub, log)
+		systemSvc := mansvc.NewSystem(link, qry, gfs, log)
+		taskSvc := mansvc.NewTask(qry, hub, log)
 		routers := []shipx.RouteBinder{
-			mrestapi.NewSystem(systemSvc),
-			mrestapi.NewTask(taskSvc),
+			manapi.NewSystem(systemSvc),
+			manapi.NewTask(taskSvc),
 		}
 		if err = shipx.BindRouters(mv1, routers); err != nil {
 			return err

@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
 	"golang.org/x/time/rate"
@@ -28,6 +29,7 @@ func New(joiner Joiner, valid *validation.Validate) http.Handler {
 		joiner:     joiner,
 		valid:      valid,
 		throughput: throughput,
+		counter:    metrics.GetOrCreateCounter("ssoc_agent_online_total"),
 	}
 }
 
@@ -38,6 +40,7 @@ type minionGateway struct {
 	// throughput 限流器，防止 broker 上下线引起的
 	// agent 节点蜂涌重连，拖慢数据库。
 	throughput *rate.Limiter
+	counter    *metrics.Counter
 }
 
 func (gate *minionGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -107,6 +110,9 @@ func (gate *minionGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = conn.Close()
 		return
 	}
+
+	gate.counter.Inc()
+	defer gate.counter.Dec()
 
 	if err = gate.joiner.Join(ctx, conn, ident, issue); err != nil {
 		_ = conn.Close()

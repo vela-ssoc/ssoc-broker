@@ -108,9 +108,13 @@ func (hub *minionHub) Auth(ctx context.Context, ident gateway.Ident) (gateway.Is
 	//	return issue, nil, http.StatusBadRequest, ErrMinionMachineID
 	//}
 	// 4.0 版本的 agent 必须要有机器 ID。
-	if semver := ident.Semver; semver != "" &&
-		strings.HasPrefix(semver, "4.") &&
-		ident.MachineID == "" {
+	isNewVersion := func(str string) bool {
+		return !strings.HasPrefix(str, "0.") &&
+			!strings.HasPrefix(str, "1.") &&
+			!strings.HasPrefix(str, "2.") &&
+			!strings.HasPrefix(str, "3.")
+	}
+	if isNewVersion(ident.Semver) && ident.MachineID == "" {
 		return issue, nil, http.StatusBadRequest, ErrMinionMachineID
 	}
 
@@ -387,9 +391,8 @@ func (hub *minionHub) lookupOrCreate(ctx context.Context, ident gateway.Ident) (
 	// FIXME 搜索条件暂时忽略机器 ID，因为 3.0 升级到 4.0 有可能某些原因回退到低版本，
 	// 	尽管此时已经绑定了机器 ID。
 	inet := ident.Inet.String()
-	mon1, err1 := dao.Where(tbl.Inet.Eq(inet) /*, tbl.MachineID.Eq("")*/).First()
-	if err1 == nil {
-		return mon1, nil
+	if mon, err := dao.Where(tbl.Inet.Eq(inet)).First(); err == nil {
+		return mon, nil
 	}
 
 	return hub.createNew(ctx, ident)
@@ -400,18 +403,23 @@ func (hub *minionHub) lookupByMachineID(ctx context.Context, ident gateway.Ident
 
 	tbl := hub.qry.Minion
 	dao := tbl.WithContext(ctx)
-	mon, err := dao.Where(tbl.MachineID.Eq(machineID)).First()
-	if err == nil {
+	if mon, err := dao.Where(tbl.MachineID.Eq(machineID)).First(); err == nil {
 		return mon, nil
 	}
 
+	// 如果机器码
 	// 尝试通过 inet 查找（自动给老的 agent 绑定机器码）
 	inet := ident.Inet.String()
-	mon1, err1 := dao.Where(tbl.Inet.Eq(inet), tbl.MachineID.Eq("")).First()
-	if err1 == nil {
+	mon, err := dao.Where(tbl.Inet.Eq(inet), tbl.MachineID.Eq("")).First()
+	if err == nil {
 		// 关联绑定机器 ID
-		_, _ = dao.Where(tbl.ID.Eq(mon1.ID)).UpdateSimple(tbl.MachineID.Value(machineID))
-		return mon1, nil
+		if _, err = dao.Where(tbl.ID.Eq(mon.ID)).
+			UpdateSimple(tbl.MachineID.Value(machineID)); err != nil {
+			return nil, err
+		}
+		mon.MachineID = machineID
+
+		return mon, nil
 	}
 
 	return hub.createNew(ctx, ident)

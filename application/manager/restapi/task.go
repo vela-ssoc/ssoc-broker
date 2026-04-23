@@ -1,17 +1,17 @@
-package mrestapi
+package restapi
 
 import (
-	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mrequest"
-	"github.com/vela-ssoc/ssoc-broker/appv2/manager/mservice"
+	"github.com/vela-ssoc/ssoc-broker/application/manager/request"
+	"github.com/vela-ssoc/ssoc-broker/application/manager/service"
 	"github.com/xgfone/ship/v5"
 )
 
-func NewTask(svc *mservice.Task) *Task {
+func NewTask(svc *service.Task) *Task {
 	return &Task{svc: svc}
 }
 
 type Task struct {
-	svc *mservice.Task
+	svc *service.Task
 }
 
 func (tsk *Task) BindRoute(r *ship.RouteGroupBuilder) error {
@@ -24,7 +24,7 @@ func (tsk *Task) Route(r *ship.RouteGroupBuilder) {
 }
 
 func (tsk *Task) Push(c *ship.Context) error {
-	req := new(mrequest.TaskPush)
+	req := new(request.TaskPush)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
