@@ -34,9 +34,10 @@ func (biz *collectService) Sysinfo(info *model.SysInfo) error {
 
 		// 新增/更新 sysinfo 表
 		{
+			cla := clause.OnConflict{UpdateAll: true}
 			tbl := biz.qry.SysInfo
 			dao := tbl.WithContext(ctx)
-			_ = dao.Save(info)
+			_ = dao.Clauses(cla).Save(info)
 		}
 
 		// 更新 minion 表

@@ -164,7 +164,8 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	metricWriters := []vmetric.MetricWriter{vmetric.NewPsutil()}
 	pgmVictoriaMetricsConfigSvc := pgmsvc.NewVictoriaMetricsConfig(qry, extraLabels, log)
 	pgmMetricsTask := pgmcron.NewMetrics(pgmVictoriaMetricsConfigSvc, metricWriters)
-	crontab.AddTask(pgmMetricsTask)
+	_ = pgmMetricsTask
+	// crontab.AddTask(pgmMetricsTask)
 
 	sonaCfg := sonatype.HardConfig()
 	sonaCli := sonatype.NewClient(sonaCfg, cli)
