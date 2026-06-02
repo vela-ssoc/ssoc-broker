@@ -17,7 +17,7 @@ jobs:
         run: |
           wget https://www.tcpdump.org/release/libpcap-1.10.6.tar.gz
           tar -xzf libpcap-1.10.6.tar.gz
-          cd libpcap-1.10.5
+          cd libpcap-1.10.6
           ./autogen.sh
           ./configure --enable-static --disable-shared
           make -j$(nproc)
