@@ -15,8 +15,8 @@ jobs:
     steps:
       - name: 编译 libpcap
         run: |
-          wget https://www.tcpdump.org/release/libpcap-1.10.5.tar.gz
-          tar -xzf libpcap-1.10.5.tar.gz
+          wget https://www.tcpdump.org/release/libpcap-1.10.6.tar.gz
+          tar -xzf libpcap-1.10.6.tar.gz
           cd libpcap-1.10.5
           ./autogen.sh
           ./configure --enable-static --disable-shared
