@@ -1,6 +1,8 @@
 package agtapi
 
 import (
+	"fmt"
+
 	"github.com/vela-ssoc/ssoc-broker/app/internal/param"
 	"github.com/vela-ssoc/ssoc-broker/app/route"
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
@@ -50,6 +52,10 @@ func (rest *auditREST) Event(c *ship.Context) error {
 	inf := mlink.Ctx(ctx)
 	req.Inet = inf.Inet().String()
 	req.MinionID = inf.Issue().ID
+	fromCode := req.FromCode
+
+	msg := fmt.Sprintf("上报事件 inet=%s, from_code=%s, minion_id=%d", req.Inet, fromCode, req.MinionID)
+	c.Infof(msg)
 
 	return rest.alert.EventSaveAndAlert(ctx, &req)
 }
