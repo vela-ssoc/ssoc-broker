@@ -19,11 +19,13 @@ import (
 	mansvc "github.com/vela-ssoc/ssoc-broker/application/manager/service"
 	pgmcron "github.com/vela-ssoc/ssoc-broker/application/program/cronjob"
 	pgmsvc "github.com/vela-ssoc/ssoc-broker/application/program/service"
+	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
+	shipxv3 "github.com/vela-ssoc/ssoc-broker/appv3/shipx"
 	"github.com/vela-ssoc/ssoc-broker/bridge/gateway"
 	"github.com/vela-ssoc/ssoc-broker/bridge/mlink"
 	"github.com/vela-ssoc/ssoc-broker/bridge/telecom"
+	"github.com/vela-ssoc/ssoc-broker/config"
 	"github.com/vela-ssoc/ssoc-broker/foreign/bytedance"
-	"github.com/vela-ssoc/ssoc-broker/hideconf"
 	"github.com/vela-ssoc/ssoc-broker/library/pipelog"
 	"github.com/vela-ssoc/ssoc-common-mb/accord"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
@@ -38,7 +40,6 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
-	"github.com/vela-ssoc/ssoc-common-mb/shipx"
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
@@ -55,12 +56,26 @@ import (
 // Run 运行服务
 //
 //goland:noinspection GoUnhandledErrorResult
-func Run(parent context.Context, hide *negotiate.Hide) error {
+func Run(parent context.Context, parse config.Parser) error {
 	// 项目启动时默认初始化一个日志输出，方便启动前调试。
 	initLogOption := &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}
 	logHandler := logger.NewMultiHandler(logger.NewTint(os.Stdout, initLogOption))
 	log := slog.New(logHandler)
 	log.Info("临时日志组件初始化完毕")
+
+	// 读取配置文件
+	cfg := new(config.BootConfig)
+	if err := parse.Parse(parent, cfg); err != nil {
+		log.Error("读取启动配置文件出错", "err", err)
+		return err
+	}
+
+	// 兼容老版本接口
+	hide := &negotiate.Hide{Secret: cfg.Secret}
+	for _, addr := range cfg.Addresses {
+		hide.Servers = append(hide.Servers, &netutil.Address{Addr: addr, TLS: true})
+		hide.Servers = append(hide.Servers, &netutil.Address{Addr: addr})
+	}
 
 	version := banner.Version()
 	link, err := telecom.Dial(parent, hide, version, log) // 与中心端建立连接
@@ -77,7 +92,7 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 	logLevel := new(slog.LevelVar)
 	_ = logLevel.UnmarshalText([]byte(dbCfg.Level))
 	logOpt := &slog.HandlerOptions{AddSource: true, Level: logLevel}
-	if hideconf.DevMode && logCfg.Console {
+	if logCfg.Console {
 		h := logger.NewTint(os.Stdout, logOpt)
 		logHandler.Append(h)
 	}
@@ -155,6 +170,8 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 
 	mv1 := mgt.Group(accord.PathPrefix).Use(middle.Oplog)
 	av1 := agt.Group(accord.PathPrefix).Use(middle.Oplog)
+	agtv3 := agt.Group("/api/v3").Use(middle.Oplog)
+	mgtv3 := mgt.Group("/api/v3").Use(middle.Oplog)
 
 	esCfg := elastic.NewConfigure(qry, name)
 	esc := elastic.NewSearch(esCfg, cli)
@@ -291,6 +308,14 @@ func Run(parent context.Context, hide *negotiate.Hide) error {
 		if err = shipx.BindRouters(baseAPI, routes); err != nil {
 			return err
 		}
+	}
+
+	routev3 := shipxv3.RouteGroup{
+		AgentV3:   agtv3,
+		ManagerV3: mgtv3,
+	}
+	if err = runV3(parent, routev3, issue, log); err != nil {
+		return err
 	}
 
 	errCh := make(chan error, 1)

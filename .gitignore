@@ -15,19 +15,18 @@
 # vendor/
 
 .idea
-!broker-example.jsonc
-*.jsonc
 
 ssoc-broker*
 vela-broker*
 
-resources/agent/*
-!resources/log/.gitkeep
-resources/log/
-resources/elkeid/
-resources/cdn/
 .crash
 .crash.txt
 
-broker.json
-broker.jsonc
+resources/config/*
+!resources/config/application-example.json[c]
+!resources/config/application-example.jsonc
+
+resources/agent
+resources/cdn
+resources/elkeid
+resources/log

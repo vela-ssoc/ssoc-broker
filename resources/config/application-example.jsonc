@@ -1,0 +1,9 @@
+{
+  // 认证密钥，在中心端创建 BROKER 时生成。
+  "secret": "xxx",
+  // 中心端地址，BROKER 要知道连接哪个地址才能上线。
+  "addresses": [
+    "ssoc-manager.example.com:8443",
+    "10.0.0.18:443"
+  ]
+}

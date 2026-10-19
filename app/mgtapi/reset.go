@@ -62,7 +62,7 @@ func (rest *resetREST) Store(c *ship.Context) error {
 
 func (rest *resetREST) Notifier(c *ship.Context) error {
 	c.Infof("告警人 reset")
-	rest.ntf.Reset()
+	// rest.ntf.Reset()
 	return nil
 }
 
