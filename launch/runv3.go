@@ -9,63 +9,71 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/appv3/service"
 	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
 	"github.com/vela-ssoc/ssoc-broker/config"
+	"github.com/vela-ssoc/ssoc-broker/cronjob/cronfunc"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
 	"github.com/vela-ssoc/ssoc-common-mb/dbconn"
 	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
-	"github.com/vela-ssoc/ssoc-common/banner"
+	"github.com/vela-ssoc/ssoc-common/cronv3"
+	"gorm.io/gorm"
 )
 
-func runV3(ctx context.Context, route shipx.RouteGroup, iss negotiate.Issue, log *slog.Logger) error {
+type v3Input struct {
+	route shipx.RouteGroup
+	issue negotiate.Issue
+	db    *gorm.DB
+	mux   brokclient.Muxer
+	hide  config.HideConfig
+	cron  *cronv3.Crontab
+	log   *slog.Logger
+}
+
+func runV3(ctx context.Context, input v3Input) error {
+	bootcfg := input.mux.Config()
 	gopts := []gontainer.Option{
-		gontainer.NewService(iss),
-		gontainer.NewService(log),
-		gontainer.NewService(dbconn.MongoDBConfig{URI: iss.Database.URI}),
+		gontainer.NewService(bootcfg),
+		gontainer.NewService(input.hide),
+		gontainer.NewService(input.db),
+		gontainer.NewService(input.mux),
+		gontainer.NewService(input.issue),
+		gontainer.NewService(input.log),
+		gontainer.NewService(input.cron),
+		gontainer.NewService(dbconn.MongoDBConfig{URI: bootcfg.Database.URI}),
 
 		gontainer.NewFactory(dbconn.OpenMongoDB),
 		gontainer.NewFactory(repository.NewBaseDB),
+		gontainer.NewFactory(polydb.NewSource),
+
+		gontainer.NewFactory(restapi.NewExit),
+		gontainer.NewFactory(restapi.NewConfig),
+		gontainer.NewFactory(restapi.NewPing),
+		gontainer.NewFactory(restapi.NewPprof),
 
 		gontainer.NewFactory(service.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewReverseProxy),
 
+		gontainer.NewFactory(restapi.NewRoute),
+
 		gontainer.NewFactory(service.NewZipArchive),
 		gontainer.NewFactory(restapi.NewZipArchive),
 
-		gontainer.NewEntrypoint(route.RegisterHTTP),
+		gontainer.NewFactory(cronfunc.NewTunnel),
+		gontainer.NewEntrypoint(func(tab *cronv3.Crontab, tasks gontainer.Multiple[cronv3.Tasker]) error {
+			for _, task := range tasks {
+				if err := tab.AddTask(task); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}),
+
+		gontainer.NewEntrypoint(input.route.RegisterHTTP),
 	}
 	if err := gontainer.Run(gopts...); err != nil {
 		return err
 	}
-
-	return nil
-}
-
-//goland:noinspection GoUnhandledErrorResult
-func RunV3(ctx context.Context, pcfg config.Parser) error {
-	var bootcfg config.BootConfig
-	if err := pcfg.Parse(ctx, &bootcfg); err != nil {
-		return err
-	}
-
-	version := banner.Version()
-	cliopts := brokclient.Options{
-		Addresses: bootcfg.Addresses,
-		Secret:    bootcfg.Secret,
-		Version:   version,
-	}
-	mux, err := brokclient.Open(ctx, cliopts) // 连接中心端直至成功。
-	if err != nil {
-		return err
-	}
-	defer mux.Close()
-
-	muxcfg := mux.Config()
-	mdb, err := dbconn.OpenMongoDB(dbconn.MongoDBConfig{URI: muxcfg.URI})
-	if err != nil {
-		return err
-	}
-	// 开始上线
-	_ = mdb
 
 	return nil
 }

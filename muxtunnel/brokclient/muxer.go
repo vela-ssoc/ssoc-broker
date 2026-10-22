@@ -6,19 +6,19 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/vela-tunnel/muxconn"
 	"golang.org/x/time/rate"
 )
 
 type Muxer interface {
 	muxconn.Muxer
-	Config() muxproto.BrokerBootConfig
+	Config() model.BrokerConfig
 }
 
 type muxHolder struct {
 	mux muxconn.Muxer
-	cfg muxproto.BrokerBootConfig
+	cfg model.BrokerConfig
 }
 
 type safeMUX struct {
@@ -38,14 +38,14 @@ func (s *safeMUX) Traffic() (uint64, uint64)                  { return s.loadMUX
 func (s *safeMUX) Library() (string, string)                  { return s.loadMUX().Library() }
 func (s *safeMUX) Streams() []muxconn.Streamer                { return s.loadMUX().Streams() }
 func (s *safeMUX) ConnectedAt() time.Time                     { return s.loadMUX().ConnectedAt() }
-func (s *safeMUX) Config() muxproto.BrokerBootConfig          { return s.ptr.Load().cfg }
+func (s *safeMUX) Config() model.BrokerConfig                 { return s.ptr.Load().cfg }
 
 func (s *safeMUX) loadMUX() muxconn.Muxer {
 	return s.ptr.Load().mux
 }
 
-func (s *safeMUX) store(mux muxconn.Muxer, pcfg *muxproto.BrokerBootConfig) {
-	var cfg muxproto.BrokerBootConfig
+func (s *safeMUX) store(mux muxconn.Muxer, pcfg *model.BrokerConfig) {
+	var cfg model.BrokerConfig
 	if pcfg != nil {
 		cfg = *pcfg
 	}

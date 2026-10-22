@@ -7,18 +7,18 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/memcache"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type ReverseProxy struct {
-	db      *repository.BaseDB
+	db      polydb.Sourcer
 	log     *slog.Logger
 	proxies *memcache.Map[string, *httputil.ReverseProxy]
 }
 
-func NewReverseProxy(db *repository.BaseDB, log *slog.Logger) *ReverseProxy {
+func NewReverseProxy(db polydb.Sourcer, log *slog.Logger) *ReverseProxy {
 	rp := &ReverseProxy{db: db, log: log}
 	rp.proxies = memcache.NewMap(rp.findLocation)
 
@@ -46,7 +46,7 @@ func (rp *ReverseProxy) Forget(locs []string) {
 }
 
 func (rp *ReverseProxy) findLocation(ctx context.Context, loc string) (*httputil.ReverseProxy, error) {
-	coll := rp.db.ReverseProxy()
+	coll := rp.db.MDB().ReverseProxy()
 	dat, err := coll.FindOne(ctx, bson.M{"location": loc, "manager": true})
 	if err != nil {
 		return nil, err

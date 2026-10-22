@@ -10,8 +10,9 @@ type HTTPRegister interface {
 }
 
 type RouteGroup struct {
-	AgentV3   *ship.RouteGroupBuilder
-	ManagerV3 *ship.RouteGroupBuilder
+	ManagerV3 *ship.RouteGroupBuilder // 供中心端调用
+	AgentV3   *ship.RouteGroupBuilder // 供探针调用
+	Expose    *ship.Ship              // 开放接口
 }
 
 func (sr RouteGroup) RegisterHTTP(handlers gontainer.Multiple[HTTPRegister]) error {

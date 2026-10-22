@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
 	"github.com/vela-ssoc/vela-tunnel/muxconn"
 )
@@ -111,7 +112,7 @@ func (bc *brokClient) open() error {
 }
 
 //goland:noinspection GoUnhandledErrorResult
-func (bc *brokClient) authentication(mux muxconn.Muxer) (*muxproto.BrokerBootConfig, error) {
+func (bc *brokClient) authentication(mux muxconn.Muxer) (*model.BrokerConfig, error) {
 	outbound := bc.outbound(mux.Addr())
 	attrs := []any{"outbound", outbound}
 	bc.req.Inet = outbound.String()
@@ -134,7 +135,8 @@ func (bc *brokClient) authentication(mux muxconn.Muxer) (*muxproto.BrokerBootCon
 		return nil, err
 	}
 
-	resp := new(muxproto.BrokerAuthResponse)
+	bcfg := new(model.BrokerConfig)
+	resp := &muxproto.BrokerAuthResponse{Config: bcfg}
 	_ = conn.SetReadDeadline(time.Now().Add(timeout))
 	if err = muxconn.ReadAuth(conn, resp); err != nil {
 		attrs = append(attrs, "error", err)
@@ -147,14 +149,13 @@ func (bc *brokClient) authentication(mux muxconn.Muxer) (*muxproto.BrokerBootCon
 		return nil, re
 	}
 
-	cfg := resp.Config
-	if err = bc.validBrokConfig(cfg); err != nil {
+	if err = bc.validBrokConfig(bcfg); err != nil {
 		bc.log().Warn("服务端响应的配置校验出错", attrs...)
 		return nil, err
 	}
 	bc.log().Info("通道认证成功", attrs...)
 
-	return cfg, nil
+	return bcfg, nil
 }
 
 func (bc *brokClient) serveHTTP() {
@@ -204,13 +205,20 @@ func (bc *brokClient) perContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(bc.ctx, d)
 }
 
-func (bc *brokClient) validBrokConfig(cfg *muxproto.BrokerBootConfig) error {
+func (bc *brokClient) validBrokConfig(cfg *model.BrokerConfig) error {
 	if v := bc.opts.Validator; v != nil {
 		return v(cfg)
 	}
 
-	if cfg.URI == "" {
-		return errors.New("响应报文缺少数据库连接地址(dsn)")
+	cd := cfg.Database
+	if cd == nil {
+		return errors.New("响应报文缺少数据库配置")
+	}
+	if cd.URI == "" {
+		return errors.New("响应报文缺少 MongoDB 数据库配置")
+	}
+	if cd.DSN == "" {
+		return errors.New("响应报文缺少关系数据库配置")
 	}
 
 	return nil

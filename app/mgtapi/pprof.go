@@ -21,13 +21,13 @@ type pprofREST struct {
 }
 
 func (rest *pprofREST) Route(r *ship.RouteGroupBuilder) {
-	r.Route("/brr/pprof/config").Data(route.Named("pprof-config")).GET(rest.Config)
-	r.Route("/brr/pprof/index").Data(route.Named("pprof-index")).GET(rest.Index)
-	r.Route("/brr/pprof/cmdline").Data(route.Named("pprof-cmdline")).GET(rest.Cmdline)
-	r.Route("/brr/pprof/profile").Data(route.Named("pprof-profile")).GET(rest.Profile)
-	r.Route("/brr/pprof/symbol").Data(route.Named("pprof-symbol")).GET(rest.Symbol)
-	r.Route("/brr/pprof/trace").Data(route.Named("pprof-trace")).GET(rest.Trace)
-	r.Route("/brr/pprof/*path").Data(route.Named("pprof-path")).GET(rest.Path)
+	//r.Route("/brr/pprof/config").Data(route.Named("pprof-config")).GET(rest.Config)
+	//r.Route("/brr/pprof/index").Data(route.Named("pprof-index")).GET(rest.Index)
+	//r.Route("/brr/pprof/cmdline").Data(route.Named("pprof-cmdline")).GET(rest.Cmdline)
+	//r.Route("/brr/pprof/profile").Data(route.Named("pprof-profile")).GET(rest.Profile)
+	//r.Route("/brr/pprof/symbol").Data(route.Named("pprof-symbol")).GET(rest.Symbol)
+	//r.Route("/brr/pprof/trace").Data(route.Named("pprof-trace")).GET(rest.Trace)
+	//r.Route("/brr/pprof/*path").Data(route.Named("pprof-path")).GET(rest.Path)
 }
 
 func (rest *pprofREST) Config(c *ship.Context) error {

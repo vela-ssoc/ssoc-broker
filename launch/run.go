@@ -27,6 +27,7 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/config"
 	"github.com/vela-ssoc/ssoc-broker/foreign/bytedance"
 	"github.com/vela-ssoc/ssoc-broker/library/pipelog"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
 	"github.com/vela-ssoc/ssoc-common-mb/accord"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
@@ -63,21 +64,37 @@ func Run(parent context.Context, parse config.Parser) error {
 	log := slog.New(logHandler)
 	log.Info("临时日志组件初始化完毕")
 
+	valid := validation.New()
+	if err := valid.RegisterCustomValidations(validation.All()); err != nil {
+		return err
+	}
+
 	// 读取配置文件
-	cfg := new(config.BootConfig)
-	if err := parse.Parse(parent, cfg); err != nil {
+	hidecfg := new(config.HideConfig)
+	if err := parse.Parse(parent, hidecfg); err != nil {
 		log.Error("读取启动配置文件出错", "err", err)
 		return err
 	}
 
-	// 兼容老版本接口
-	hide := &negotiate.Hide{Secret: cfg.Secret}
-	for _, addr := range cfg.Addresses {
+	agt := ship.Default()
+	mgt := ship.Default()
+
+	version := banner.Version()
+	brokopts := brokclient.Options{
+		Addresses:  hidecfg.Addresses,
+		Secret:     hidecfg.Secret,
+		Version:    version,
+		Handler:    mgt,
+		Validator:  valid.Validate,
+		DialConfig: nil,
+	}
+	hide := &negotiate.Hide{Secret: hidecfg.Secret}
+	for _, addr := range hidecfg.Addresses {
 		hide.Servers = append(hide.Servers, &netutil.Address{Addr: addr, TLS: true})
 		hide.Servers = append(hide.Servers, &netutil.Address{Addr: addr})
 	}
 
-	version := banner.Version()
+	// 兼容老版本接口
 	link, err := telecom.Dial(parent, hide, version, log) // 与中心端建立连接
 	if err != nil {
 		return err
@@ -85,6 +102,12 @@ func Run(parent context.Context, parse config.Parser) error {
 
 	ident, issue := link.Ident(), link.Issue()
 	log.Info("broker接入认证成功", "ident", ident, "issue", issue)
+
+	muxv3, err := brokclient.Open(parent, brokopts)
+	if err != nil {
+		return err
+	}
+	defer muxv3.Close()
 
 	dbCfg := issue.Database
 	logCfg := issue.Logger
@@ -152,13 +175,6 @@ func Run(parent context.Context, parse config.Parser) error {
 	name := link.Name()
 	pbh := problem.NewHandle(name)
 
-	valid := validation.New()
-	if err = valid.RegisterCustomValidations(validation.All()); err != nil {
-		return err
-	}
-
-	agt := ship.Default()
-	mgt := ship.Default()
 	mgt.Logger = shipx.NewLog(log)
 	mgt.NotFound = pbh.NotFound
 	mgt.HandleError = pbh.HandleError
@@ -313,8 +329,19 @@ func Run(parent context.Context, parse config.Parser) error {
 	routev3 := shipxv3.RouteGroup{
 		AgentV3:   agtv3,
 		ManagerV3: mgtv3,
+		Expose:    mux,
 	}
-	if err = runV3(parent, routev3, issue, log); err != nil {
+	input := v3Input{
+		route: routev3,
+		issue: issue,
+		db:    db,
+		mux:   muxv3,
+		hide:  *hidecfg,
+		cron:  crontab,
+		log:   log,
+	}
+	log.Info("新版配置文件", "v3", muxv3.Config())
+	if err = runV3(parent, input); err != nil {
 		return err
 	}
 
