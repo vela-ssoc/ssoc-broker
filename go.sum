@@ -6,6 +6,8 @@ gitcode.com/opengauss/openGauss-connector-go-pq v1.0.9/go.mod h1:EIVrn+q7Ip07RUW
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/NVIDIA/gontainer/v2 v2.5.1 h1:Gq6RkFkKUZoioGHKr2KdXj+ACGV0zVMhgZyAaz5+M8I=
 github.com/NVIDIA/gontainer/v2 v2.5.1/go.mod h1:itUlioyrCwQsdDi5bY1T1WW4S6uvsVaRIEiCaOehi10=
+github.com/UserExistsError/conpty v0.1.4 h1:+3FhJhiqhyEJa+K5qaK3/w6w+sN3Nh9O9VbJyBS02to=
+github.com/UserExistsError/conpty v0.1.4/go.mod h1:PDglKIkX3O/2xVk0MV9a6bCWxRmPVfxqZoTG/5sSd9I=
 github.com/VictoriaMetrics/metrics v1.44.1 h1:OMyGrMkhI3hnq+IpJ1gZK9VhXcsOjUX1CoOFv//bJ0I=
 github.com/VictoriaMetrics/metrics v1.44.1/go.mod h1:xDM82ULLYCYdFRgQ2JBxi8Uf1+8En1So9YUwlGTOqTc=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
@@ -116,8 +118,8 @@ github.com/valyala/histogram v1.2.0 h1:wyYGAZZt3CpwUiIb9AU/Zbllg1llXyrtApRS815OL
 github.com/valyala/histogram v1.2.0/go.mod h1:Hb4kBwb4UxsaNbbbh+RRz8ZR6pdodR57tzWUS3BUzXY=
 github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c h1:GSMgW4FBObW+4HsE1imoTmYPpARGLqevpKYa985TrpE=
 github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c/go.mod h1:MnEJwYwWAxn9jpYhC4rDNvqvnzrrRQPpkwMDgX8Mtlc=
-github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261019030906-f808f8685a58 h1:Qrm3SJa8FbSO172+GhxWSFnEbSCVHphwl8idFBJRpb8=
-github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261019030906-f808f8685a58/go.mod h1:ypH6oOCUIhVjJopfqGyvyEEwuscaa6V7ysB5I3FZap4=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261022083838-e08e685a518c h1:pp98Xmh4jhEBGQ2MtbP5NrHsOSHuTjoTynlXXvGkTwg=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261022083838-e08e685a518c/go.mod h1:VSFXRk8TLzpOM1vl2H6GAq7D75sspsz0lx34lGpwTEc=
 github.com/vela-ssoc/ssoc-proto v0.0.0-20260427075635-32ae63dc15b4 h1:VHEIb1WC/uUOGgzdocHRG2UC7LO7CySNjCi+Se6DGkM=
 github.com/vela-ssoc/ssoc-proto v0.0.0-20260427075635-32ae63dc15b4/go.mod h1:OZG7aAcfaiFdwz8faWEb+8MPE4f+1wjkdxwuoFZYIbQ=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277 h1:yoGmjdg62V+7ttvssABuXmXMyqwWdDTACQ8YZOXKRnQ=
@@ -195,6 +197,7 @@ golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.1.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.8.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.49.0 h1:XbzkgYJHdqh/8m2Uu0W/dQv8nktxx4BFHp1M0gROTXA=
 golang.org/x/sys v0.49.0/go.mod h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=

@@ -1,5 +1,5 @@
 package request
 
 type SoftExit struct {
-	Seconds int `json:"seconds" query:"seconds" validate:"gte=0"`
+	Seconds int `json:"seconds" query:"seconds" validate:"gte=1"`
 }

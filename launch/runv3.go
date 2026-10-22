@@ -3,8 +3,10 @@ package launch
 import (
 	"context"
 	"log/slog"
+	"net/http"
 
 	"github.com/NVIDIA/gontainer/v2"
+	"github.com/gorilla/websocket"
 	"github.com/vela-ssoc/ssoc-broker/appv3/restapi"
 	"github.com/vela-ssoc/ssoc-broker/appv3/service"
 	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
@@ -30,8 +32,15 @@ type v3Input struct {
 }
 
 func runV3(ctx context.Context, input v3Input) error {
+	wsu := &websocket.Upgrader{
+		CheckOrigin: func(*http.Request) bool {
+			return true
+		},
+	}
+
 	bootcfg := input.mux.Config()
 	gopts := []gontainer.Option{
+		gontainer.NewService(wsu),
 		gontainer.NewService(bootcfg),
 		gontainer.NewService(input.hide),
 		gontainer.NewService(input.db),
@@ -54,6 +63,8 @@ func runV3(ctx context.Context, input v3Input) error {
 		gontainer.NewFactory(restapi.NewReverseProxy),
 
 		gontainer.NewFactory(restapi.NewRoute),
+		gontainer.NewFactory(restapi.NewPTY),
+		gontainer.NewService(restapi.NewWebDAV("/")),
 
 		gontainer.NewFactory(service.NewZipArchive),
 		gontainer.NewFactory(restapi.NewZipArchive),

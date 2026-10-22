@@ -4,12 +4,13 @@ go 1.26.0
 
 require (
 	github.com/NVIDIA/gontainer/v2 v2.5.1
+	github.com/UserExistsError/conpty v0.1.4
 	github.com/VictoriaMetrics/metrics v1.44.1
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261019030906-f808f8685a58
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261022083838-e08e685a518c
 	github.com/vela-ssoc/ssoc-proto v0.0.0-20260427075635-32ae63dc15b4
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/vela-ssoc/vela-tunnel v0.0.0-20261019030035-bfbba79164f6
