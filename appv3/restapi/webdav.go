@@ -28,8 +28,8 @@ func (d *WebDAV) RegisterHTTP(g shipx.RouteGroup) error {
 		"LOCK", "UNLOCK", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE",
 	}
 
-	g.ManagerV3.Route("/webdav").Method(d.browse, methods...)
-	g.ManagerV3.Route("/webdav/*").Method(d.browse, methods...)
+	g.ManagerV3.Group.Route("/webdav").Method(d.browse, methods...)
+	g.ManagerV3.Group.Route("/webdav/*").Method(d.browse, methods...)
 
 	return nil
 }

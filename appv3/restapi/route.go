@@ -19,13 +19,13 @@ func NewRoute() *Route {
 }
 
 func (rt *Route) RegisterHTTP(g shipx.RouteGroup) error {
-	rt.agt = g.AgentV3.Ship()
-	rt.brk = g.ManagerV3.Ship()
-	rt.exp = g.Expose
+	rt.agt = g.AgentV3.Group.Ship()
+	rt.brk = g.ManagerV3.Group.Ship()
+	rt.exp = g.ExposeV3.Group.Ship()
 
-	g.ManagerV3.Route("/route/agents").GET(rt.agents)
-	g.ManagerV3.Route("/route/brokers").GET(rt.brokers)
-	g.ManagerV3.Route("/route/exposes").GET(rt.exposes)
+	g.ManagerV3.Group.Route("/route/agents").GET(rt.agents)
+	g.ManagerV3.Group.Route("/route/brokers").GET(rt.brokers)
+	g.ManagerV3.Group.Route("/route/exposes").GET(rt.exposes)
 
 	return nil
 }

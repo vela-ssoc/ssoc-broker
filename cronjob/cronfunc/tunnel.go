@@ -11,16 +11,16 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type tunnel struct {
+type TunnelStat struct {
 	mux brokclient.Muxer
 	db  polydb.Sourcer
 }
 
-func NewTunnel(mux brokclient.Muxer, db polydb.Sourcer) cronv3.Tasker {
-	return &tunnel{mux: mux, db: db}
+func NewTunnelStat(mux brokclient.Muxer, db polydb.Sourcer) *TunnelStat {
+	return &TunnelStat{mux: mux, db: db}
 }
 
-func (tnl *tunnel) Info() cronv3.TaskInfo {
+func (tnl *TunnelStat) Info() cronv3.TaskInfo {
 	return cronv3.TaskInfo{
 		ID:        "afe56e553426c6b3462b67f8e3521001",
 		Name:      "统计通道流量数据",
@@ -30,7 +30,7 @@ func (tnl *tunnel) Info() cronv3.TaskInfo {
 	}
 }
 
-func (tnl *tunnel) Call(ctx context.Context) error {
+func (tnl *TunnelStat) Call(ctx context.Context) error {
 	cfg := tnl.mux.Config()
 	rx, tx := tnl.mux.Traffic()
 	cumulative, active := tnl.mux.NumStreams()

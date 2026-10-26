@@ -1,4 +1,4 @@
-package launch
+package launch_test
 
 import (
 	"context"

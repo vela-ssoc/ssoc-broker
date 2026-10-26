@@ -9,22 +9,22 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-type PTY struct {
+type SystemPTY struct {
 	wsu *websocket.Upgrader
 }
 
-func NewPTY(wsu *websocket.Upgrader) *PTY {
-	return &PTY{wsu: wsu}
+func NewSystemPTY(wsu *websocket.Upgrader) *SystemPTY {
+	return &SystemPTY{wsu: wsu}
 }
 
-func (pt *PTY) RegisterHTTP(g shipx.RouteGroup) error {
-	g.ManagerV3.Route("/system/pty").GET(pt.open)
+func (pt *SystemPTY) RegisterHTTP(g shipx.RouteGroup) error {
+	g.ManagerV3.Group.Route("/system/pty").GET(pt.open)
 
 	return nil
 }
 
 //goland:noinspection ALL
-func (pt *PTY) open(c *ship.Context) error {
+func (pt *SystemPTY) open(c *ship.Context) error {
 	w, r := c.Response(), c.Request()
 	ws, err := pt.wsu.Upgrade(w, r, nil)
 	if err != nil {

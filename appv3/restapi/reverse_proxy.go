@@ -15,10 +15,10 @@ func NewReverseProxy(svc *service.ReverseProxy) *ReverseProxy {
 }
 
 func (rp *ReverseProxy) RegisterHTTP(g shipx.RouteGroup) error {
-	g.AgentV3.Route("/reverse/:location").Any(rp.handle)
-	g.AgentV3.Route("/reverse/:location/*path").Any(rp.handle)
+	g.AgentV3.Group.Route("/reverse/:location").Any(rp.handle)
+	g.AgentV3.Group.Route("/reverse/:location/*path").Any(rp.handle)
 
-	g.ManagerV3.Route("/reverse-proxy").POST(rp.forget)
+	g.ManagerV3.Group.Route("/reverse-proxy").DELETE(rp.forget)
 
 	return nil
 }

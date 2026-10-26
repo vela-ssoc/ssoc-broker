@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"runtime"
 	"time"
@@ -26,17 +25,6 @@ type Options struct {
 }
 
 func Open(ctx context.Context, opts Options) (Muxer, error) {
-	addrs := make([]string, 0, len(opts.Addresses))
-	for _, host := range opts.Addresses {
-		wsu := &url.URL{
-			Scheme: "ws",
-			Host:   host,
-			Path:   "/api/v3/tunnel",
-		}
-		addrs = append(addrs, wsu.String())
-	}
-	opts.Addresses = addrs
-
 	hostname, _ := os.Hostname()
 	req := &muxproto.BrokerAuthRequest{
 		Secret:   opts.Secret,

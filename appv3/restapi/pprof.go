@@ -14,12 +14,12 @@ func NewPprof() *Pprof {
 }
 
 func (prof *Pprof) RegisterHTTP(g shipx.RouteGroup) error {
-	g.ManagerV3.Route("/pprof/index").GET(prof.index)
-	g.ManagerV3.Route("/pprof/cmdline").GET(prof.cmdline)
-	g.ManagerV3.Route("/pprof/profile").GET(prof.profile)
-	g.ManagerV3.Route("/pprof/symbol").GET(prof.symbol).POST(prof.symbol)
-	g.ManagerV3.Route("/pprof/trace").GET(prof.trace)
-	g.ManagerV3.Route("/pprof/:name").GET(prof.name)
+	g.ManagerV3.Group.Route("/pprof/index").GET(prof.index)
+	g.ManagerV3.Group.Route("/pprof/cmdline").GET(prof.cmdline)
+	g.ManagerV3.Group.Route("/pprof/profile").GET(prof.profile)
+	g.ManagerV3.Group.Route("/pprof/symbol").GET(prof.symbol).POST(prof.symbol)
+	g.ManagerV3.Group.Route("/pprof/trace").GET(prof.trace)
+	g.ManagerV3.Group.Route("/pprof/:name").GET(prof.name)
 
 	return nil
 }

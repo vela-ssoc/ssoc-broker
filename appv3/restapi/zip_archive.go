@@ -22,7 +22,7 @@ func NewZipArchive(svc *service.ZipArchive) *ZipArchive {
 }
 
 func (za *ZipArchive) RegisterHTTP(g shipx.RouteGroup) error {
-	g.AgentV3.Route("/zip-archive/download").GET(za.download)
+	g.AgentV3.Group.Route("/zip-archive/download").GET(za.download)
 	return nil
 }
 

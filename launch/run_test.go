@@ -1,4 +1,4 @@
-package launch
+package launch_test
 
 import (
 	"context"
@@ -57,7 +57,7 @@ import (
 // Run 运行服务
 //
 //goland:noinspection GoUnhandledErrorResult
-func Run(parent context.Context, parse config.Parser) error {
+func Run(parent context.Context, hidecfg *config.BootConfig) error {
 	// 项目启动时默认初始化一个日志输出，方便启动前调试。
 	initLogOption := &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}
 	logHandler := logger.NewMultiHandler(logger.NewTint(os.Stdout, initLogOption))
@@ -70,11 +70,7 @@ func Run(parent context.Context, parse config.Parser) error {
 	}
 
 	// 读取配置文件
-	hidecfg := new(config.HideConfig)
-	if err := parse.Parse(parent, hidecfg); err != nil {
-		log.Error("读取启动配置文件出错", "err", err)
-		return err
-	}
+	// hidecfg := new(config.BootConfig)
 
 	agt := ship.Default()
 	mgt := ship.Default()
@@ -331,7 +327,7 @@ func Run(parent context.Context, parse config.Parser) error {
 		ManagerV3: mgtv3,
 		Expose:    mux,
 	}
-	input := v3Input{
+	_ = v3Input{
 		route: routev3,
 		issue: issue,
 		db:    db,
@@ -341,9 +337,6 @@ func Run(parent context.Context, parse config.Parser) error {
 		log:   log,
 	}
 	log.Info("新版配置文件", "v3", muxv3.Config())
-	if err = runV3(parent, input); err != nil {
-		return err
-	}
 
 	errCh := make(chan error, 1)
 	// 监听本地端口用于 minion 节点连接

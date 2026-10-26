@@ -16,9 +16,9 @@ func NewPing() *Ping {
 }
 
 func (p *Ping) RegisterHTTP(g shipx.RouteGroup) error {
-	g.AgentV3.Route("/ping").GET(p.ping)
-	g.ManagerV3.Route("/ping").GET(p.ping)
-	g.ManagerV3.Route("/chunk").GET(p.chunk)
+	g.AgentV3.Group.Route("/ping").GET(p.ping)
+	g.ManagerV3.Group.Route("/ping").GET(p.ping)
+	g.ManagerV3.Group.Route("/chunk").GET(p.chunk)
 
 	return nil
 }

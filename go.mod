@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261026030550-d32df67222e5
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261026112122-c6128bb78b45
 	github.com/vela-ssoc/ssoc-proto v0.0.0-20260427075635-32ae63dc15b4
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/vela-ssoc/vela-tunnel v0.0.0-20261019030035-bfbba79164f6
@@ -26,6 +26,7 @@ require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	gitcode.com/opengauss/openGauss-connector-go-pq v1.0.9 // indirect
 	github.com/UserExistsError/conpty v0.1.4 // indirect
+	github.com/creack/pty v1.1.24 // indirect
 	github.com/ebitengine/purego v0.11.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.16 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect

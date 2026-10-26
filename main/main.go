@@ -4,12 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 
-	"github.com/vela-ssoc/ssoc-broker/config"
 	"github.com/vela-ssoc/ssoc-broker/launch"
-	"github.com/vela-ssoc/ssoc-common/banner"
+	"github.com/vela-ssoc/ssoc-common-mb/bininfo"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 	cfg := flg.String("c", "resources/config/application.jsonc", "配置文件")
 	_ = flg.Parse(args[1:])
 
-	if _, _ = banner.ANSI(os.Stdout); *ver {
+	if _, _ = bininfo.ANSI(os.Stdout); *ver {
 		return
 	}
 
@@ -27,10 +27,8 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	// 如果当前目录存在配置文件，就先读取本地文件。不存在则读取二进制内的隐写数据。
-	cfgs := config.Parsers{config.JSONC(*cfg), config.Binary(args[0])}
-	if err := launch.Run(ctx, cfgs); err != nil {
-		fmt.Printf("程序运行出错 err=%q", err)
-	}
-	fmt.Println("程序结束运行")
+	slog.Info("按 Ctrl+C 停止运行")
+	err := launch.RunV3(ctx, *cfg)
+	cause := context.Cause(ctx)
+	slog.Warn("程序停止运行", "error", err, "cause", cause)
 }
