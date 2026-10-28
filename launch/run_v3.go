@@ -173,6 +173,7 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewFactory(service.NewVictoriaMetrics),
 		gontainer.NewFactory(service.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewReverseProxy),
+		gontainer.NewFactory(restapi.NewSystemProcess),
 		gontainer.NewFactory(restapi.NewSystemPTY),
 		gontainer.NewService(restapi.NewWebDAV("/")),
 		gontainer.NewFactory(service.NewZipArchive),
