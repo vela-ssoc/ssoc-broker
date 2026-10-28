@@ -24,8 +24,8 @@ func (tnl *TunnelStat) Options() crontab.JobOptions {
 	return crontab.JobOptions{
 		ID:        "",
 		Name:      "统计自身虚拟通道流量数据",
-		Sched:     cron.Every(10 * time.Second),
-		Timeout:   5 * time.Second,
+		Sched:     cron.Every(30 * time.Second),
+		Timeout:   10 * time.Second,
 		Immediate: true,
 	}
 }

@@ -1,6 +1,6 @@
 module github.com/vela-ssoc/ssoc-broker
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/NVIDIA/gontainer/v2 v2.5.1
@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261028013928-9f3289e78bf2
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261028081730-9593cf736f3e
 	github.com/vela-ssoc/ssoc-proto v0.0.0-20260427075635-32ae63dc15b4
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/vela-ssoc/vela-tunnel v0.0.0-20261019030035-bfbba79164f6
@@ -53,7 +53,7 @@ require (
 	github.com/xdg-go/scram v1.2.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/xmx/opengauss v0.0.0-20260824065417-bdbc272b64b5 // indirect
-	github.com/xtaci/smux v1.5.57 // indirect
+	github.com/xtaci/smux v1.5.58 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/crypto v0.58.0 // indirect

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/NVIDIA/gontainer/v2"
 	"github.com/gorilla/websocket"
@@ -15,7 +16,7 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/appv3/service"
 	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
 	"github.com/vela-ssoc/ssoc-broker/config"
-	"github.com/vela-ssoc/ssoc-broker/cronjob/cronfunc"
+	"github.com/vela-ssoc/ssoc-broker/cronfunc"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
 	"github.com/vela-ssoc/ssoc-common-mb/bininfo"
 	"github.com/vela-ssoc/ssoc-common-mb/crontab"
@@ -26,6 +27,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dbconn"
 	"github.com/vela-ssoc/ssoc-common-mb/tlscert"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
+	"github.com/vela-ssoc/ssoc-common-mb/vmexport"
 	"github.com/vela-ssoc/ssoc-common/logger"
 	"github.com/xgfone/ship/v5"
 )
@@ -116,6 +118,13 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 			return true
 		},
 	}
+	transport := &http.Transport{
+		TLSHandshakeTimeout: 10 * time.Second,
+		MaxIdleConns:        20,
+		MaxIdleConnsPerHost: 2,
+		MaxConnsPerHost:     20,
+		IdleConnTimeout:     30 * time.Second,
+	}
 
 	route := shipx.RouteGroup{
 		ExposeV1: shipx.RouteEndpoint{
@@ -153,6 +162,7 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewService(boot),
 		gontainer.NewService(cfg),
 		gontainer.NewService(crond),
+		gontainer.NewService(transport),
 
 		gontainer.NewFactory(restapi.NewItself),
 		gontainer.NewFactory(restapi.NewItselfCrontab),
@@ -160,6 +170,7 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewFactory(restapi.NewItselfRoute),
 		gontainer.NewFactory(restapi.NewPing),
 		gontainer.NewFactory(restapi.NewPprof),
+		gontainer.NewFactory(service.NewVictoriaMetrics),
 		gontainer.NewFactory(service.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewSystemPTY),
@@ -168,6 +179,8 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewFactory(restapi.NewZipArchive),
 
 		gontainer.NewFactory(cronfunc.NewTunnelStat),
+		gontainer.NewFactory(vmexport.NewPsutil),
+		gontainer.NewFactory(cronfunc.NewVMetric),
 
 		gontainer.NewEntrypoint(route.RegisterRoutes),
 		gontainer.NewEntrypoint(registerCronJob),
