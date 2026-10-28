@@ -44,12 +44,7 @@ func (s *safeMUX) loadMUX() muxconn.Muxer {
 	return s.ptr.Load().mux
 }
 
-func (s *safeMUX) store(mux muxconn.Muxer, pcfg *model.BrokerConfig) {
-	var cfg model.BrokerConfig
-	if pcfg != nil {
-		cfg = *pcfg
-	}
-
+func (s *safeMUX) store(mux muxconn.Muxer, cfg model.BrokerConfig) {
 	hold := &muxHolder{mux: mux, cfg: cfg}
 	s.ptr.Store(hold)
 }

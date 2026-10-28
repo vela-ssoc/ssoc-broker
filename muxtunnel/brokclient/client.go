@@ -100,18 +100,19 @@ func (bc *brokClient) open() error {
 }
 
 //goland:noinspection GoUnhandledErrorResult
-func (bc *brokClient) authentication(mux muxconn.Muxer) (*model.BrokerConfig, error) {
+func (bc *brokClient) authentication(mux muxconn.Muxer) (model.BrokerConfig, error) {
 	outbound := bc.outbound(mux.Addr())
 	attrs := []any{"outbound", outbound}
 	bc.req.Inet = outbound.String()
 
+	var empty model.BrokerConfig
 	ctx, cancel := bc.perContext()
 	conn, err := mux.Open(ctx)
 	cancel()
 	if err != nil {
 		attrs = append(attrs, "error", err)
 		bc.log().Error("打开认证虚拟通道出错", attrs...)
-		return nil, err
+		return empty, err
 	}
 	defer conn.Close()
 
@@ -120,30 +121,32 @@ func (bc *brokClient) authentication(mux muxconn.Muxer) (*model.BrokerConfig, er
 	if err = muxconn.WriteAuth(conn, bc.req); err != nil {
 		attrs = append(attrs, "error", err)
 		bc.log().Warn("写入认证报文出错", attrs...)
-		return nil, err
+		return empty, err
 	}
 
-	bcfg := new(model.BrokerConfig)
-	resp := &muxproto.BrokerAuthResponse{Config: bcfg}
+	//bcfg := new(model.BrokerConfig)
+	//resp := &muxproto.BrokerAuthResponse{Config: bcfg}
+	var resp muxproto.BrokerAuthResponse[model.BrokerConfig]
 	_ = conn.SetReadDeadline(time.Now().Add(timeout))
-	if err = muxconn.ReadAuth(conn, resp); err != nil {
+	if err = muxconn.ReadAuth(conn, &resp); err != nil {
 		attrs = append(attrs, "error", err)
 		bc.log().Warn("读取认证报文出错", attrs...)
-		return nil, err
+		return empty, err
 	}
 	if re := resp.Err(); re != nil {
 		attrs = append(attrs, "error", re)
 		bc.log().Warn("服务端认证失败", attrs...)
-		return nil, re
+		return empty, re
 	}
 
-	if err = bc.validBrokConfig(bcfg); err != nil {
+	cfg := resp.Config
+	if err = bc.validBrokConfig(cfg); err != nil {
 		bc.log().Warn("服务端响应的配置校验出错", attrs...)
-		return nil, err
+		return empty, err
 	}
 	bc.log().Info("通道认证成功", attrs...)
 
-	return bcfg, nil
+	return cfg, nil
 }
 
 func (bc *brokClient) serveHTTP() {
@@ -193,7 +196,7 @@ func (bc *brokClient) perContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(bc.ctx, d)
 }
 
-func (bc *brokClient) validBrokConfig(cfg *model.BrokerConfig) error {
+func (bc *brokClient) validBrokConfig(cfg model.BrokerConfig) error {
 	if v := bc.opts.Validator; v != nil {
 		return v(cfg)
 	}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/NVIDIA/gontainer/v2"
 	"github.com/gorilla/websocket"
+	"github.com/robfig/cron/v3"
 	"github.com/vela-ssoc/ssoc-broker/appv3/restapi"
 	"github.com/vela-ssoc/ssoc-broker/appv3/service"
 	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
@@ -17,6 +18,7 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/cronjob/cronfunc"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
 	"github.com/vela-ssoc/ssoc-common-mb/bininfo"
+	"github.com/vela-ssoc/ssoc-common-mb/crontab"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
@@ -24,7 +26,6 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dbconn"
 	"github.com/vela-ssoc/ssoc-common-mb/tlscert"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
-	"github.com/vela-ssoc/ssoc-common/cronv3"
 	"github.com/vela-ssoc/ssoc-common/logger"
 	"github.com/xgfone/ship/v5"
 )
@@ -81,9 +82,10 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 	logHandler := slog.NewMultiHandler(logHandles...)
 	log := slog.New(logHandler)
 
-	crontab := cronv3.New(log)
-	crontab.Start()
-	defer crontab.Stop()
+	cronparser := crontab.NewSecondOptional()
+	crond := crontab.NewTable(log, cron.WithParser(cronparser))
+	crond.Start()
+	defer crond.Stop()
 
 	// 连接 MongoDB
 	// 连接关系型数据库
@@ -150,15 +152,16 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewService(wsu),
 		gontainer.NewService(boot),
 		gontainer.NewService(cfg),
-		gontainer.NewService(crontab),
+		gontainer.NewService(crond),
 
 		gontainer.NewFactory(restapi.NewItself),
+		gontainer.NewFactory(restapi.NewItselfCrontab),
 		gontainer.NewFactory(restapi.NewItselfExit),
+		gontainer.NewFactory(restapi.NewItselfRoute),
 		gontainer.NewFactory(restapi.NewPing),
 		gontainer.NewFactory(restapi.NewPprof),
 		gontainer.NewFactory(service.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewReverseProxy),
-		gontainer.NewFactory(restapi.NewRoute),
 		gontainer.NewFactory(restapi.NewSystemPTY),
 		gontainer.NewService(restapi.NewWebDAV("/")),
 		gontainer.NewFactory(service.NewZipArchive),

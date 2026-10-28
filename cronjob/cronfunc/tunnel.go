@@ -6,8 +6,8 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
+	"github.com/vela-ssoc/ssoc-common-mb/crontab"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
-	"github.com/vela-ssoc/ssoc-common/cronv3"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -20,17 +20,17 @@ func NewTunnelStat(mux brokclient.Muxer, db polydb.Sourcer) *TunnelStat {
 	return &TunnelStat{mux: mux, db: db}
 }
 
-func (tnl *TunnelStat) Info() cronv3.TaskInfo {
-	return cronv3.TaskInfo{
-		ID:        "afe56e553426c6b3462b67f8e3521001",
-		Name:      "统计通道流量数据",
-		Immediate: true,
+func (tnl *TunnelStat) Options() crontab.JobOptions {
+	return crontab.JobOptions{
+		ID:        "",
+		Name:      "统计自身虚拟通道流量数据",
+		Sched:     cron.Every(10 * time.Second),
 		Timeout:   5 * time.Second,
-		CronSched: cron.Every(10 * time.Second),
+		Immediate: true,
 	}
 }
 
-func (tnl *TunnelStat) Call(ctx context.Context) error {
+func (tnl *TunnelStat) Execute(ctx context.Context) error {
 	cfg := tnl.mux.Config()
 	rx, tx := tnl.mux.Traffic()
 	cumulative, active := tnl.mux.NumStreams()

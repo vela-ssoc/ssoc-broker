@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/NVIDIA/gontainer/v2"
-	"github.com/vela-ssoc/ssoc-common/cronv3"
+	"github.com/vela-ssoc/ssoc-common-mb/crontab"
 	"github.com/vela-ssoc/vela-tunnel/stegano"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"gorm.io/gorm"
@@ -47,12 +47,6 @@ func closeHTTP(srv *http.Server) error {
 	return srv.Shutdown(ctx)
 }
 
-func registerCronJob(c *cronv3.Crontab, jobs gontainer.Multiple[cronv3.Tasker]) error {
-	for _, job := range jobs {
-		if err := c.AddTask(job); err != nil {
-			return err
-		}
-	}
-
-	return nil
+func registerCronJob(c *crontab.Table, jobs gontainer.Multiple[crontab.Jober]) error {
+	return c.AddJobs(jobs)
 }
