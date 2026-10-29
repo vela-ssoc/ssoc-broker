@@ -10,7 +10,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.26.9
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261028120042-99ffd415620a
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261029091236-b178b33dee12
 	github.com/vela-ssoc/ssoc-proto v0.0.0-20260427075635-32ae63dc15b4
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/vela-ssoc/vela-tunnel v0.0.0-20261019030035-bfbba79164f6
