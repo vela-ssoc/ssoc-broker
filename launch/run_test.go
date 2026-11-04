@@ -310,8 +310,8 @@ func Run(parent context.Context, hidecfg *config.BootConfig) error {
 		gw.ServeHTTP(c.ResponseWriter(), c.Request())
 		return nil
 	})
-	api.Route("/v1/minion/endpoint").GET(temp.Endpoint)
-	api.Route("/v1/edition/upgrade").GET(oldHandler.Upgrade)
+	api.Route("/v1/minion/endpoint").GET(temp.Endpoint)      // 最早期接口（v3 版本抛弃）
+	api.Route("/v1/edition/upgrade").GET(oldHandler.Upgrade) // 最早期接口（v3 版本抛弃）
 	api.Route("/api/v1/deploy/minion").GET(deployAPI.Script)
 	api.Route("/api/v1/deploy/minion/download").GET(deployAPI.MinionDownload)
 	{

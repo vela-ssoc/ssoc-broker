@@ -8,15 +8,15 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/shirou/gopsutil/v4 v4.26.9
+	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c
 	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261030120326-953687945f87
 	github.com/vela-ssoc/ssoc-proto v0.0.0-20260427075635-32ae63dc15b4
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
-	github.com/vela-ssoc/vela-tunnel v0.0.0-20261019030035-bfbba79164f6
+	github.com/vela-ssoc/vela-tunnel v0.0.0-20261102091643-b07a7b506a5b
 	github.com/xgfone/ship/v5 v5.3.2
 	github.com/yeka/zip v0.0.0-20231116150916-03d6312748a9
-	go.mongodb.org/mongo-driver/v2 v2.9.2
+	go.mongodb.org/mongo-driver/v2 v2.9.3
 	golang.org/x/net v0.62.0
 	golang.org/x/time v0.16.0
 	gorm.io/gen v0.3.29
@@ -28,12 +28,12 @@ require (
 	gitcode.com/opengauss/openGauss-connector-go-pq v1.0.9 // indirect
 	github.com/UserExistsError/conpty v0.1.4 // indirect
 	github.com/creack/pty v1.1.24 // indirect
-	github.com/ebitengine/purego v0.11.2 // indirect
+	github.com/ebitengine/purego v0.11.3 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.16 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
-	github.com/go-playground/validator/v10 v10.30.5 // indirect
+	github.com/go-playground/validator/v10 v10.30.6 // indirect
 	github.com/go-sql-driver/mysql v1.10.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/yamux v0.1.2 // indirect
@@ -42,7 +42,7 @@ require (
 	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lmittmann/tint v1.2.1 // indirect
-	github.com/lufia/plan9stats v0.0.0-20260802145828-341c2f0c90b5 // indirect
+	github.com/lufia/plan9stats v0.0.0-20261101121723-be84dd9509a0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20260916203055-22a1a467d9f0 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/valyala/fastrand v1.1.0 // indirect
 	github.com/valyala/histogram v1.2.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
-	github.com/xdg-go/scram v1.2.0 // indirect
+	github.com/xdg-go/scram v1.3.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/xmx/opengauss v0.0.0-20260824065417-bdbc272b64b5 // indirect
 	github.com/xtaci/smux v1.5.58 // indirect

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -17,7 +18,9 @@ import (
 	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
 	"github.com/vela-ssoc/ssoc-broker/config"
 	"github.com/vela-ssoc/ssoc-broker/cronfunc"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/agtclient"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/muxacct"
 	"github.com/vela-ssoc/ssoc-common-mb/bininfo"
 	"github.com/vela-ssoc/ssoc-common-mb/crontab"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
@@ -25,6 +28,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/varload"
 	"github.com/vela-ssoc/ssoc-common-mb/dbconn"
+	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
 	"github.com/vela-ssoc/ssoc-common-mb/tlscert"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
 	"github.com/vela-ssoc/ssoc-common-mb/vmexport"
@@ -92,12 +96,12 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 	// 连接 MongoDB
 	// 连接关系型数据库
 	dbcfg := cfg.Database
-	mdb, err := dbconn.OpenMDB(dbcfg.URI)
+	mgo, err := dbconn.OpenMDB(dbcfg.URI)
 	if err != nil {
 		log.Error("连接 MongoDB 出错", "err", err)
 		return err
 	}
-	defer closeMDB(mdb)
+	defer closeMDB(mgo)
 	log.Info("MongoDB 数据库连接成功")
 
 	rdb, err := dbconn.OpenRDB(dbcfg.DSN)
@@ -110,20 +114,48 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 
 	// 如果需要创建关系型数据库的索引、数据合并，在此处实现。
 	qry := query.Use(rdb)
-	repo := repository.NewBaseDB(mdb, log)
-	pdb := polydb.NewSource(repo, qry) // 数据库聚合
+	mdb := repository.NewBaseDB(mgo, log)
+	pdb := polydb.NewSource(mdb, qry) // 数据库聚合
 
-	wsu := &websocket.Upgrader{
-		CheckOrigin: func(*http.Request) bool {
-			return true
+	// 系统拨号器
+	sysdial := net.Dialer{
+		Timeout: 30 * time.Second,
+		KeepAliveConfig: net.KeepAliveConfig{
+			Enable:   true,
+			Idle:     30 * time.Second,
+			Interval: 15 * time.Second,
+			Count:    3,
 		},
 	}
+	sysdial.SetMultipathTCP(true)
+
+	hub := muxproto.NewAHub()
+	dnss := []muxproto.TLDResolver{muxproto.NewHubResolver(hub), muxproto.NewMUXResolver(muxproto.ManagerTLD, mux)}
+	dialer := muxproto.NewTLDDialer(sysdial, dnss)
 	transport := &http.Transport{
+		DialContext:         dialer.DialContext,
 		TLSHandshakeTimeout: 10 * time.Second,
 		MaxIdleConns:        20,
 		MaxIdleConnsPerHost: 2,
 		MaxConnsPerHost:     20,
 		IdleConnTimeout:     30 * time.Second,
+	}
+	httpcli := &http.Client{Transport: transport}
+	agtcli := agtclient.NewClient(httpcli)
+	agentEvent := service.NewAgentEvent(pdb, agtcli, log)
+
+	acctopts := muxacct.Options{
+		Event:      agentEvent,
+		Validate:   valid.Validate,
+		PerTimeout: 20 * time.Second,
+	}
+	muxsrv := muxacct.NewServer(pdb, hub, agentMUX, log, acctopts)
+
+	crtsrc := service.NewCertificate(pdb)
+	tlspool := tlscert.NewMatch(crtsrc, log)
+
+	wsu := &websocket.Upgrader{
+		CheckOrigin: func(*http.Request) bool { return true },
 	}
 
 	route := shipx.RouteGroup{
@@ -163,11 +195,14 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewService(cfg),
 		gontainer.NewService(crond),
 		gontainer.NewService(transport),
+		gontainer.NewService(httpcli),
+		gontainer.NewService(muxsrv),
 
 		gontainer.NewFactory(restapi.NewItself),
 		gontainer.NewFactory(restapi.NewItselfCrontab),
 		gontainer.NewFactory(restapi.NewItselfExit),
 		gontainer.NewFactory(restapi.NewItselfRoute),
+		gontainer.NewFactory(restapi.NewLegacy),
 		gontainer.NewFactory(restapi.NewPing),
 		gontainer.NewFactory(restapi.NewPprof),
 		gontainer.NewFactory(service.NewVictoriaMetrics),
@@ -194,7 +229,6 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 	log.Info("依赖注入执行完毕")
 
 	cfgsrv := cfg.Server
-	tlspool := tlscert.NewMatch(nil, log)
 	srv := &http.Server{
 		Addr:      cfgsrv.Addr,
 		Handler:   exposeMUX,
@@ -209,7 +243,7 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 	}
 
 	log.Error("程序运行结束", "err", err)
-	_ = closeHTTP(srv)
+	_ = srv.Close()
 
 	return err
 }
