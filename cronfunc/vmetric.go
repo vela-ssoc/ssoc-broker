@@ -9,17 +9,17 @@ import (
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/robfig/cron/v3"
 	"github.com/vela-ssoc/ssoc-common-mb/crontab"
-	"github.com/vela-ssoc/ssoc-common-mb/vmexport"
+	"github.com/vela-ssoc/ssoc-common-mb/victoria"
 	"github.com/vela-ssoc/vela-tunnel/muxconn"
 )
 
 type VMetric struct {
-	cfg    vmexport.VictoriaPushConfigLoader
+	cfg    victoria.PushConfigurer
 	mux    muxconn.Muxer
-	writes []vmexport.MetricWriter
+	writes []victoria.MetricWriter
 }
 
-func NewVMetric(cfg vmexport.VictoriaPushConfigLoader, mux muxconn.Muxer, writes gontainer.Multiple[vmexport.MetricWriter]) *VMetric {
+func NewVMetric(cfg victoria.PushConfigurer, mux muxconn.Muxer, writes gontainer.Multiple[victoria.MetricWriter]) *VMetric {
 	return &VMetric{cfg: cfg, mux: mux, writes: writes}
 }
 
@@ -33,7 +33,7 @@ func (vm *VMetric) Options() crontab.JobOptions {
 }
 
 func (vm *VMetric) Execute(ctx context.Context) error {
-	pushURL, opts, err := vm.cfg.LoadVictoriaPushConfig(ctx)
+	pushURL, opts, err := vm.cfg.PushConfig(ctx)
 	if err != nil {
 		return err
 	}

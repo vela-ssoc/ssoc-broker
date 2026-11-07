@@ -45,7 +45,7 @@ func (vmc *VictoriaMetrics) Forget() {
 	vmc.mem.Forget()
 }
 
-func (vmc *VictoriaMetrics) LoadVictoriaPushConfig(ctx context.Context) (pushURL string, opts *metrics.PushOptions, err error) {
+func (vmc *VictoriaMetrics) PushConfig(ctx context.Context) (pushURL string, opts *metrics.PushOptions, err error) {
 	pu, headers, data, err := vmc.load(ctx)
 	if err != nil {
 		return "", nil, err

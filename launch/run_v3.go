@@ -13,12 +13,13 @@ import (
 	"github.com/NVIDIA/gontainer/v2"
 	"github.com/gorilla/websocket"
 	"github.com/robfig/cron/v3"
+	"github.com/vela-ssoc/ssoc-broker/appv3/aevent"
 	"github.com/vela-ssoc/ssoc-broker/appv3/restapi"
 	"github.com/vela-ssoc/ssoc-broker/appv3/service"
 	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
 	"github.com/vela-ssoc/ssoc-broker/config"
 	"github.com/vela-ssoc/ssoc-broker/cronfunc"
-	"github.com/vela-ssoc/ssoc-broker/muxtunnel/agtclient"
+	"github.com/vela-ssoc/ssoc-broker/muxtunnel/apiclient"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/brokclient"
 	"github.com/vela-ssoc/ssoc-broker/muxtunnel/muxacct"
 	"github.com/vela-ssoc/ssoc-common-mb/bininfo"
@@ -28,12 +29,15 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/varload"
 	"github.com/vela-ssoc/ssoc-common-mb/dbconn"
+	"github.com/vela-ssoc/ssoc-common-mb/gopool"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
 	"github.com/vela-ssoc/ssoc-common-mb/tlscert"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
-	"github.com/vela-ssoc/ssoc-common-mb/vmexport"
+	"github.com/vela-ssoc/ssoc-common-mb/victoria"
 	"github.com/vela-ssoc/ssoc-common/logger"
 	"github.com/xgfone/ship/v5"
+	"gorm.io/gorm"
+	gormlog "gorm.io/gorm/logger"
 )
 
 func RunV3(ctx context.Context, cfg string) error {
@@ -104,7 +108,8 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 	defer closeMDB(mgo)
 	log.Info("MongoDB 数据库连接成功")
 
-	rdb, err := dbconn.OpenRDB(dbcfg.DSN)
+	gormLog := dbconn.NewGormLog(logHandler, gormlog.Config{LogLevel: gormlog.Info})
+	rdb, err := dbconn.OpenRDB(dbcfg.DSN, &gorm.Config{Logger: gormLog})
 	if err != nil {
 		log.Error("连接关系型数据库出错", "err", err)
 		return err
@@ -141,11 +146,12 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		IdleConnTimeout:     30 * time.Second,
 	}
 	httpcli := &http.Client{Transport: transport}
-	agtcli := agtclient.NewClient(httpcli)
-	agentEvent := service.NewAgentEvent(pdb, agtcli, log)
+	apicli := apiclient.NewClient(httpcli, log)
+	pool := gopool.New(500)
+	agentLifeEvent := aevent.NewLifeEvent(pdb, apicli, pool, log)
 
 	acctopts := muxacct.Options{
-		Event:      agentEvent,
+		Event:      agentLifeEvent,
 		Validate:   valid.Validate,
 		PerTimeout: 20 * time.Second,
 	}
@@ -215,11 +221,11 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewFactory(restapi.NewZipArchive),
 
 		gontainer.NewFactory(cronfunc.NewTunnelStat),
-		gontainer.NewFactory(vmexport.NewPsutil),
+		gontainer.NewFactory(victoria.NewPsutil),
 		gontainer.NewFactory(cronfunc.NewVMetric),
 
+		gontainer.NewEntrypoint(crond.AddJobs),
 		gontainer.NewEntrypoint(route.RegisterRoutes),
-		gontainer.NewEntrypoint(registerCronJob),
 	}
 	if err = gontainer.Run(diopts...); err != nil {
 		log.Error("依赖注入出错", "err", err)

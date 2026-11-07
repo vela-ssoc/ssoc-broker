@@ -29,8 +29,8 @@ func Open(ctx context.Context, opts Options) (Muxer, error) {
 	req := &muxproto.BrokerAuthRequest{
 		Secret:   opts.Secret,
 		Version:  opts.Version,
-		Goos:     runtime.GOOS,
-		Goarch:   runtime.GOARCH,
+		GOOS:     runtime.GOOS,
+		GOARCH:   runtime.GOARCH,
 		PID:      os.Getpid(),
 		Hostname: hostname,
 		Args:     os.Args,

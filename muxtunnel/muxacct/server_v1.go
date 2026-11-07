@@ -97,8 +97,15 @@ func (srv *Server) authenticationV1(w http.ResponseWriter, r *http.Request, sess
 		return nil, err
 	}
 
+	data := muxproto.NodeData{
+		IDV1:    minion.ID,
+		Inet:    ident.Inet,
+		GOOS:    ident.GOOS,
+		GOARCH:  ident.Arch,
+		Version: ident.Semver,
+	}
 	host := strconv.Itoa(int(minion.ID))
-	node := srv.hub.Put(host, mux, nil)
+	node := srv.hub.Put(host, mux, data)
 	if node == nil {
 		err = errors.New("节点已经在线了（连接池检查）")
 		_ = srv.writeErrorV1(conn, r, http.StatusBadRequest, err)

@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/NVIDIA/gontainer/v2"
-	"github.com/vela-ssoc/ssoc-common-mb/crontab"
 	"github.com/vela-ssoc/vela-tunnel/stegano"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"gorm.io/gorm"
@@ -38,8 +36,4 @@ func closeRDB(db *gorm.DB) error {
 
 func startHTTPS(errch chan error, srv *http.Server) {
 	errch <- srv.ListenAndServeTLS("", "")
-}
-
-func registerCronJob(c *crontab.Table, jobs gontainer.Multiple[crontab.Jober]) error {
-	return c.AddJobs(jobs)
 }
