@@ -100,12 +100,12 @@ func (bc *brokClient) open() error {
 }
 
 //goland:noinspection GoUnhandledErrorResult
-func (bc *brokClient) authentication(mux muxconn.Muxer) (model.BrokerConfig, error) {
+func (bc *brokClient) authentication(mux muxconn.Muxer) (model.BrokerConfigParams, error) {
 	outbound := bc.outbound(mux.Addr())
 	attrs := []any{"outbound", outbound}
 	bc.req.Inet = outbound.String()
 
-	var empty model.BrokerConfig
+	var empty model.BrokerConfigParams
 	ctx, cancel := bc.perContext()
 	conn, err := mux.Open(ctx)
 	cancel()
@@ -126,7 +126,7 @@ func (bc *brokClient) authentication(mux muxconn.Muxer) (model.BrokerConfig, err
 
 	//bcfg := new(model.BrokerConfig)
 	//resp := &muxproto.BrokerAuthResponse{Config: bcfg}
-	var resp muxproto.BrokerAuthResponse[model.BrokerConfig]
+	var resp muxproto.BrokerAuthResponse[model.BrokerConfigParams]
 	_ = conn.SetReadDeadline(time.Now().Add(timeout))
 	if err = muxconn.ReadAuth(conn, &resp); err != nil {
 		attrs = append(attrs, "error", err)
@@ -196,7 +196,7 @@ func (bc *brokClient) perContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(bc.ctx, d)
 }
 
-func (bc *brokClient) validBrokConfig(cfg model.BrokerConfig) error {
+func (bc *brokClient) validBrokConfig(cfg model.BrokerConfigParams) error {
 	if v := bc.opts.Validator; v != nil {
 		return v(cfg)
 	}

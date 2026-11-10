@@ -30,12 +30,12 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/varload"
 	"github.com/vela-ssoc/ssoc-common-mb/dbconn"
 	"github.com/vela-ssoc/ssoc-common-mb/gopool"
+	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
 	"github.com/vela-ssoc/ssoc-common-mb/tlscert"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
 	"github.com/vela-ssoc/ssoc-common-mb/victoria"
 	"github.com/vela-ssoc/ssoc-common/logger"
-	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 	gormlog "gorm.io/gorm/logger"
 )
@@ -57,10 +57,7 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		return err
 	}
 
-	exposeMUX := ship.Default()
-	managerMUX := ship.Default()
-	agentMUX := ship.Default()
-
+	managerMUX := httpship.NewDefault(valid, nil)
 	selfinfo := bininfo.Self()
 	brokopts := brokclient.Options{
 		Addresses: brokclient.NewEndpoints(boot.Addresses...),
@@ -91,6 +88,10 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 	}
 	logHandler := slog.NewMultiHandler(logHandles...)
 	log := slog.New(logHandler)
+
+	exposeMUX := httpship.NewDefault(valid, logHandler)
+	agentMUX := httpship.NewDefault(valid, logHandler)
+	managerMUX.Logger = exposeMUX.Logger
 
 	cronparser := crontab.NewSecondOptional()
 	crond := crontab.NewTable(log, cron.WithParser(cronparser))
@@ -155,7 +156,7 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		Validate:   valid.Validate,
 		PerTimeout: 20 * time.Second,
 	}
-	muxsrv := muxacct.NewServer(pdb, hub, agentMUX, log, acctopts)
+	muxsrv := muxacct.NewServer(pdb, mux, hub, agentMUX, log, acctopts)
 
 	crtsrc := service.NewCertificate(pdb)
 	tlspool := tlscert.NewMatch(crtsrc, log)
@@ -204,12 +205,20 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewService(httpcli),
 		gontainer.NewService(muxsrv),
 
+		gontainer.NewFactory(service.NewAgentAudit),
+		gontainer.NewFactory(restapi.NewAgentAudit),
+		gontainer.NewFactory(service.NewAgentCollect),
+		gontainer.NewFactory(restapi.NewAgentCollect),
 		gontainer.NewFactory(restapi.NewItself),
 		gontainer.NewFactory(restapi.NewItselfCrontab),
 		gontainer.NewFactory(restapi.NewItselfExit),
 		gontainer.NewFactory(restapi.NewItselfRoute),
 		gontainer.NewFactory(restapi.NewLegacy),
 		gontainer.NewFactory(restapi.NewPing),
+		gontainer.NewFactory(service.NewMinion),
+		gontainer.NewFactory(restapi.NewMinion),
+		gontainer.NewFactory(service.NewMinionTagV1),
+		gontainer.NewFactory(restapi.NewMinionTagV1),
 		gontainer.NewFactory(restapi.NewPprof),
 		gontainer.NewFactory(service.NewVictoriaMetrics),
 		gontainer.NewFactory(service.NewReverseProxy),

@@ -2,7 +2,6 @@ package aevent
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	model2 "github.com/vela-ssoc/ssoc-common-mb/dal/model"
@@ -19,7 +18,7 @@ func (op *onlinePush) Run() {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	info := op.node.Data()
+	info := op.node.Info()
 	host := op.node.Host()
 	agtcli := op.life.cli.Agent(host)
 
@@ -160,7 +159,6 @@ func (op *onlinePush) allEffectSubstances(ctx context.Context, minion *model2.Mi
 		subIDs = model2.Effects(effects).Exclusion(inet)
 	}
 
-	fmt.Println(subIDs)
 	subTbl := qry.Substance
 	dao := subTbl.WithContext(ctx).
 		Where(subTbl.MinionID.Eq(mid))

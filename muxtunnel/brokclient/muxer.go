@@ -13,12 +13,12 @@ import (
 
 type Muxer interface {
 	muxconn.Muxer
-	Config() model.BrokerConfig
+	Config() model.BrokerConfigParams
 }
 
 type muxHolder struct {
 	mux muxconn.Muxer
-	cfg model.BrokerConfig
+	cfg model.BrokerConfigParams
 }
 
 type safeMUX struct {
@@ -38,13 +38,13 @@ func (s *safeMUX) Traffic() (uint64, uint64)                  { return s.loadMUX
 func (s *safeMUX) Library() (string, string)                  { return s.loadMUX().Library() }
 func (s *safeMUX) Streams() []muxconn.Streamer                { return s.loadMUX().Streams() }
 func (s *safeMUX) ConnectedAt() time.Time                     { return s.loadMUX().ConnectedAt() }
-func (s *safeMUX) Config() model.BrokerConfig                 { return s.ptr.Load().cfg }
+func (s *safeMUX) Config() model.BrokerConfigParams           { return s.ptr.Load().cfg }
 
 func (s *safeMUX) loadMUX() muxconn.Muxer {
 	return s.ptr.Load().mux
 }
 
-func (s *safeMUX) store(mux muxconn.Muxer, cfg model.BrokerConfig) {
+func (s *safeMUX) store(mux muxconn.Muxer, cfg model.BrokerConfigParams) {
 	hold := &muxHolder{mux: mux, cfg: cfg}
 	s.ptr.Store(hold)
 }

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	model2 "github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/httpclient"
 )
 
@@ -44,16 +44,16 @@ type AgentTaskStatusOut struct {
 }
 
 type AgentTaskStatusItem struct {
-	ID      int64             `json:"id"`      // 配置 ID 由中心端下发
-	Dialect bool              `json:"dialect"` // 是否是私有配置，由中心端下发
-	Name    string            `json:"name"`    // 配置名称，由中心端下发
-	Status  string            `json:"status"`  // 运行状态
-	Hash    string            `json:"hash"`    // 配置哈希（目前是 MD5）
-	Uptime  time.Time         `json:"uptime"`  // 配置启动时间
-	From    string            `json:"from"`    // 配置来源，ssoc 平台下发的叫 tunnel（重要）
-	Link    string            `json:"link"`    // 外链，agent 根据代码分析而得。
-	Cause   string            `json:"cause"`   // 错误原因
-	Runners model.TaskRunners `json:"runners"` // 任务内部模块运行状态
+	ID      int64              `json:"id"`      // 配置 ID 由中心端下发
+	Dialect bool               `json:"dialect"` // 是否是私有配置，由中心端下发
+	Name    string             `json:"name"`    // 配置名称，由中心端下发
+	Status  string             `json:"status"`  // 运行状态
+	Hash    string             `json:"hash"`    // 配置哈希（目前是 MD5）
+	Uptime  time.Time          `json:"uptime"`  // 配置启动时间
+	From    string             `json:"from"`    // 配置来源，ssoc 平台下发的叫 tunnel（重要）
+	Link    string             `json:"link"`    // 外链，agent 根据代码分析而得。
+	Cause   string             `json:"cause"`   // 错误原因
+	Runners model2.TaskRunners `json:"runners"` // 任务内部模块运行状态
 }
 
 func (tr AgentTaskStatusOut) IDMap() map[int64]*AgentTaskStatusItem {
@@ -65,9 +65,9 @@ func (tr AgentTaskStatusOut) IDMap() map[int64]*AgentTaskStatusItem {
 	return hm
 }
 
-func (tr AgentTaskStatusOut) ToModels(mid int64, inet string) []*model.MinionTask {
+func (tr AgentTaskStatusOut) ToModels(mid int64, inet string) []*model2.MinionTask {
 	size := len(tr.Tasks)
-	ret := make([]*model.MinionTask, 0, size)
+	ret := make([]*model2.MinionTask, 0, size)
 	now := time.Now()
 
 	for _, task := range tr.Tasks {
@@ -75,7 +75,7 @@ func (tr AgentTaskStatusOut) ToModels(mid int64, inet string) []*model.MinionTas
 		if uptime.IsZero() {
 			uptime = now
 		}
-		mt := &model.MinionTask{
+		mt := &model2.MinionTask{
 			SubstanceID: task.ID,
 			MinionID:    mid,
 			Inet:        inet,
@@ -97,7 +97,7 @@ func (tr AgentTaskStatusOut) ToModels(mid int64, inet string) []*model.MinionTas
 	return ret
 }
 
-func (tr AgentTaskStatusOut) Diff(mid int64, subs model.Substances) *AgentTaskDiff {
+func (tr AgentTaskStatusOut) Diff(mid int64, subs model2.Substances) *AgentTaskDiff {
 	hm := tr.IDMap()
 	removes := make([]int64, 0, 10)
 	updates := make([]*AgentTaskChunk, 0, 10)

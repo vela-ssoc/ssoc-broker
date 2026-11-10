@@ -13,10 +13,10 @@ import (
 
 type Itself struct {
 	boot config.BootConfig
-	cfg  model.BrokerConfig
+	cfg  model.BrokerConfigParams
 }
 
-func NewItself(boot config.BootConfig, cfg model.BrokerConfig) *Itself {
+func NewItself(boot config.BootConfig, cfg model.BrokerConfigParams) *Itself {
 	return &Itself{
 		boot: boot,
 		cfg:  cfg,

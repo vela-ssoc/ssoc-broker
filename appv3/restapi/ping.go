@@ -1,8 +1,6 @@
 package restapi
 
 import (
-	"crypto/rand"
-	"io"
 	"net/http"
 
 	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
@@ -16,18 +14,11 @@ func NewPing() *Ping {
 }
 
 func (p *Ping) RegisterHTTP(g shipx.RouteGroup) error {
-	g.AgentV3.Group.Route("/ping").GET(p.ping)
 	g.ManagerV3.Group.Route("/ping").GET(p.ping)
-	g.ManagerV3.Group.Route("/chunk").GET(p.chunk)
 
 	return nil
 }
 
 func (p *Ping) ping(c *ship.Context) error {
 	return c.NoContent(http.StatusNoContent)
-}
-
-func (p *Ping) chunk(c *ship.Context) error {
-	rd := io.LimitReader(rand.Reader, 512*1024)
-	return c.Stream(http.StatusOK, ship.MIMEOctetStream, rd)
 }

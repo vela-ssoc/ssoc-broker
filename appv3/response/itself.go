@@ -6,6 +6,6 @@ import (
 )
 
 type ItselfConfig struct {
-	Boot   config.BootConfig  `json:"boot"`
-	Config model.BrokerConfig `json:"config"`
+	Boot   config.BootConfig        `json:"boot"`
+	Config model.BrokerConfigParams `json:"config"`
 }

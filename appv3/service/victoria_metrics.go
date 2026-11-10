@@ -23,7 +23,7 @@ type VictoriaMetrics struct {
 	mem   *memcache.TTL[*model.VictoriaMetricsConfig]
 }
 
-func NewVictoriaMetrics(db polydb.Sourcer, cfg model.BrokerConfig, log *slog.Logger) *VictoriaMetrics {
+func NewVictoriaMetrics(db polydb.Sourcer, cfg model.BrokerConfigParams, log *slog.Logger) *VictoriaMetrics {
 	vmc := &VictoriaMetrics{
 		db:    db,
 		log:   log,

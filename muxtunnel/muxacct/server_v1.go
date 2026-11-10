@@ -90,6 +90,11 @@ func (srv *Server) authenticationV1(w http.ResponseWriter, r *http.Request, sess
 	sess.Minion = minion
 
 	velacfg := velasmux.DefaultConfig()
+	if ident.Keepalive {
+		velacfg.KeepAliveDisabled = false
+		srv.log.Info("此 vela-tunnel 开启了 keepalive", "ident", ident)
+	}
+
 	mux, err := muxconn.NewVela(context.Background(), conn, velacfg, true)
 	if err != nil {
 		_ = srv.writeErrorV1(conn, r, http.StatusBadRequest, err)
@@ -97,7 +102,7 @@ func (srv *Server) authenticationV1(w http.ResponseWriter, r *http.Request, sess
 		return nil, err
 	}
 
-	data := muxproto.NodeData{
+	info := muxproto.NodeInfo{
 		IDV1:    minion.ID,
 		Inet:    ident.Inet,
 		GOOS:    ident.GOOS,
@@ -105,7 +110,7 @@ func (srv *Server) authenticationV1(w http.ResponseWriter, r *http.Request, sess
 		Version: ident.Semver,
 	}
 	host := strconv.Itoa(int(minion.ID))
-	node := srv.hub.Put(host, mux, data)
+	node := srv.hub.Put(host, mux, info)
 	if node == nil {
 		err = errors.New("节点已经在线了（连接池检查）")
 		_ = srv.writeErrorV1(conn, r, http.StatusBadRequest, err)
@@ -189,6 +194,7 @@ func (srv *Server) updateOnlineV1(mon *model.Minion, ident IdentV1, now time.Tim
 	tbl := srv.pdb.RDB().Minion
 	dao := tbl.WithContext(ctx)
 
+	bcfg := srv.mux.Config()
 	info, err := dao.Where(tbl.ID.Eq(mon.ID), tbl.Status.Eq(uint8(model.MSOffline))).
 		UpdateSimple(
 			tbl.Status.Value(uint8(model.MSOnline)),
@@ -200,9 +206,9 @@ func (srv *Server) updateOnlineV1(mon *model.Minion, ident IdentV1, now time.Tim
 			tbl.Unstable.Value(ident.Unstable),
 			tbl.Customized.Value(ident.Customized),
 			tbl.Uptime.Value(sql.NullTime{Time: now, Valid: true}),
-			// tbl.BrokerID.Value(brokerID),
-			// tbl.BrokerName.Value(srv.cfg.Slug),
-			tbl.BrokerSlug.Value(srv.cfg.Slug),
+			tbl.BrokerID.Value(bcfg.IDV1),
+			tbl.BrokerName.Value(bcfg.Name),
+			tbl.BrokerSlug.Value(bcfg.Slug),
 		)
 	if err != nil {
 		srv.log.Error("修改节点上线失败", "ident", ident, "err", err)

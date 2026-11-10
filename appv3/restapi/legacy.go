@@ -22,5 +22,6 @@ func (lg *Legacy) RegisterHTTP(g shipx.RouteGroup) error {
 
 func (lg *Legacy) endpoint(c *ship.Context) error {
 	w, r := c.ResponseWriter(), c.Request()
-	return lg.next.AcceptTCP(w, r)
+	_ = lg.next.AcceptTCP(w, r)
+	return nil
 }

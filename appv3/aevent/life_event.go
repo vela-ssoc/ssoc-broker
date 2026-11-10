@@ -26,13 +26,13 @@ func NewLifeEvent(pdb polydb.Sourcer, cli apiclient.Client, pool gopool.Pool, lo
 }
 
 func (le *LifeEvent) OnConnected(node muxproto.Node) {
-	data := node.Data()
+	data := node.Info()
 	le.log.Info("节点上线了", "id", data.IDV1)
 	push := &onlinePush{life: le, node: node}
 	le.pool.Go(push.Run)
 }
 
 func (le *LifeEvent) OnDisconnected(node muxproto.Node) {
-	data := node.Data()
+	data := node.Info()
 	le.log.Warn("节点下线了", "id", data.IDV1)
 }
