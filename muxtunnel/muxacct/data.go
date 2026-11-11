@@ -3,12 +3,14 @@ package muxacct
 import (
 	"time"
 
-	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	model2 "github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 )
 
 type sessionDataV1 struct {
-	Ident          IdentV1
-	Minion         *model.Minion
-	ConnectedAt    time.Time
-	DisconnectedAt time.Time
+	ConnectedAt        time.Time
+	BrokerConfigParams model.BrokerConfigParams
+	Ident              IdentV1
+	Minion             *model2.Minion
+	DisconnectedAt     time.Time
 }

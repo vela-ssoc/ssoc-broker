@@ -124,6 +124,8 @@ github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c h1:GSMgW4FBO
 github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c/go.mod h1:MnEJwYwWAxn9jpYhC4rDNvqvnzrrRQPpkwMDgX8Mtlc=
 github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261110014927-1dc71c18a1e5 h1:BfJRFjEWgK7lRjl/7sxdZ4OlxDTfYo0x7qqBitSa4/Q=
 github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261110014927-1dc71c18a1e5/go.mod h1:F1OqJ1UFGjq6gJhZyzYn/3UGGWbQX+fzg3UVfE1Cjf8=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261111024328-6094b55ff3b8 h1:J2GupBARQNAjK7OsbhutyWW4a3oRMGfxaN+vA+5vNJU=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261111024328-6094b55ff3b8/go.mod h1:F1OqJ1UFGjq6gJhZyzYn/3UGGWbQX+fzg3UVfE1Cjf8=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277 h1:yoGmjdg62V+7ttvssABuXmXMyqwWdDTACQ8YZOXKRnQ=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277/go.mod h1:DMN/az9fN2p0mJ1CNouJjsEJWs69Ucqbtq34DOCaTlc=
 github.com/vela-ssoc/vela-tunnel v0.0.0-20261109015452-01b902a5f485 h1:E7pS6LzDPiSz5Uff4JcX5qyhJMLZENOM61IK4LzLbsA=

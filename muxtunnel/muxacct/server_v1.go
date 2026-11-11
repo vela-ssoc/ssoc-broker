@@ -14,8 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	model2 "github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
 	velasmux "github.com/vela-ssoc/vela-common-mba/smux"
 	"github.com/vela-ssoc/vela-tunnel/muxconn"
@@ -24,7 +25,10 @@ import (
 )
 
 func (srv *Server) AcceptTCP(w http.ResponseWriter, r *http.Request) error {
-	sess := &sessionDataV1{ConnectedAt: time.Now()}
+	sess := &sessionDataV1{
+		ConnectedAt:        time.Now(),
+		BrokerConfigParams: srv.mux.Config(),
+	}
 	node, err := srv.authenticationV1(w, r, sess)
 	if err != nil {
 		return err
@@ -71,17 +75,18 @@ func (srv *Server) authenticationV1(w http.ResponseWriter, r *http.Request, sess
 	sess.Ident = ident
 
 	// TODO 限流器检查
-	minion, err := srv.findOrCreateByInetV1(ident, sess.ConnectedAt)
+	minion, err := srv.findOrCreateByInetV1(sess)
 	if err != nil {
 		_ = srv.writeErrorV1(conn, r, http.StatusBadRequest, err)
 		return nil, err
 	}
-	if minion.Status == model.MSOnline {
+	if minion.Status == model2.MSOnline {
 		err = errors.New("节点已经在线了（数据库检查）")
-		_ = srv.writeErrorV1(conn, r, http.StatusConflict, err)
+		// _ = srv.writeErrorV1(conn, r, http.StatusConflict, err) 避免再次生成机器码
+		_ = srv.writeErrorV1(conn, r, http.StatusForbidden, err)
 		srv.log.Error("节点重复上线", "ident", ident, "err", err)
 		return nil, err
-	} else if minion.Status == model.MSDelete {
+	} else if minion.Status == model2.MSDelete {
 		err = errors.New("节点已被标记删除")
 		_ = srv.writeErrorV1(conn, r, http.StatusForbidden, err)
 		srv.log.Error("节点已被标记删除", "ident", ident, "err", err)
@@ -119,7 +124,7 @@ func (srv *Server) authenticationV1(w http.ResponseWriter, r *http.Request, sess
 	}
 
 	// 修改数据库中的上线状态
-	if err = srv.updateOnlineV1(minion, ident, sess.ConnectedAt); err != nil {
+	if err = srv.updateOnlineV1(sess); err != nil {
 		srv.hub.Del(host)
 		_ = srv.writeErrorV1(conn, r, http.StatusBadRequest, err)
 		return nil, err
@@ -147,10 +152,11 @@ func (srv *Server) authenticationV1(w http.ResponseWriter, r *http.Request, sess
 	return nil, err
 }
 
-func (srv *Server) findOrCreateByInetV1(ident IdentV1, now time.Time) (*model.Minion, error) {
+func (srv *Server) findOrCreateByInetV1(sess *sessionDataV1) (*model2.Minion, error) {
 	ctx, cancel := srv.perContext()
 	defer cancel()
 
+	ident, now := sess.Ident, sess.ConnectedAt
 	inet, machineID := ident.Inet, ident.MachineID
 	tbl := srv.pdb.RDB().Minion
 	dao := tbl.WithContext(ctx)
@@ -170,10 +176,10 @@ func (srv *Server) findOrCreateByInetV1(ident IdentV1, now time.Time) (*model.Mi
 		return nil, err
 	}
 
-	doc := &model.Minion{
+	doc := &model2.Minion{
 		MachineID:   ident.MachineID,
 		Inet:        ident.Inet,
-		Status:      model.MSOffline,
+		Status:      model2.MSOffline,
 		HeartbeatAt: now,
 		CreatedAt:   now,
 		UpdatedAt:   now,
@@ -187,17 +193,18 @@ func (srv *Server) findOrCreateByInetV1(ident IdentV1, now time.Time) (*model.Mi
 	return doc, nil
 }
 
-func (srv *Server) updateOnlineV1(mon *model.Minion, ident IdentV1, now time.Time) error {
+func (srv *Server) updateOnlineV1(sess *sessionDataV1) error {
 	ctx, cancel := srv.perContext()
 	defer cancel()
 
 	tbl := srv.pdb.RDB().Minion
 	dao := tbl.WithContext(ctx)
 
-	bcfg := srv.mux.Config()
-	info, err := dao.Where(tbl.ID.Eq(mon.ID), tbl.Status.Eq(uint8(model.MSOffline))).
+	id, ident := sess.Minion.ID, sess.Ident
+	bcfg := sess.BrokerConfigParams
+	info, err := dao.Where(tbl.ID.Eq(id), tbl.Status.Eq(uint8(model2.MSOffline))).
 		UpdateSimple(
-			tbl.Status.Value(uint8(model.MSOnline)),
+			tbl.Status.Value(uint8(model2.MSOnline)),
 			tbl.Inet.Value(ident.Inet),
 			tbl.MAC.Value(ident.MAC),
 			tbl.Goos.Value(ident.GOOS),
@@ -205,7 +212,7 @@ func (srv *Server) updateOnlineV1(mon *model.Minion, ident IdentV1, now time.Tim
 			tbl.Edition.Value(ident.Semver),
 			tbl.Unstable.Value(ident.Unstable),
 			tbl.Customized.Value(ident.Customized),
-			tbl.Uptime.Value(sql.NullTime{Time: now, Valid: true}),
+			tbl.Uptime.Value(sql.NullTime{Time: sess.ConnectedAt, Valid: true}),
 			tbl.BrokerID.Value(bcfg.IDV1),
 			tbl.BrokerName.Value(bcfg.Name),
 			tbl.BrokerSlug.Value(bcfg.Slug),
@@ -222,7 +229,7 @@ func (srv *Server) updateOnlineV1(mon *model.Minion, ident IdentV1, now time.Tim
 	return nil
 }
 
-func (srv *Server) updateTagsV1(minion *model.Minion, ident IdentV1) error {
+func (srv *Server) updateTagsV1(minion *model2.Minion, ident IdentV1) error {
 	ctx, cancel := srv.perContext()
 	defer cancel()
 
@@ -230,15 +237,15 @@ func (srv *Server) updateTagsV1(minion *model.Minion, ident IdentV1) error {
 	id, inet := minion.ID, minion.Inet
 
 	return qry.Transaction(func(tx *query.Query) error {
-		const kind = model.TkLifelong
-		tags := model.MinionTags{
-			&model.MinionTag{MinionID: id, Tag: inet, Kind: kind},
+		const kind = model2.TkLifelong
+		tags := model2.MinionTags{
+			&model2.MinionTag{MinionID: id, Tag: inet, Kind: kind},
 		}
 		if goos := ident.GOOS; goos != "" {
-			tags = append(tags, &model.MinionTag{MinionID: id, Tag: goos, Kind: kind})
+			tags = append(tags, &model2.MinionTag{MinionID: id, Tag: goos, Kind: kind})
 		}
 		if arch := ident.Arch; arch != "" {
-			tags = append(tags, &model.MinionTag{MinionID: id, Tag: arch, Kind: kind})
+			tags = append(tags, &model2.MinionTag{MinionID: id, Tag: arch, Kind: kind})
 		}
 
 		minionTagTbl := tx.MinionTag
@@ -268,13 +275,64 @@ func (srv *Server) disconnectedV1(node muxproto.Node, sess *sessionDataV1) {
 	dao := tbl.WithContext(ctx)
 
 	mid := sess.Minion.ID
-	ret, err := dao.Where(tbl.ID.Eq(mid), tbl.Status.Eq(uint8(model.MSOnline))).UpdateSimple(
-		tbl.Status.Value(uint8(model.MSOffline)),
+	ret, err := dao.Where(tbl.ID.Eq(mid), tbl.Status.Eq(uint8(model2.MSOnline))).UpdateSimple(
+		tbl.Status.Value(uint8(model2.MSOffline)),
 	)
 	if err != nil {
 		srv.log.Info("修改节点下线状态出错", "ident", ident, "err", err)
 	} else if ret.RowsAffected == 0 {
 		srv.log.Info("修改节点下线状态出错（没有修改任何数据）", "ident", ident)
+	}
+
+	{
+		connAt, disconnAt := sess.ConnectedAt, sess.DisconnectedAt
+		sec := int64(disconnAt.Sub(connAt).Seconds())
+		bcfg := sess.BrokerConfigParams
+
+		library, module := mux.Library()
+		cumulative, _ := mux.NumStreams()
+		tx, rx := mux.Traffic() // RX/TX 互换
+
+		his := &model.AgentConnectHistory{
+			AgentIDV1: mid,
+			ExecuteStat: model.ExecuteStat{
+				GOOS:       ident.GOOS,
+				GOARCH:     ident.Arch,
+				Version:    ident.Semver,
+				Unstable:   ident.Unstable,
+				Customized: ident.Customized,
+				PID:        ident.PID,
+				Args:       ident.Args,
+				Hostname:   ident.Hostname,
+				Workdir:    ident.Workdir,
+				Executable: ident.Executable,
+			},
+			TunnelStat: model.TunnelStat{
+				Library:       library,
+				Module:        module,
+				Inet:          ident.Inet,
+				ConnectedAt:   connAt,
+				Cumulative:    cumulative,
+				LocalAddr:     mux.RemoteAddr().String(),
+				RemoteAddr:    mux.Addr().String(),
+				ReceiveBytes:  rx,
+				TransmitBytes: tx,
+			},
+			Broker: model.BrokerEndpoint{
+				ID:   bcfg.ID,
+				IDV1: bcfg.IDV1,
+				Slug: bcfg.Slug,
+				Name: bcfg.Name,
+			},
+			Seconds:        sec,
+			DisconnectedAt: disconnAt,
+		}
+
+		ctx1, cancel1 := srv.perContext()
+		defer cancel1()
+
+		coll := srv.pdb.MDB().AgentConnectHistory()
+		_, _ = coll.InsertOne(ctx1, his)
 	}
 }
 
@@ -285,8 +343,8 @@ func (srv *Server) rollbackOfflineV1(id int64) (gen.ResultInfo, error) {
 	tbl := srv.pdb.RDB().Minion
 	dao := tbl.WithContext(ctx)
 
-	return dao.Where(tbl.ID.Eq(id), tbl.Status.Eq(uint8(model.MSOnline))).
-		UpdateSimple(tbl.Status.Value(uint8(model.MSOffline)))
+	return dao.Where(tbl.ID.Eq(id), tbl.Status.Eq(uint8(model2.MSOnline))).
+		UpdateSimple(tbl.Status.Value(uint8(model2.MSOffline)))
 }
 
 func (srv *Server) validateIdentV1(ident IdentV1) error {

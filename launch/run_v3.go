@@ -209,6 +209,7 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewFactory(restapi.NewAgentAudit),
 		gontainer.NewFactory(service.NewAgentCollect),
 		gontainer.NewFactory(restapi.NewAgentCollect),
+		gontainer.NewFactory(restapi.NewAgentReverseProxy),
 		gontainer.NewFactory(restapi.NewItself),
 		gontainer.NewFactory(restapi.NewItselfCrontab),
 		gontainer.NewFactory(restapi.NewItselfExit),

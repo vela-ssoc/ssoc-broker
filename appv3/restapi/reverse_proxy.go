@@ -3,6 +3,7 @@ package restapi
 import (
 	"github.com/vela-ssoc/ssoc-broker/appv3/service"
 	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
+	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -24,7 +25,7 @@ func (rp *ReverseProxy) RegisterHTTP(g shipx.RouteGroup) error {
 }
 
 func (rp *ReverseProxy) handle(c *ship.Context) error {
-	w, r := shipx.Strip(c, "path")
+	w, r := httpship.Strip(c, "path")
 	ctx := r.Context()
 	loc := c.Param("location")
 
