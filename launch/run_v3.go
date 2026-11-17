@@ -13,7 +13,7 @@ import (
 	"github.com/NVIDIA/gontainer/v2"
 	"github.com/gorilla/websocket"
 	"github.com/robfig/cron/v3"
-	"github.com/vela-ssoc/ssoc-broker/appv3/aevent"
+	"github.com/vela-ssoc/ssoc-broker/agentask"
 	"github.com/vela-ssoc/ssoc-broker/appv3/restapi"
 	"github.com/vela-ssoc/ssoc-broker/appv3/service"
 	"github.com/vela-ssoc/ssoc-broker/appv3/shipx"
@@ -149,10 +149,11 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 	httpcli := &http.Client{Transport: transport}
 	apicli := apiclient.NewClient(httpcli, log)
 	pool := gopool.New(500)
-	agentLifeEvent := aevent.NewLifeEvent(pdb, apicli, pool, log)
+	agtaskcli := agentask.NewClient(apicli, pdb, log)
+	agentConnEvent := service.NewAgentConnectEvent(agtaskcli, pool, log)
 
 	acctopts := muxacct.Options{
-		Event:      agentLifeEvent,
+		Event:      agentConnEvent,
 		Validate:   valid.Validate,
 		PerTimeout: 20 * time.Second,
 	}
@@ -205,6 +206,7 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewService(transport),
 		gontainer.NewService(httpcli),
 		gontainer.NewService(muxsrv),
+		gontainer.NewService(agtaskcli),
 
 		gontainer.NewFactory(service.NewAgentAudit),
 		gontainer.NewFactory(restapi.NewAgentAudit),
@@ -213,6 +215,7 @@ func Exec(ctx context.Context, boot config.BootConfig) error {
 		gontainer.NewFactory(restapi.NewAgentReverseProxy),
 		gontainer.NewFactory(service.NewAgentStream),
 		gontainer.NewFactory(restapi.NewAgentStream),
+		gontainer.NewFactory(restapi.NewAgentTask),
 		gontainer.NewFactory(restapi.NewItself),
 		gontainer.NewFactory(restapi.NewItselfCrontab),
 		gontainer.NewFactory(restapi.NewItselfExit),
