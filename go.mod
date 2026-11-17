@@ -11,9 +11,8 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261117011823-a2637bdc1d20
-	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
-	github.com/vela-ssoc/vela-tunnel v0.0.0-20261111054436-3f39d8185b75
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261117071842-c91ea29edd2a
+	github.com/vela-ssoc/vela-tunnel v0.0.0-20261117070154-465754a5544b
 	github.com/xgfone/ship/v5 v5.3.2
 	github.com/yeka/zip v0.0.0-20231116150916-03d6312748a9
 	go.mongodb.org/mongo-driver/v2 v2.10.0

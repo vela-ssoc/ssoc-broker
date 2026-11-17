@@ -3,7 +3,7 @@ package muxacct
 import (
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mba/ciphertext"
+	"github.com/vela-ssoc/vela-tunnel/legacy/ciphertext"
 )
 
 // IdentV1 旧版本 agent 节点握手认证时需要携带的信息，

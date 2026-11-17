@@ -18,7 +18,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
-	velasmux "github.com/vela-ssoc/vela-common-mba/smux"
+	velasmux "github.com/vela-ssoc/vela-tunnel/legacy/smux"
 	"github.com/vela-ssoc/vela-tunnel/muxconn"
 	"gorm.io/gen"
 	"gorm.io/gorm"

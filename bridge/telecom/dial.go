@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mba/netutil"
+	"github.com/vela-ssoc/vela-tunnel/legacy/netutil"
 )
 
 func newIterDial(addrs netutil.Addresses) *iterDial {

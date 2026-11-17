@@ -48,7 +48,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common/cronv3"
 	"github.com/vela-ssoc/ssoc-common/logger"
 	"github.com/vela-ssoc/ssoc-common/vmetric"
-	"github.com/vela-ssoc/vela-common-mba/netutil"
+	"github.com/vela-ssoc/vela-tunnel/legacy/netutil"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"

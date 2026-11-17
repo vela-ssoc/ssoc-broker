@@ -134,12 +134,10 @@ github.com/valyala/histogram v1.2.0 h1:wyYGAZZt3CpwUiIb9AU/Zbllg1llXyrtApRS815OL
 github.com/valyala/histogram v1.2.0/go.mod h1:Hb4kBwb4UxsaNbbbh+RRz8ZR6pdodR57tzWUS3BUzXY=
 github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c h1:GSMgW4FBObW+4HsE1imoTmYPpARGLqevpKYa985TrpE=
 github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c/go.mod h1:MnEJwYwWAxn9jpYhC4rDNvqvnzrrRQPpkwMDgX8Mtlc=
-github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261117011823-a2637bdc1d20 h1:YQ+P80Ph8/+lS/aqZADcK04D5sxLZNUHPu1VValIPNw=
-github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261117011823-a2637bdc1d20/go.mod h1:saF5Tb2yHUsbIejlWiN8U8nlRhLNs9lPiEiPKFAb68M=
-github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277 h1:yoGmjdg62V+7ttvssABuXmXMyqwWdDTACQ8YZOXKRnQ=
-github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277/go.mod h1:DMN/az9fN2p0mJ1CNouJjsEJWs69Ucqbtq34DOCaTlc=
-github.com/vela-ssoc/vela-tunnel v0.0.0-20261111054436-3f39d8185b75 h1:9G02ZJcetwCjpHvVVRHeVacTnw/Imh2o+N9ANUzNOM8=
-github.com/vela-ssoc/vela-tunnel v0.0.0-20261111054436-3f39d8185b75/go.mod h1:iDsSEqF1RNE299pJhZLNZnf+0gAN7Yx1KXL/7otKjuM=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261117071842-c91ea29edd2a h1:mGzT4/HIjBXs0y35B8N02JkxuvUPvo+ddlMxAj4vWi8=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261117071842-c91ea29edd2a/go.mod h1:ee6DTnP3vsw20/OtMOPn9CMHGrJodC9r/KrOICJ7j1I=
+github.com/vela-ssoc/vela-tunnel v0.0.0-20261117070154-465754a5544b h1:P2w/sT4wyPIwUl7MCHjuu6h5MmCZCDS13xA0xVn4RCI=
+github.com/vela-ssoc/vela-tunnel v0.0.0-20261117070154-465754a5544b/go.mod h1:AsTf6iR8taHVQkuz4uJwc9ABfKUk9lv4bLJQTM5y4R0=
 github.com/xdg-go/scram v1.4.0 h1:3/wY9vMc786lAsuowR1CGxl0oVQDUWnCliDnWKhiZJs=
 github.com/xdg-go/scram v1.4.0/go.mod h1:rWC+ac5XyfRhG8rI7Css3P9K+/sjzldRjM9PI7VPlNM=
 github.com/xdg-go/stringprep v1.0.4 h1:XLI/Ng3O1Atzq0oBs3TWm+5ZVgkq2aqdlvP9JtoZ6c8=

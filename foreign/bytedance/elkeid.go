@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mba/netutil"
+	"github.com/vela-ssoc/vela-tunnel/legacy/netutil"
 )
 
 func ElkeidFS(dir string, cli netutil.HTTPClient) fs.FS {

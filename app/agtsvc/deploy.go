@@ -12,8 +12,8 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
-	"github.com/vela-ssoc/vela-common-mba/ciphertext"
-	"github.com/vela-ssoc/vela-common-mba/definition"
+	"github.com/vela-ssoc/vela-tunnel/legacy/ciphertext"
+	"github.com/vela-ssoc/vela-tunnel/legacy/definition"
 	"gorm.io/gen"
 )
 
